@@ -150,3 +150,31 @@ When adding dependencies:
 - Shared configs are in respective packages
 - Extension uses Vite with @tailwindcss/vite plugin
 - Website uses Next.js with standard Tailwind setup
+
+## Working with Agents
+
+IMPORTANT: When working on complex tasks in this codebase, you should proactively use the Task tool to dispatch specialized agents:
+
+### Available Agents to Use
+
+1. **frontend-architect**: Use for designing, building, or refactoring frontend components, implementing UI features, optimizing performance, handling routing, animations, accessibility, and following frontend best practices. Particularly useful for work in `apps/extension` and `apps/website`.
+
+2. **monorepo-architect**: Use for establishing project architecture, setting up build systems, configuring tools, organizing package structures, implementing testing strategies, or ensuring TypeScript type safety across the monorepo. Essential for maintaining the pnpm workspace structure.
+
+### When to Use Agents
+
+- **Complex UI Implementation**: Dispatch `frontend-architect` when creating new components, implementing the spinner wheel, or adding interactive features
+- **Architecture Changes**: Use `monorepo-architect` when modifying package structure, adding new packages, or setting up tooling
+- **Code Quality**: Use `monorepo-architect` to review and enforce coding standards after implementing features
+- **Performance Optimization**: Use `frontend-architect` for optimizing the spinner animation or improving load times
+
+### Example Agent Usage Scenarios
+
+- Building a new spinner animation → Use `frontend-architect`
+- Adding a new package to the monorepo → Use `monorepo-architect`
+- Implementing CSV import UI → Use `frontend-architect`
+- Setting up testing infrastructure → Use `monorepo-architect`
+- Optimizing bundle size → Use `monorepo-architect`
+- Creating responsive layouts → Use `frontend-architect`
+
+Always consider dispatching agents for non-trivial tasks to ensure best practices and maintainable code.
