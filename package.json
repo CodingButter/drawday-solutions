@@ -1,0 +1,32 @@
+{
+  "name": "drawday-spinner",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DrawDay Spinner - Professional Live Draw Chrome Extension",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r --filter='!@raffle-spinner/extension' build && pnpm --filter @raffle-spinner/extension build",
+    "build:website": "pnpm -r --filter='!@raffle-spinner/extension' build",
+    "clean": "pnpm -r clean",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
+    "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
+    "typecheck": "pnpm -r typecheck",
+    "quality": "pnpm lint && pnpm format:check && pnpm typecheck",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@raffle-spinner/eslint-config": "workspace:*",
+    "@raffle-spinner/prettier-config": "workspace:*",
+    "eslint": "^8.57.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.5",
+    "prettier": "^3.3.3",
+    "typescript": "^5.5.4"
+  },
+  "packageManager": "pnpm@9.15.9+sha512.68046141893c66fad01c079231128e9afb89ef87e2691d69e4d40eee228988295fd4682181bae55b58418c3a253bde65a505ec7c5f9403ece5cc3cd37dcf2531",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

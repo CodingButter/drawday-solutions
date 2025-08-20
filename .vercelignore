@@ -1,0 +1,12 @@
+# Vercel ignore file for monorepo
+apps/extension
+packages/*/tsconfig.json
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+**/__tests__
+**/*.md
+.turbo
+.git
+.gitignore
