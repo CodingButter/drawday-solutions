@@ -118,11 +118,18 @@ export function Navigation() {
               Contact
             </Link>
             
+            <Link
+              href="/login"
+              className="text-gray-300 hover:text-white transition-colors"
+            >
+              Sign In
+            </Link>
+            
             <Button 
               className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
               asChild
             >
-              <Link href="/contact">
+              <Link href="/register">
                 Get Started
               </Link>
             </Button>
@@ -189,10 +196,17 @@ export function Navigation() {
                 >
                   Contact
                 </Link>
+                <Link
+                  href="/login"
+                  className="block text-gray-300 hover:text-white transition-colors px-2 py-2"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Sign In
+                </Link>
               </div>
               
               <Button className="w-full bg-gradient-to-r from-purple-600 to-blue-600" asChild>
-                <Link href="/contact">
+                <Link href="/register">
                   Get Started
                 </Link>
               </Button>
