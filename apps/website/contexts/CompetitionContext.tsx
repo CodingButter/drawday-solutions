@@ -34,6 +34,10 @@ const CompetitionContext = createContext<CompetitionContextType | null>(null);
 // Helper functions for localStorage operations
 const loadCompetitionsFromStorage = (): Competition[] => {
   try {
+    // Check if we're on the client side
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return [];
+    }
     const stored = localStorage.getItem('competitions');
     return stored ? JSON.parse(stored) : [];
   } catch (error) {
@@ -44,6 +48,10 @@ const loadCompetitionsFromStorage = (): Competition[] => {
 
 const saveCompetitionsToStorage = (competitions: Competition[]) => {
   try {
+    // Check if we're on the client side
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
     localStorage.setItem('competitions', JSON.stringify(competitions));
     // Dispatch a custom event to notify other tabs/windows
     window.dispatchEvent(new StorageEvent('storage', {
@@ -57,15 +65,25 @@ const saveCompetitionsToStorage = (competitions: Competition[]) => {
 };
 
 export function CompetitionProvider({ children }: { children: React.ReactNode }) {
-  const [competitions, setCompetitions] = useState<Competition[]>(() => loadCompetitionsFromStorage());
-  const [selectedCompetition, setSelectedCompetition] = useState<Competition | null>(() => {
+  const [competitions, setCompetitions] = useState<Competition[]>([]);
+  const [selectedCompetition, setSelectedCompetition] = useState<Competition | null>(null);
+  
+  // Load from localStorage after component mounts (client-side only)
+  useEffect(() => {
+    const loadedCompetitions = loadCompetitionsFromStorage();
+    setCompetitions(loadedCompetitions);
+    
     try {
-      const stored = localStorage.getItem('selectedCompetition');
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const stored = localStorage.getItem('selectedCompetition');
+        if (stored) {
+          setSelectedCompetition(JSON.parse(stored));
+        }
+      }
+    } catch (error) {
+      console.error('Error loading selected competition:', error);
     }
-  });
+  }, []);
 
   // Listen for changes from other tabs/windows
   useEffect(() => {
@@ -93,10 +111,12 @@ export function CompetitionProvider({ children }: { children: React.ReactNode })
 
   // Sync selected competition to localStorage
   useEffect(() => {
-    if (selectedCompetition) {
-      localStorage.setItem('selectedCompetition', JSON.stringify(selectedCompetition));
-    } else {
-      localStorage.removeItem('selectedCompetition');
+    if (typeof window !== 'undefined' && window.localStorage) {
+      if (selectedCompetition) {
+        localStorage.setItem('selectedCompetition', JSON.stringify(selectedCompetition));
+      } else {
+        localStorage.removeItem('selectedCompetition');
+      }
     }
   }, [selectedCompetition]);
 
@@ -148,20 +168,25 @@ export function CompetitionProvider({ children }: { children: React.ReactNode })
     // Clear selection if deleted competition was selected
     if (selectedCompetition?.id === id) {
       setSelectedCompetition(null);
-      localStorage.removeItem('selectedCompetition');
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.removeItem('selectedCompetition');
+      }
     }
   };
 
   const selectCompetition = (competition: Competition) => {
     setSelectedCompetition(competition);
-    localStorage.setItem('selectedCompetition', JSON.stringify(competition));
     
-    // Dispatch custom event for immediate updates
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: 'selectedCompetition',
-      newValue: JSON.stringify(competition),
-      storageArea: localStorage
-    }));
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem('selectedCompetition', JSON.stringify(competition));
+      
+      // Dispatch custom event for immediate updates
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'selectedCompetition',
+        newValue: JSON.stringify(competition),
+        storageArea: localStorage
+      }));
+    }
   };
 
   const updateCompetitionBanner = async (id: string, bannerImage: string) => {

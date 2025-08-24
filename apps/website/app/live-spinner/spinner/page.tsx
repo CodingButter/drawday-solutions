@@ -28,7 +28,7 @@ function SidePanelContent() {
   const [user, setUser] = useState<any>(null);
   const { competitions, selectedCompetition, selectCompetition, refreshCompetitions } = useCompetitions();
   const { settings, refreshSettings } = useSettings();
-  const { theme, updateTheme } = useTheme();
+  const { theme } = useTheme();
   const [ticketNumber, setTicketNumber] = useState('');
   const [isSpinning, setIsSpinning] = useState(false);
   const [sessionWinners, setSessionWinners] = useState<Winner[]>([]);
@@ -47,15 +47,8 @@ function SidePanelContent() {
     }
   });
 
-  useLocalStoragePolling({
-    key: 'theme',
-    interval: 500,
-    onUpdate: (value) => {
-      if (value) {
-        updateTheme(value);
-      }
-    }
-  });
+  // Theme updates are handled by ThemeContext's own polling mechanism
+  // No need to poll for theme updates here
 
   useLocalStoragePolling({
     key: 'settings',
