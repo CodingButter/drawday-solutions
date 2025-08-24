@@ -110,6 +110,12 @@ function SidePanelContent() {
 
     // Use shared utility for ticket normalization
     const normalizedInput = normalizeTicketNumber(ticketNumber);
+    
+    console.log('Searching for ticket:', ticketNumber, 'normalized:', normalizedInput);
+    console.log('Available participants:', selectedCompetition.participants.map(p => ({
+      ticket: p.ticketNumber,
+      normalized: normalizeTicketNumber(p.ticketNumber)
+    })));
 
     const participant = selectedCompetition.participants.find(
       (p) => normalizeTicketNumber(p.ticketNumber) === normalizedInput
@@ -117,9 +123,11 @@ function SidePanelContent() {
 
     if (!participant) {
       setError('Ticket number not found in this competition');
+      console.error('Ticket not found:', normalizedInput, 'in competition:', selectedCompetition.name);
       return;
     }
 
+    console.log('Starting spin for participant:', participant);
     setIsSpinning(true);
     setCurrentWinner(null);
   };

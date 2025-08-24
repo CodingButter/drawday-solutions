@@ -468,8 +468,11 @@ export const getUserSettingsTimestamp = async (userId: string): Promise<number |
       return data.lastUpdated?.toMillis?.() || null;
     }
     return null;
-  } catch (error) {
-    console.error('Error getting settings timestamp:', error);
+  } catch (error: any) {
+    // Silently handle permission errors for non-existent documents
+    if (error?.code !== 'permission-denied' && error?.message && !error.message.includes('Missing or insufficient permissions')) {
+      console.error('Error getting settings timestamp:', error);
+    }
     return null;
   }
 };

@@ -5,7 +5,7 @@
  * including physics calculations and subset swapping.
  */
 
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useEffect } from "react";
 import { Participant, SpinnerSettings } from "@raffle-spinner/storage";
 import { normalizeTicketNumber, logger } from "@raffle-spinner/utils";
 
@@ -43,6 +43,15 @@ export function useSlotMachineAnimation({
   const animationRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
   const isSpinningRef = useRef(false);
+  
+  // Store callbacks in refs to avoid dependency issues
+  const onSpinCompleteRef = useRef(onSpinComplete);
+  const onPositionUpdateRef = useRef(onPositionUpdate);
+  
+  useEffect(() => {
+    onSpinCompleteRef.current = onSpinComplete;
+    onPositionUpdateRef.current = onPositionUpdate;
+  }, [onSpinComplete, onPositionUpdate]);
 
   /**
    * Find the winner participant by ticket number
@@ -72,8 +81,10 @@ export function useSlotMachineAnimation({
    * Start the spin animation
    */
   const spin = useCallback(() => {
+    console.log('useSlotMachineAnimation: spin() called');
     // Prevent multiple simultaneous spins
     if (isSpinningRef.current) {
+      console.log('useSlotMachineAnimation: Already spinning, returning');
       return;
     }
 
@@ -82,7 +93,10 @@ export function useSlotMachineAnimation({
       ? getParticipants()
       : initialParticipants;
 
+    console.log('useSlotMachineAnimation: Participants count:', currentParticipants.length);
+
     if (currentParticipants.length === 0) {
+      console.error('useSlotMachineAnimation: No participants available');
       onError?.("No participants available");
       return;
     }
@@ -151,10 +165,15 @@ export function useSlotMachineAnimation({
     let hasTriggeredMaxVelocity = false;
     let recalculatedPhysics = physics;
     let recalculatedTarget = false;
+    
+    console.log('useSlotMachineAnimation: Starting animation with physics:', physics);
 
     // Animation loop
     const animate = (currentTime: number) => {
-      if (!isSpinningRef.current) return;
+      if (!isSpinningRef.current) {
+        console.log('useSlotMachineAnimation: Animation cancelled');
+        return;
+      }
 
       const elapsed = currentTime - startTimeRef.current;
       const progress = Math.min(elapsed / recalculatedPhysics.duration, 1);
@@ -222,20 +241,22 @@ export function useSlotMachineAnimation({
       }
 
       // Update position
-      onPositionUpdate(position);
+      onPositionUpdateRef.current(position);
 
       // Continue or complete animation
       if (progress < 1) {
         animationRef.current = requestAnimationFrame(animate);
       } else {
         // Animation complete
+        console.log('useSlotMachineAnimation: Animation complete, winner:', winner);
         isSpinningRef.current = false;
         animationRef.current = null;
-        onSpinComplete(winner);
+        onSpinCompleteRef.current(winner);
       }
     };
 
     // Start animation
+    console.log('useSlotMachineAnimation: Starting requestAnimationFrame');
     animationRef.current = requestAnimationFrame(animate);
   }, [
     initialParticipants,

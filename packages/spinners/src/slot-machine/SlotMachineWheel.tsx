@@ -513,19 +513,32 @@ export function SlotMachineWheel({
     getParticipants: () => currentSubsetRef.current,
   });
 
+  // Store the spin and cancel functions in refs to avoid dependency issues
+  const spinRef = useRef(spin);
+  const cancelRef = useRef(cancel);
+  
+  useEffect(() => {
+    spinRef.current = spin;
+    cancelRef.current = cancel;
+  }, [spin, cancel]);
+
   // Handle spin start/stop
   useEffect(() => {
+    console.log('SlotMachineWheel: isSpinning changed to', isSpinning, 'targetTicket:', targetTicketNumber);
     if (isSpinning && !isAnimatingRef.current) {
+      console.log('SlotMachineWheel: Starting animation for ticket', targetTicketNumber);
+      console.log('SlotMachineWheel: Participants count:', participants.length);
       isAnimatingRef.current = true;
       hasSwappedRef.current = false; // Reset swap flag
       // Start spinning with current subset (will swap at max velocity)
-      spin();
+      spinRef.current();
     } else if (!isSpinning && isAnimatingRef.current) {
+      console.log('SlotMachineWheel: Stopping animation');
       isAnimatingRef.current = false;
       hasSwappedRef.current = false;
-      cancel();
+      cancelRef.current();
     }
-  }, [isSpinning, spin, cancel]);
+  }, [isSpinning, targetTicketNumber]); // Include targetTicketNumber to ensure we use the right target
 
   // Draw wheel when position, subset, or theme changes
   useEffect(() => {
