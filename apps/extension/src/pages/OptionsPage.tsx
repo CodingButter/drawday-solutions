@@ -9,11 +9,11 @@
  */
 
 import { useState } from 'react';
-import { CompetitionProvider, useCompetitions } from '@/contexts/CompetitionContext';
-import { SettingsProvider, useSettings } from '@/contexts/SettingsContext';
-import { ThemeProvider } from '@/contexts/ThemeContext';
-import { CollapsibleStateProvider, useCollapsibleState } from '@/contexts/CollapsibleStateContext';
-import { useCSVImport } from '@/hooks/useCSVImport';
+import { CompetitionProvider, useCompetitions } from '@raffle-spinner/contexts';
+import { SettingsProvider, useSettings } from '@raffle-spinner/contexts';
+import { ThemeProvider } from '@raffle-spinner/contexts';
+import { CollapsibleStateProvider, useCollapsibleState } from '@raffle-spinner/contexts';
+import { useCSVImport } from '@raffle-spinner/hooks';
 import { CompetitionManagementContent } from '@/components/options/CompetitionManagementContent';
 import { CSVUploadModal } from '@/components/options/CSVUploadModal';
 import { ColumnMapper } from '@/components/options/ColumnMapper';
@@ -25,9 +25,9 @@ import { SpinnerCustomization } from '@/components/options/SpinnerCustomization'
 import { ThemeColors } from '@/components/options/ThemeColors';
 import { BrandingSettings } from '@/components/options/BrandingSettings';
 import { SavedMappingsManager } from '@/components/options/SavedMappingsManager';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@raffle-spinner/ui';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@raffle-spinner/ui';
+import { Button } from '@raffle-spinner/ui';
 import { CheckCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { Competition } from '@raffle-spinner/storage';
 

@@ -1,6 +1,7 @@
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+// Re-export utilities from shared packages
+export {
+  cn,
+  normalizeTicketNumber,
+  extractNumericTicket,
+  isNumericTicket,
+} from '@raffle-spinner/utils';

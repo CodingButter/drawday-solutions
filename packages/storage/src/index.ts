@@ -12,8 +12,15 @@
 export * from "./types";
 export * from "./storage-adapter";
 export * from "./chrome-storage-adapter";
+export * from "./local-storage-adapter";
+export {
+  createStorageAdapter,
+  getStorageEnvironment,
+  type StorageEnvironment,
+} from "./storage-factory";
 
-import { ChromeStorageAdapter } from "./chrome-storage-adapter";
+import { createStorageAdapter } from "./storage-factory";
 
-// Default export for convenience
-export const storage = new ChromeStorageAdapter();
+// Create storage adapter based on environment
+// Will auto-detect Chrome extension vs web environment
+export const storage = createStorageAdapter("auto");

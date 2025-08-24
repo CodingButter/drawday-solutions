@@ -2,7 +2,7 @@
   "extends": "@raffle-spinner/typescript-config/react-library.json",
   "compilerOptions": {
     "outDir": "dist",
-    "types": []
+    "types": ["chrome"]
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]

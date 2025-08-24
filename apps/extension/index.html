@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DrawDay Spinner - Development Mode</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        background: #0f0f23;
+        color: #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+      }
+      .container {
+        text-align: center;
+        padding: 2rem;
+      }
+      h1 {
+        background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-size: 3rem;
+        margin-bottom: 1rem;
+      }
+      p {
+        color: #94a3b8;
+        margin-bottom: 2rem;
+      }
+      .links {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      a {
+        display: inline-block;
+        padding: 1rem 2rem;
+        background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+        color: white;
+        text-decoration: none;
+        border-radius: 0.5rem;
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+      a:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(139, 92, 246, 0.3);
+      }
+      .note {
+        margin-top: 3rem;
+        padding: 1rem;
+        background: rgba(139, 92, 246, 0.1);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 0.5rem;
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>DrawDay Spinner</h1>
+      <p>Development Mode - Choose a page to test:</p>
+      
+      <div class="links">
+        <a href="/sidepanel.html">
+          <div>🎯 Spinner</div>
+          <small>Main spinner interface</small>
+        </a>
+        <a href="/options.html">
+          <div>⚙️ Options</div>
+          <small>Settings & configuration</small>
+        </a>
+      </div>
+      
+      <div class="note">
+        <p><strong>💡 Development Mode Active</strong></p>
+        <p>Using localStorage instead of chrome.storage.local</p>
+        <p>All data is stored in your browser's localStorage</p>
+      </div>
+    </div>
+  </body>
+</html>

@@ -10,27 +10,21 @@
  */
 
 import { useState, useRef } from 'react';
-import { CompetitionProvider, useCompetitions } from '@/contexts/CompetitionContext';
-import { SettingsProvider, useSettings } from '@/contexts/SettingsContext';
-import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
+import { CompetitionProvider, useCompetitions } from '@raffle-spinner/contexts';
+import { SettingsProvider, useSettings } from '@raffle-spinner/contexts';
+import { ThemeProvider, useTheme } from '@raffle-spinner/contexts';
 import { SlotMachineWheel } from '@raffle-spinner/spinners';
 import type { SpinnerTheme } from '@raffle-spinner/spinners';
 import { SessionWinners, Winner } from '@/components/sidepanel/SessionWinners';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
+import { Button } from '@raffle-spinner/ui';
+import { Input } from '@raffle-spinner/ui';
+import { Card, CardContent } from '@raffle-spinner/ui';
+import { Label } from '@raffle-spinner/ui';
 import { normalizeTicketNumber } from '@/lib/utils';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@raffle-spinner/ui';
+import { Alert, AlertDescription } from '@raffle-spinner/ui';
 import { Sparkles, AlertCircle } from 'lucide-react';
-import { InfoTooltip } from '@/components/ui/info-tooltip';
+import { InfoTooltip } from '@raffle-spinner/ui';
 import { helpContent } from '@/lib/help-content';
 import { Participant } from '@raffle-spinner/storage';
 import confetti from 'canvas-confetti';

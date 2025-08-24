@@ -7,7 +7,7 @@
 
 import { SlotMachineWheel } from '@raffle-spinner/spinners';
 import { Participant, SpinnerSettings } from '@raffle-spinner/storage';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useTheme } from '@raffle-spinner/contexts';
 
 interface SlotMachineWheelWrapperProps {
   participants: Participant[];
@@ -46,7 +46,6 @@ export function SlotMachineWheelWrapper({
   };
 
   // Show debug info in development mode
-  // @ts-expect-error - import.meta.env is available in Vite
   const showDebug = import.meta.env?.DEV || false;
 
   return (

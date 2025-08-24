@@ -17,7 +17,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from '@raffle-spinner/ui';
 import { Competition } from '@raffle-spinner/storage';
 
 interface DeleteConfirmDialogProps {

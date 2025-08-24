@@ -17,6 +17,31 @@ export * from "./components/label";
 
 // Dialog components
 export * from "./components/dialog";
+export * from "./components/alert-dialog";
+export * from "./components/alert";
+
+// Badge component
+export * from "./components/badge";
+
+// Form components (additional)
+export * from "./components/checkbox";
+export * from "./components/select";
+export * from "./components/slider";
+export * from "./components/switch";
+
+// Upload components
+export * from "./components/image-upload";
+
+// Overlay components
+export * from "./components/popover";
+export * from "./components/tooltip";
+export * from "./components/info-tooltip";
+
+// Table components
+export * from "./components/table";
+
+// Tabs components
+export * from "./components/tabs";
 
 // Utility functions
 export { cn } from "./lib/utils";

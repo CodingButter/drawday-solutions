@@ -3,7 +3,7 @@
  *
  * Central type definitions for all spinner implementations.
  * Provides consistent interfaces for themes, props, and configuration.
- * 
+ *
  * @module types
  * @category Types
  */
@@ -12,11 +12,11 @@ import { Participant, SpinnerSettings } from "@raffle-spinner/storage";
 
 /**
  * Theme configuration for spinner components.
- * 
+ *
  * Provides comprehensive styling options including colors, typography,
  * and visual effects like shadows. All properties are optional with
  * sensible defaults.
- * 
+ *
  * @interface SpinnerTheme
  */
 export interface SpinnerTheme {
@@ -69,10 +69,10 @@ export const DEFAULT_SPINNER_THEME: SpinnerTheme = {
 
 /**
  * Base properties shared by all spinner component implementations.
- * 
+ *
  * Defines the core interface that all spinner variants must support,
  * ensuring consistent behavior across different spinner types.
- * 
+ *
  * @interface BaseSpinnerProps
  */
 export interface BaseSpinnerProps {

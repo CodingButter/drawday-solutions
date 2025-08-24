@@ -7,22 +7,16 @@
 
 import { useState } from 'react';
 import { HexColorPicker } from 'react-colorful';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Slider } from '@/components/ui/slider';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useTheme } from '@/contexts/ThemeContext';
-import { InfoTooltip } from '@/components/ui/info-tooltip';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@raffle-spinner/ui';
+import { Label } from '@raffle-spinner/ui';
+import { Button } from '@raffle-spinner/ui';
+import { Input } from '@raffle-spinner/ui';
+import { Slider } from '@raffle-spinner/ui';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@raffle-spinner/ui';
+import { Popover, PopoverContent, PopoverTrigger } from '@raffle-spinner/ui';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@raffle-spinner/ui';
+import { useTheme } from '@raffle-spinner/contexts';
+import { InfoTooltip } from '@raffle-spinner/ui';
 import { Palette, Type, Square, RefreshCw } from 'lucide-react';
 import type { SpinnerType, SpinnerStyle } from '@raffle-spinner/storage';
 

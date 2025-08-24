@@ -18,16 +18,16 @@
   /* Core brand colors */
   --color-drawday-navy: #0b1e3a; /* DrawDay Navy - Brand primary */
   --color-drawday-gold: #e6b540; /* DrawDay Gold - Brand accent/highlight */
-  
+
   /* Dark backgrounds */
   --color-night: #0c0e11; /* Night - Deep dark background */
   --color-rich-black: #161b21; /* Rich Black - Surface level 1 */
   --color-raisin-black: #1e1f23; /* Raisin Black - Surface level 2 */
-  
+
   /* Neutral colors */
   --color-silver: #b4b3b5; /* Silver - Borders and muted elements */
   --color-white: #fdfeff; /* White - Text on dark, light surfaces */
-  
+
   /* Accent colors */
   --color-vermilion: #e24536; /* Vermilion - Warm accent, errors */
   --color-fire-brick: #af3729; /* Fire Brick - Deep warm accent */

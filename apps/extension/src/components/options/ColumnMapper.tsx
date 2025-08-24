@@ -17,22 +17,16 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+} from '@raffle-spinner/ui';
+import { Button } from '@raffle-spinner/ui';
+import { Label } from '@raffle-spinner/ui';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@raffle-spinner/ui';
 import { ColumnMapping, SavedMapping, storage } from '@raffle-spinner/storage';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Input } from '@raffle-spinner/ui';
+import { Checkbox } from '@raffle-spinner/ui';
+import { Alert, AlertDescription } from '@raffle-spinner/ui';
 import { InfoIcon } from 'lucide-react';
-import { InfoTooltip } from '@/components/ui/info-tooltip';
+import { InfoTooltip } from '@raffle-spinner/ui';
 import { helpContent } from '@/lib/help-content';
 
 interface ColumnMapperProps {

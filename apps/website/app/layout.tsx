@@ -18,8 +18,11 @@ export const metadata: Metadata = {
     'drawday, raffle, lottery, spinner, chrome extension, live draw, competition, giveaway, UK competitions',
   authors: [{ name: 'DrawDay Team' }],
   icons: {
-    icon: '/favicon.png',
-    shortcut: '/favicon.png',
+    icon: [
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
     apple: '/favicon.png',
   },
   openGraph: {

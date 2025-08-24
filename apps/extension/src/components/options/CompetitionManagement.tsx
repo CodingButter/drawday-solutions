@@ -10,11 +10,11 @@
  */
 
 import { Competition, ColumnMapping } from '@raffle-spinner/storage';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@raffle-spinner/ui';
+import { Button } from '@raffle-spinner/ui';
 import { Upload, Settings, Play } from 'lucide-react';
 import { CompetitionList } from './CompetitionList';
-import { InfoTooltip } from '@/components/ui/info-tooltip';
+import { InfoTooltip } from '@raffle-spinner/ui';
 import { helpContent } from '@/lib/help-content';
 
 interface CompetitionManagementProps {

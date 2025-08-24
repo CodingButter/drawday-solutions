@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test React Mount</title>
+  </head>
+  <body>
+    <div id="root">
+      <h1>If you see this, React has NOT mounted</h1>
+    </div>
+    <script type="module">
+      console.log('Test script loaded');
+      console.log('Root element:', document.getElementById('root'));
+      
+      // Simple React test without imports
+      const root = document.getElementById('root');
+      if (root) {
+        root.innerHTML = '<h1>JavaScript is working!</h1>';
+      }
+    </script>
+  </body>
+</html>

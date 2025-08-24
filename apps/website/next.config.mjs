@@ -1,3 +1,8 @@
+import { resolve } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Allow serving of video and image files from the assets folder
@@ -13,6 +18,15 @@ const nextConfig = {
   // Configure image optimization
   images: {
     formats: ['image/avif', 'image/webp'],
+  },
+  
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@raffle-spinner/assets': resolve(__dirname, '../../packages/assets/src'),
+    };
+    
+    return config;
   },
 };
 

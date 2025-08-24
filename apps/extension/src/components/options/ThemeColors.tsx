@@ -7,13 +7,13 @@
 
 import { useState } from 'react';
 import { HexColorPicker } from 'react-colorful';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useTheme } from '@/contexts/ThemeContext';
-import { InfoTooltip } from '@/components/ui/info-tooltip';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@raffle-spinner/ui';
+import { Label } from '@raffle-spinner/ui';
+import { Button } from '@raffle-spinner/ui';
+import { Input } from '@raffle-spinner/ui';
+import { Popover, PopoverContent, PopoverTrigger } from '@raffle-spinner/ui';
+import { useTheme } from '@raffle-spinner/contexts';
+import { InfoTooltip } from '@raffle-spinner/ui';
 import { Palette, RefreshCw } from 'lucide-react';
 import type { ThemeColors as ThemeColorsType } from '@raffle-spinner/storage';
 

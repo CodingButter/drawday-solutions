@@ -19,7 +19,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@raffle-spinner/utils": "workspace:*"
+    "@raffle-spinner/utils": "workspace:*",
+    "@raffle-spinner/storage": "workspace:*",
+    "@raffle-spinner/types": "workspace:*",
+    "@raffle-spinner/csv-parser": "workspace:*"
   },
   "devDependencies": {
     "@raffle-spinner/typescript-config": "workspace:*",

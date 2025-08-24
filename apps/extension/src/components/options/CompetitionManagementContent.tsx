@@ -6,7 +6,7 @@
 
 import { Competition, ColumnMapping } from '@raffle-spinner/storage';
 import { logger } from '@raffle-spinner/utils';
-import { Button } from '@/components/ui/button';
+import { Button } from '@raffle-spinner/ui';
 import { Upload, Settings, Play } from 'lucide-react';
 import { CompetitionList } from './CompetitionList';
 

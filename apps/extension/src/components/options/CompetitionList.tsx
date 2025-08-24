@@ -10,10 +10,10 @@
 
 import { useState } from 'react';
 import { Competition } from '@raffle-spinner/storage';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ImageUpload } from '@/components/ui/image-upload';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@raffle-spinner/ui';
+import { Button } from '@raffle-spinner/ui';
+import { Alert, AlertDescription } from '@raffle-spinner/ui';
+import { ImageUpload } from '@raffle-spinner/ui';
 import { Trash2, Users, AlertCircle } from 'lucide-react';
 
 interface CompetitionListProps {

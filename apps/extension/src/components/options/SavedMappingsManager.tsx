@@ -7,11 +7,11 @@
 
 import { useState, useEffect } from 'react';
 import { storage, SavedMapping } from '@raffle-spinner/storage';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@raffle-spinner/ui';
+import { Button } from '@raffle-spinner/ui';
+import { Badge } from '@raffle-spinner/ui';
 import { Trash2, Edit, Star, StarOff } from 'lucide-react';
-import { InfoTooltip } from '@/components/ui/info-tooltip';
+import { InfoTooltip } from '@raffle-spinner/ui';
 import { helpContent } from '@/lib/help-content';
 import {
   AlertDialog,
@@ -22,9 +22,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from '@raffle-spinner/ui';
+import { Input } from '@raffle-spinner/ui';
+import { Label } from '@raffle-spinner/ui';
 
 export function SavedMappingsManager() {
   const [mappings, setMappings] = useState<SavedMapping[]>([]);

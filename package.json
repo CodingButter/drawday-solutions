@@ -17,11 +17,13 @@
     "prepare": "husky"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@raffle-spinner/eslint-config": "workspace:*",
     "@raffle-spinner/prettier-config": "workspace:*",
     "eslint": "^8.57.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.5",
+    "playwright": "^1.55.0",
     "prettier": "^3.3.3",
     "typescript": "^5.5.4"
   },

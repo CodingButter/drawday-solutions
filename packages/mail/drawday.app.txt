@@ -1,0 +1,12 @@
+$ORIGIN drawday.app.
+mail	IN	A	76.214.248.149
+mail	IN	AAAA	2600:1700:b2f0:50a0:0000:0000:0000:003f
+_25._tcp.mail	IN	TLSA	3 1 1 e42dea2ea295b03541a4ef7b213c791cbbcd785c1157117be945128a8f6bd4e2
+@	IN	MX	mail.drawday.app.
+autodiscover	IN	CNAME	mail.drawday.app.
+_autodiscover._tcp	IN	SRV	mail.drawday.app. 443
+autoconfig	IN	CNAME	mail.drawday.app.
+@	IN	TXT	?
+@	IN	TXT	v=spf1 mx a:mail.drawday.app. ~all
+_dmarc	IN	TXT	v=DMARC1;p=none;rua=mailto:postmaster@drawday.app.
+dkim._domainkey	IN	TXT	v=DKIM1;k=rsa;t=s;s=email;p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0mB7UgbDMNVpxSX2XAxJmXuLCX2r6uVk6O4AairNLGsg6vm8WfMp2vcTK2Y8sV/q0woksR2WJmc6f7Lnvs+0vDXbJqxz33pUdA7My7NmipcjDgYrv7Y3LfqqaeUpRpS7ZQKsWysKzfenBrOuHkMpAz0/xVPAYJnuC1Cqlbt3qey5kQ4dcuyb6tUGNVOuViJfx03C79sNKAAs9vQsyxomOcodpIXQgekVUgLgHjtodYWd2hF9/87/5NbvZWQWi3+O9/yq2ccj5TbAyVXbdl5bYkCIu37r0HNCZHGUM7oLrGVbTuH47y2LqRAMsmWe05Y9ubOf2qHxoLDINhYQ/F/0sQIDAQAB
