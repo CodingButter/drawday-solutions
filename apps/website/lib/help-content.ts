@@ -70,6 +70,32 @@ export const helpContent = {
       ],
     },
   },
+  competitions: {
+    overview: {
+      title: 'Competition Management',
+      description: 'Import and manage your raffle competitions',
+      details: {
+        content: 'Import participant lists from CSV files and manage multiple competitions.',
+        tips: [
+          'Each competition maintains its own participant list',
+          'Competition-specific banners override default branding',
+          'Delete competitions when no longer needed',
+        ],
+      },
+    },
+    csvUpload: {
+      title: 'CSV File Upload',
+      description: 'Upload participant lists from CSV files',
+      details: {
+        content: 'Import your participant data from CSV files. The system will automatically detect column headers.',
+        tips: [
+          'Supported formats: CSV, comma-separated values',
+          'First row should contain column headers',
+          'Maximum file size: 10MB',
+        ],
+      },
+    },
+  },
   competitionManagement: {
     title: 'Competition Management',
     description: 'Import and manage your raffle competitions',
@@ -92,6 +118,78 @@ export const helpContent = {
         'Conversion ensures fair random selection',
         'Review conversions before proceeding',
       ],
+    },
+  },
+  spinnerType: {
+    title: 'Spinner Type',
+    description: 'Choose the visual style for your raffle spinner',
+    details: {
+      content: 'Different spinner types provide unique visual experiences for your audience. Slot Machine offers a classic casino feel, Wheel provides a traditional spinning wheel, and Cards shows a shuffling card effect.',
+      tips: [
+        'Slot Machine works best for large audiences',
+        'Wheel is great for smaller, intimate raffles',
+        'Cards provides a sophisticated shuffling animation',
+      ],
+    },
+  },
+  textSizes: {
+    title: 'Text Sizes',
+    description: 'Control the size of participant names and ticket numbers',
+    details: {
+      content: 'Adjust text sizes to ensure visibility for your audience. Larger sizes work better for projection or streaming.',
+    },
+  },
+  colors: {
+    title: 'Color Customization',
+    description: 'Customize colors to match your brand or event theme',
+    details: {
+      content: 'Click any color button to open a color picker. You can enter hex codes directly or use the visual picker.',
+      examples: ['#FF0000 - Red', '#00FF00 - Green', '#0000FF - Blue'],
+    },
+  },
+  logo: {
+    title: 'Company Logo',
+    description: 'Upload your company logo to display in the side panel',
+    details: {
+      content: 'Your logo will be displayed at the top of the side panel during raffles. For best results, use a transparent PNG file.',
+      tips: [
+        'Recommended size: 200x100 pixels',
+        'Use PNG format for transparency',
+        'Keep file size under 5MB',
+      ],
+    },
+  },
+  banner: {
+    title: 'Default Banner',
+    description: 'Upload a banner image to display across the top of the side panel',
+    details: {
+      content: 'The banner will be displayed prominently at the top of the raffle interface. This can be overridden by competition-specific banners.',
+      tips: [
+        'Recommended size: 800x200 pixels',
+        'Use high-quality images for best display',
+        'Consider your brand colors and theme',
+      ],
+    },
+  },
+  companyName: {
+    title: 'Company Name',
+    description: 'Display your company name alongside the logo',
+    details: {
+      content: 'Your company name will appear next to your logo if enabled. This helps with brand recognition during live events.',
+    },
+  },
+  sessionWinners: {
+    overview: {
+      title: 'Session Winners',
+      description: 'View all winners selected during this session',
+      details: {
+        content: 'This list shows all winners selected during the current browser session. The list is cleared when you close the browser.',
+        tips: [
+          'Winners are listed in chronological order',
+          'Each entry shows name, ticket, and timestamp',
+          'Use this to track your drawing history',
+        ],
+      },
     },
   },
 };

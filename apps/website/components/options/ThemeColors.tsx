@@ -12,7 +12,7 @@ import { Label } from '@raffle-spinner/ui';
 import { Button } from '@raffle-spinner/ui';
 import { Input } from '@raffle-spinner/ui';
 import { Popover, PopoverContent, PopoverTrigger } from '@raffle-spinner/ui';
-import { useTheme } from '@raffle-spinner/contexts';
+import { useTheme } from '@/contexts';
 import { InfoTooltip } from '@raffle-spinner/ui';
 import { Palette, RefreshCw } from 'lucide-react';
 // Storage types are now in contexts;

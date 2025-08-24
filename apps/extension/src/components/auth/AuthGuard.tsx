@@ -29,7 +29,7 @@ export default function AuthGuard({ children, requireAuth = true }: AuthGuardPro
     // Check stored auth state first for faster load
     getStoredAuthState().then((storedUser) => {
       if (storedUser) {
-        setUser(storedUser as any);
+        setUser(storedUser as User);
       }
     });
 

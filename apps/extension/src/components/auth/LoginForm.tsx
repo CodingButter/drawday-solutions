@@ -53,19 +53,20 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         await signInWithEmailAndPassword(auth, email, password);
         onSuccess();
       }
-    } catch (err: any) {
-      if (err.code === 'auth/email-already-in-use') {
+    } catch (err: unknown) {
+      const error = err as { code?: string; message?: string };
+      if (error.code === 'auth/email-already-in-use') {
         setError('An account with this email already exists');
-      } else if (err.code === 'auth/weak-password') {
+      } else if (error.code === 'auth/weak-password') {
         setError('Password is too weak');
-      } else if (err.code === 'auth/user-not-found') {
+      } else if (error.code === 'auth/user-not-found') {
         setError('No account found with this email');
-      } else if (err.code === 'auth/wrong-password') {
+      } else if (error.code === 'auth/wrong-password') {
         setError('Invalid password');
-      } else if (err.code === 'auth/invalid-email') {
+      } else if (error.code === 'auth/invalid-email') {
         setError('Invalid email address');
       } else {
-        setError(err.message || 'Operation failed');
+        setError(error.message || 'Operation failed');
       }
     } finally {
       setLoading(false);

@@ -5,3 +5,13 @@ export { CollapsibleStateProvider, useCollapsibleState } from './CollapsibleStat
 
 // Re-export types
 export type { Participant, Competition } from './CompetitionContext';
+export type { 
+  ThemeSettings, 
+  ThemeColors, 
+  SpinnerStyle, 
+  BrandingConfig 
+} from './ThemeContext';
+
+// Type aliases for compatibility with existing components
+export type ThemeColorsType = import('./ThemeContext').ThemeColors;
+export type SpinnerType = 'slotMachine' | 'wheel' | 'cards';

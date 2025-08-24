@@ -9,6 +9,8 @@ import { logger } from '@raffle-spinner/utils';
 import { Button } from '@raffle-spinner/ui';
 import { Upload, Settings, Play } from 'lucide-react';
 import { CompetitionList } from './CompetitionList';
+import { openSpinnerPanel } from '@/lib/sidepanel-handler';
+import type { Competition, ColumnMapping } from '@/contexts';
 
 interface CompetitionManagementContentProps {
   competitions: Competition[];
@@ -49,30 +51,11 @@ export function CompetitionManagementContent({
         </Button>
         <Button
           variant="outline"
-          onClick={() => {
-            // Send message to background script to open side panel
-            chrome.runtime.sendMessage({ action: 'openSidePanel' }, (response) => {
-              if (chrome.runtime.lastError) {
-                logger.error('Failed to open side panel', {
-                  component: 'CompetitionManagementContent',
-                  error: chrome.runtime.lastError,
-                });
-              } else if (response && !response.success) {
-                logger.error('Failed to open side panel', {
-                  component: 'CompetitionManagementContent',
-                  error: response.error,
-                });
-              } else {
-                logger.debug('Side panel opened successfully', {
-                  component: 'CompetitionManagementContent',
-                });
-              }
-            });
-          }}
-          title="Open Side Panel"
+          onClick={openSpinnerPanel}
+          title="Open Spinner Panel"
         >
           <Play className="w-4 h-4 mr-2" />
-          Open Panel
+          Open Spinner
         </Button>
       </div>
 

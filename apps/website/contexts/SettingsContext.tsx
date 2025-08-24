@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { 
@@ -31,6 +31,7 @@ interface SettingsContextType {
   updateColumnMapping: (mapping: ColumnMapping) => void;
   saveMappingTemplate: (name: string, mapping: ColumnMapping) => void;
   deleteMappingTemplate: (id: string) => void;
+  refreshSettings: () => Promise<void>;
 }
 
 const SettingsContext = createContext<SettingsContextType | null>(null);
@@ -44,6 +45,17 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     mapping: ColumnMapping;
   }>>([]);
   const [userId, setUserId] = useState<string | null>(null);
+
+  // Sync settings to localStorage for polling
+  useEffect(() => {
+    localStorage.setItem('settings', JSON.stringify(settings));
+  }, [settings]);
+
+  useEffect(() => {
+    if (columnMapping) {
+      localStorage.setItem('columnMapping', JSON.stringify(columnMapping));
+    }
+  }, [columnMapping]);
 
   // Load settings from Firestore when user is authenticated
   useEffect(() => {
@@ -75,11 +87,38 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, []);
 
+  const refreshSettings = useCallback(async () => {
+    if (userId) {
+      try {
+        const userSettings = await getUserSettings(userId);
+        setSettings(userSettings.spinner);
+        
+        if (userSettings.columnMapping) {
+          setColumnMapping(userSettings.columnMapping);
+        }
+        
+        if (userSettings.savedMappings) {
+          setSavedMappings(userSettings.savedMappings);
+        }
+        
+        // Update localStorage
+        localStorage.setItem('settings', JSON.stringify(userSettings.spinner));
+        if (userSettings.columnMapping) {
+          localStorage.setItem('columnMapping', JSON.stringify(userSettings.columnMapping));
+        }
+      } catch (error) {
+        console.error('Error refreshing settings:', error);
+      }
+    }
+  }, [userId]);
+
   const updateSettings = async (updates: Partial<SpinnerSettings>) => {
     if (!userId) return;
     
     const newSettings = { ...settings, ...updates };
     setSettings(newSettings);
+    // Sync to localStorage immediately
+    localStorage.setItem('settings', JSON.stringify(newSettings));
     
     try {
       await updateSpinnerSettingsInDb(userId, updates);
@@ -132,7 +171,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         updateSettings,
         updateColumnMapping,
         saveMappingTemplate,
-        deleteMappingTemplate
+        deleteMappingTemplate,
+        refreshSettings
       }}
     >
       {children}

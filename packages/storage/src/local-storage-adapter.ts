@@ -37,12 +37,7 @@ export class LocalStorageAdapter implements StorageAdapter {
   }
 
   private setItem<T>(key: string, value: T): void {
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-      // Error writing to localStorage
-      throw error;
-    }
+    localStorage.setItem(key, JSON.stringify(value));
   }
 
   async getCompetitions(): Promise<Competition[]> {

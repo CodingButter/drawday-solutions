@@ -7,6 +7,7 @@ import { auth } from '@/lib/firebase';
 import { CompetitionProvider, useCompetitions } from '@/contexts';
 import { SettingsProvider, useSettings } from '@/contexts';
 import { ThemeProvider, useTheme } from '@/contexts';
+import { useLocalStoragePolling } from '@/hooks/useLocalStoragePolling';
 import { SlotMachineWheel } from '@raffle-spinner/spinners';
 import { SessionWinners, Winner } from '@/components/sidepanel/SessionWinners';
 import { Button } from '@raffle-spinner/ui';
@@ -25,14 +26,57 @@ import confetti from 'canvas-confetti';
 function SidePanelContent() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const { competitions, selectedCompetition, selectCompetition } = useCompetitions();
-  const { settings } = useSettings();
-  const { theme } = useTheme();
+  const { competitions, selectedCompetition, selectCompetition, refreshCompetitions } = useCompetitions();
+  const { settings, refreshSettings } = useSettings();
+  const { theme, updateTheme } = useTheme();
   const [ticketNumber, setTicketNumber] = useState('');
   const [isSpinning, setIsSpinning] = useState(false);
   const [sessionWinners, setSessionWinners] = useState<Winner[]>([]);
   const [currentWinner, setCurrentWinner] = useState<Participant | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Poll localStorage for live updates
+  useLocalStoragePolling({
+    key: 'competitions',
+    interval: 500,
+    onUpdate: async (value) => {
+      if (value) {
+        // Refresh from database to get latest data
+        await refreshCompetitions();
+      }
+    }
+  });
+
+  useLocalStoragePolling({
+    key: 'theme',
+    interval: 500,
+    onUpdate: (value) => {
+      if (value) {
+        updateTheme(value);
+      }
+    }
+  });
+
+  useLocalStoragePolling({
+    key: 'settings',
+    interval: 500,
+    onUpdate: async () => {
+      // Refresh settings from database
+      if (refreshSettings) {
+        await refreshSettings();
+      }
+    }
+  });
+
+  useLocalStoragePolling({
+    key: 'selectedCompetition',
+    interval: 500,
+    onUpdate: (value) => {
+      if (value && value.id !== selectedCompetition?.id) {
+        selectCompetition(value);
+      }
+    }
+  });
 
   // Auth check
   useEffect(() => {

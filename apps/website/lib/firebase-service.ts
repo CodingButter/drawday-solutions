@@ -44,6 +44,7 @@ export interface Competition {
   drawDate?: Date;
   participantCount: number;
   winnersCount?: number;
+  bannerImage?: string; // Base64 encoded image for this specific competition
 }
 
 export interface UserStats {
@@ -51,6 +52,56 @@ export interface UserStats {
   totalParticipants: number;
   activeDraws: number;
   completedDraws: number;
+}
+
+// User Settings for persistent storage
+export interface ThemeColors {
+  primary: string;
+  secondary: string;
+  accent: string;
+  background: string;
+  foreground: string;
+  card: string;
+  cardForeground: string;
+  winner: string;
+  winnerGlow: string;
+}
+
+export interface SpinnerStyle {
+  type: 'slotMachine' | 'wheel' | 'cards';
+  backgroundColor: string;
+  nameColor: string;
+  ticketColor: string;
+  borderColor: string;
+  highlightColor: string;
+  nameSize: string;
+  ticketSize: string;
+  fontFamily?: string;
+  canvasBackground?: string;
+  topShadowOpacity?: number;
+  bottomShadowOpacity?: number;
+  shadowSize?: number;
+  shadowColor?: string;
+}
+
+export interface BrandingConfig {
+  logoImage?: string; // Base64 encoded
+  logoPosition: 'left' | 'center' | 'right';
+  bannerImage?: string; // Base64 encoded
+  companyName?: string;
+  showCompanyName: boolean;
+}
+
+export interface UserSettings {
+  userId: string;
+  theme: {
+    colors: ThemeColors;
+    spinnerStyle: SpinnerStyle;
+    branding: BrandingConfig;
+  };
+  csvColumnMappings?: ColumnMapping[];
+  lastUpdated: Timestamp;
+  createdAt?: Timestamp;
 }
 
 // Competition CRUD operations
@@ -128,9 +179,12 @@ export const getUserCompetitions = async (userId: string): Promise<Competition[]
       const competitions: Competition[] = [];
       
       querySnapshot.forEach((doc) => {
+        const data = doc.data();
         competitions.push({
           id: doc.id,
-          ...doc.data()
+          ...data,
+          createdAt: data.createdAt?.toMillis?.() || Date.now(),
+          updatedAt: data.updatedAt?.toMillis?.() || Date.now()
         } as Competition);
       });
       
@@ -148,16 +202,19 @@ export const getUserCompetitions = async (userId: string): Promise<Competition[]
       const competitions: Competition[] = [];
       
       querySnapshot.forEach((doc) => {
+        const data = doc.data();
         competitions.push({
           id: doc.id,
-          ...doc.data()
+          ...data,
+          createdAt: data.createdAt?.toMillis?.() || Date.now(),
+          updatedAt: data.updatedAt?.toMillis?.() || Date.now()
         } as Competition);
       });
       
       // Sort in memory if we couldn't use orderBy
       competitions.sort((a, b) => {
-        const aTime = a.createdAt?.toMillis?.() || 0;
-        const bTime = b.createdAt?.toMillis?.() || 0;
+        const aTime = a.createdAt || 0;
+        const bTime = b.createdAt || 0;
         return bTime - aTime;
       });
       
@@ -215,6 +272,205 @@ export const importParticipants = async (
   } catch (error) {
     console.error('Error importing participants:', error);
     throw error;
+  }
+};
+
+// User Settings CRUD operations
+export const getUserSettings = async (userId: string): Promise<UserSettings | null> => {
+  try {
+    const settingsRef = doc(db, 'userSettings', userId);
+    const settingsSnap = await getDoc(settingsRef);
+    
+    if (settingsSnap.exists()) {
+      return settingsSnap.data() as UserSettings;
+    }
+    
+    // If no settings exist, create default settings
+    const defaultSettings: UserSettings = {
+      userId,
+      theme: {
+        colors: {
+          primary: '#007BFF',
+          secondary: '#FF1493',
+          accent: '#FFD700',
+          background: '#09090b',
+          foreground: '#fafafa',
+          card: '#09090b',
+          cardForeground: '#fafafa',
+          winner: '#FFD700',
+          winnerGlow: '#FFD700',
+        },
+        spinnerStyle: {
+          type: 'slotMachine',
+          backgroundColor: '#1a1a1a',
+          nameColor: '#ffffff',
+          ticketColor: '#ffffff',
+          borderColor: '#333333',
+          highlightColor: '#FFD700',
+          nameSize: 'large',
+          ticketSize: 'medium',
+          fontFamily: 'system-ui',
+          canvasBackground: '#09090b',
+          topShadowOpacity: 0.3,
+          bottomShadowOpacity: 0.3,
+          shadowSize: 30,
+        },
+        branding: {
+          logoPosition: 'center',
+          showCompanyName: false,
+        },
+      },
+      lastUpdated: serverTimestamp() as Timestamp,
+      createdAt: serverTimestamp() as Timestamp,
+    };
+    
+    await setDoc(settingsRef, defaultSettings);
+    return defaultSettings;
+  } catch (error) {
+    console.error('Error getting user settings:', error);
+    throw error;
+  }
+};
+
+export const updateUserSettings = async (
+  userId: string, 
+  updates: Partial<UserSettings>
+): Promise<void> => {
+  try {
+    const settingsRef = doc(db, 'userSettings', userId);
+    
+    // Ensure settings exist first
+    const existingSettings = await getUserSettings(userId);
+    
+    await updateDoc(settingsRef, {
+      ...updates,
+      lastUpdated: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error updating user settings:', error);
+    throw error;
+  }
+};
+
+export const updateThemeColors = async (
+  userId: string,
+  colors: Partial<ThemeColors>
+): Promise<void> => {
+  try {
+    const settings = await getUserSettings(userId);
+    if (!settings) return;
+    
+    await updateUserSettings(userId, {
+      theme: {
+        ...settings.theme,
+        colors: {
+          ...settings.theme.colors,
+          ...colors,
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Error updating theme colors:', error);
+    throw error;
+  }
+};
+
+export const updateSpinnerStyle = async (
+  userId: string,
+  style: Partial<SpinnerStyle>
+): Promise<void> => {
+  try {
+    const settings = await getUserSettings(userId);
+    if (!settings) return;
+    
+    await updateUserSettings(userId, {
+      theme: {
+        ...settings.theme,
+        spinnerStyle: {
+          ...settings.theme.spinnerStyle,
+          ...style,
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Error updating spinner style:', error);
+    throw error;
+  }
+};
+
+export const updateBranding = async (
+  userId: string,
+  branding: Partial<BrandingConfig>
+): Promise<void> => {
+  try {
+    const settings = await getUserSettings(userId);
+    if (!settings) return;
+    
+    await updateUserSettings(userId, {
+      theme: {
+        ...settings.theme,
+        branding: {
+          ...settings.theme.branding,
+          ...branding,
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Error updating branding:', error);
+    throw error;
+  }
+};
+
+export const saveColumnMapping = async (
+  userId: string,
+  mapping: ColumnMapping
+): Promise<void> => {
+  try {
+    const settings = await getUserSettings(userId);
+    if (!settings) return;
+    
+    const mappings = settings.csvColumnMappings || [];
+    const existingIndex = mappings.findIndex(m => m.id === mapping.id);
+    
+    if (existingIndex >= 0) {
+      mappings[existingIndex] = mapping;
+    } else {
+      mappings.push(mapping);
+    }
+    
+    await updateUserSettings(userId, {
+      csvColumnMappings: mappings,
+    });
+  } catch (error) {
+    console.error('Error saving column mapping:', error);
+    throw error;
+  }
+};
+
+// Utility function to convert File to base64
+export const fileToBase64 = async (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
+};
+
+// Get just the timestamp for efficient polling
+export const getUserSettingsTimestamp = async (userId: string): Promise<number | null> => {
+  try {
+    const settingsRef = doc(db, 'userSettings', userId);
+    const settingsSnap = await getDoc(settingsRef);
+    
+    if (settingsSnap.exists()) {
+      const data = settingsSnap.data();
+      return data.lastUpdated?.toMillis?.() || null;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting settings timestamp:', error);
+    return null;
   }
 };
 

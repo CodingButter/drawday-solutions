@@ -543,27 +543,39 @@ export default function ConfigurationPage() {
                 {/* Text Sizes */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Name Size: {settings.theme.spinnerStyle.nameSize}px</Label>
-                    <Slider
-                      value={[settings.theme.spinnerStyle.nameSize]}
-                      onValueChange={(value) => handleStyleChange('nameSize', value[0])}
-                      min={12}
-                      max={32}
-                      step={1}
-                      className="w-full"
-                    />
+                    <Label>Name Size</Label>
+                    <Select
+                      value={settings.theme.spinnerStyle.nameSize}
+                      onValueChange={(value) => handleStyleChange('nameSize', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="small">Small</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="large">Large</SelectItem>
+                        <SelectItem value="extra-large">Extra Large</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Ticket Size: {settings.theme.spinnerStyle.ticketSize}px</Label>
-                    <Slider
-                      value={[settings.theme.spinnerStyle.ticketSize]}
-                      onValueChange={(value) => handleStyleChange('ticketSize', value[0])}
-                      min={10}
-                      max={24}
-                      step={1}
-                      className="w-full"
-                    />
+                    <Label>Ticket Size</Label>
+                    <Select
+                      value={settings.theme.spinnerStyle.ticketSize}
+                      onValueChange={(value) => handleStyleChange('ticketSize', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="small">Small</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="large">Large</SelectItem>
+                        <SelectItem value="extra-large">Extra Large</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 

@@ -21,13 +21,26 @@ import {
 import { Button } from '@raffle-spinner/ui';
 import { Label } from '@raffle-spinner/ui';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@raffle-spinner/ui';
-// Storage types are now in contexts;
 import { Input } from '@raffle-spinner/ui';
 import { Checkbox } from '@raffle-spinner/ui';
 import { Alert, AlertDescription } from '@raffle-spinner/ui';
 import { InfoIcon } from 'lucide-react';
 import { InfoTooltip } from '@raffle-spinner/ui';
 import { helpContent } from '@/lib/help-content';
+
+// Define types locally since they're not imported
+interface ColumnMapping {
+  firstName: string | null;
+  lastName: string | null;
+  fullName: string | null;
+  ticketNumber: string | null;
+}
+
+interface SavedMapping {
+  id: string;
+  name: string;
+  mapping: ColumnMapping;
+}
 
 interface ColumnMapperProps {
   open: boolean;
@@ -147,7 +160,7 @@ export function ColumnMapper({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             Map CSV Columns
-            <InfoTooltip {...helpContent.columnMapping.overview} />
+            <InfoTooltip {...helpContent.csvImport.columnMapping} />
           </DialogTitle>
           <DialogDescription>
             Select which columns in your CSV correspond to the required fields.

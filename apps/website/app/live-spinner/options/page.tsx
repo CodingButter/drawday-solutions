@@ -8,7 +8,7 @@ import { CompetitionProvider, useCompetitions } from '@/contexts';
 import { SettingsProvider, useSettings } from '@/contexts';
 import { ThemeProvider } from '@/contexts';
 import { CollapsibleStateProvider, useCollapsibleState } from '@/contexts';
-import { useCSVImport } from '@raffle-spinner/hooks';
+import { useCSVImport } from '@/hooks/useCSVImport';
 import { CompetitionManagementContent } from '@/components/options/CompetitionManagementContent';
 import { CSVUploadModal } from '@/components/options/CSVUploadModal';
 import { ColumnMapper } from '@/components/options/ColumnMapper';

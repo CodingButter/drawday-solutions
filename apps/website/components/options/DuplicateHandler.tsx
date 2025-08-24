@@ -36,7 +36,7 @@ export function DuplicateHandler({ open, duplicates, onProceed, onCancel }: Dupl
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             Duplicate Ticket Numbers Found
-            <InfoTooltip {...helpContent.ticketHandling.duplicates} />
+            <InfoTooltip {...helpContent.csvImport.duplicateHandling} />
           </DialogTitle>
           <DialogDescription>
             We found duplicate ticket numbers in your CSV file. Only the first occurrence of each

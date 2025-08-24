@@ -1,9 +1,6 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
-import { getUserCompetitions, updateCompetition as updateCompetitionInDb, deleteCompetition as deleteCompetitionFromDb } from '@/lib/firebase-service';
 
 export interface Participant {
   firstName: string;
@@ -17,8 +14,8 @@ export interface Competition {
   participants: Participant[];
   winners?: Participant[];
   bannerImage?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt: number;
+  updatedAt: number;
 }
 
 interface CompetitionContextType {
@@ -29,99 +26,142 @@ interface CompetitionContextType {
   deleteCompetition: (id: string) => Promise<void>;
   selectCompetition: (competition: Competition) => void;
   updateCompetitionBanner: (id: string, bannerImage: string) => Promise<void>;
-  refreshCompetitions: () => Promise<void>;
+  refreshCompetitions: () => void;
 }
 
 const CompetitionContext = createContext<CompetitionContextType | null>(null);
 
+// Helper functions for localStorage operations
+const loadCompetitionsFromStorage = (): Competition[] => {
+  try {
+    const stored = localStorage.getItem('competitions');
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.error('Error loading competitions from localStorage:', error);
+    return [];
+  }
+};
+
+const saveCompetitionsToStorage = (competitions: Competition[]) => {
+  try {
+    localStorage.setItem('competitions', JSON.stringify(competitions));
+    // Dispatch a custom event to notify other tabs/windows
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'competitions',
+      newValue: JSON.stringify(competitions),
+      storageArea: localStorage
+    }));
+  } catch (error) {
+    console.error('Error saving competitions to localStorage:', error);
+  }
+};
+
 export function CompetitionProvider({ children }: { children: React.ReactNode }) {
-  const [competitions, setCompetitions] = useState<Competition[]>([]);
-  const [selectedCompetition, setSelectedCompetition] = useState<Competition | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [competitions, setCompetitions] = useState<Competition[]>(() => loadCompetitionsFromStorage());
+  const [selectedCompetition, setSelectedCompetition] = useState<Competition | null>(() => {
+    try {
+      const stored = localStorage.getItem('selectedCompetition');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
 
-  // Load competitions from Firestore when user is authenticated
+  // Listen for changes from other tabs/windows
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setUserId(user.uid);
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'competitions' && e.newValue) {
         try {
-          const userCompetitions = await getUserCompetitions(user.uid);
-          setCompetitions(userCompetitions);
-          
-          // Restore selected competition from localStorage
-          const savedSelectedId = localStorage.getItem('selectedCompetitionId');
-          if (savedSelectedId) {
-            const selected = userCompetitions.find(c => c.id === savedSelectedId);
-            if (selected) {
-              setSelectedCompetition(selected);
-            }
-          }
+          const newCompetitions = JSON.parse(e.newValue);
+          setCompetitions(newCompetitions);
         } catch (error) {
-          console.error('Error loading competitions:', error);
+          console.error('Error parsing competitions from storage event:', error);
         }
-      } else {
-        setUserId(null);
-        setCompetitions([]);
-        setSelectedCompetition(null);
+      } else if (e.key === 'selectedCompetition' && e.newValue) {
+        try {
+          const newSelected = JSON.parse(e.newValue);
+          setSelectedCompetition(newSelected);
+        } catch (error) {
+          console.error('Error parsing selected competition from storage event:', error);
+        }
       }
-    });
+    };
 
-    return () => unsubscribe();
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const refreshCompetitions = useCallback(async () => {
-    if (userId) {
-      try {
-        const userCompetitions = await getUserCompetitions(userId);
-        setCompetitions(userCompetitions);
-      } catch (error) {
-        console.error('Error refreshing competitions:', error);
-      }
+  // Sync selected competition to localStorage
+  useEffect(() => {
+    if (selectedCompetition) {
+      localStorage.setItem('selectedCompetition', JSON.stringify(selectedCompetition));
+    } else {
+      localStorage.removeItem('selectedCompetition');
     }
-  }, [userId]);
+  }, [selectedCompetition]);
+
+  const refreshCompetitions = useCallback(() => {
+    const comps = loadCompetitionsFromStorage();
+    setCompetitions(comps);
+  }, []);
 
   const addCompetition = async (competition: Competition) => {
-    // This is handled by firebase-service.ts createCompetition
-    // Just refresh the list after adding
-    await refreshCompetitions();
+    const newCompetition: Competition = {
+      ...competition,
+      id: competition.id || `comp-${Date.now()}`,
+      createdAt: competition.createdAt || Date.now(),
+      updatedAt: Date.now()
+    };
+    
+    const updatedCompetitions = [...competitions, newCompetition];
+    setCompetitions(updatedCompetitions);
+    saveCompetitionsToStorage(updatedCompetitions);
+    
+    // Auto-select the newly created competition
+    selectCompetition(newCompetition);
   };
 
   const updateCompetition = async (id: string, updates: Partial<Competition>) => {
-    if (!userId) return;
+    const updatedCompetitions = competitions.map(comp => 
+      comp.id === id 
+        ? { ...comp, ...updates, updatedAt: Date.now() }
+        : comp
+    );
     
-    try {
-      await updateCompetitionInDb(id, updates);
-      await refreshCompetitions();
-      
-      // Update selected competition if it's the one being updated
-      if (selectedCompetition?.id === id) {
-        setSelectedCompetition(prev => prev ? { ...prev, ...updates } : null);
+    setCompetitions(updatedCompetitions);
+    saveCompetitionsToStorage(updatedCompetitions);
+    
+    // Update selected competition if it's the one being updated
+    if (selectedCompetition?.id === id) {
+      const updated = updatedCompetitions.find(c => c.id === id);
+      if (updated) {
+        setSelectedCompetition(updated);
       }
-    } catch (error) {
-      console.error('Error updating competition:', error);
     }
   };
 
   const deleteCompetition = async (id: string) => {
-    if (!userId) return;
+    const updatedCompetitions = competitions.filter(comp => comp.id !== id);
+    setCompetitions(updatedCompetitions);
+    saveCompetitionsToStorage(updatedCompetitions);
     
-    try {
-      await deleteCompetitionFromDb(id);
-      await refreshCompetitions();
-      
-      // Clear selection if deleted competition was selected
-      if (selectedCompetition?.id === id) {
-        setSelectedCompetition(null);
-        localStorage.removeItem('selectedCompetitionId');
-      }
-    } catch (error) {
-      console.error('Error deleting competition:', error);
+    // Clear selection if deleted competition was selected
+    if (selectedCompetition?.id === id) {
+      setSelectedCompetition(null);
+      localStorage.removeItem('selectedCompetition');
     }
   };
 
   const selectCompetition = (competition: Competition) => {
     setSelectedCompetition(competition);
-    localStorage.setItem('selectedCompetitionId', competition.id);
+    localStorage.setItem('selectedCompetition', JSON.stringify(competition));
+    
+    // Dispatch custom event for immediate updates
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'selectedCompetition',
+      newValue: JSON.stringify(competition),
+      storageArea: localStorage
+    }));
   };
 
   const updateCompetitionBanner = async (id: string, bannerImage: string) => {

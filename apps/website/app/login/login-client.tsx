@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 import { Button } from '@raffle-spinner/ui';
 import { Input } from '@raffle-spinner/ui';
 import { 
@@ -17,8 +19,6 @@ import {
   Trophy,
   Sparkles,
   CheckCircle,
-  Github,
-  Chrome,
   Star,
   Timer,
   Palette,
@@ -44,36 +44,52 @@ export default function LoginClient() {
     setMounted(true);
   }, []);
 
+  const router = useRouter();
+  const redirectTo = searchParams?.get('from') || '/live-spinner/spinner';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate login process
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    setIsLoading(false);
-    // TODO: Implement actual authentication
+    try {
+      await signInWithEmailAndPassword(auth, formData.email, formData.password);
+      router.push(redirectTo);
+    } catch (error: any) {
+      console.error('Login error:', error);
+      alert(error.message || 'Failed to sign in. Please check your credentials.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleSocialLogin = async (provider: 'google' | 'github') => {
-    setIsLoading(true);
-    
-    // Simulate social login
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setIsLoading(false);
-    // TODO: Implement social authentication
-  };
 
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate magic link sending
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setIsLoading(false);
-    // TODO: Implement magic link authentication
+    try {
+      const response = await fetch('/api/auth/magic-link', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: formData.email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Show success message
+        alert(`Magic link sent to ${formData.email}! Please check your email.`);
+      } else {
+        alert(data.error || 'Failed to send magic link');
+      }
+    } catch (error) {
+      console.error('Magic link error:', error);
+      alert('Failed to send magic link. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -275,36 +291,6 @@ export default function LoginClient() {
               </form>
             )}
 
-            {/* Divider */}
-            <div className="flex items-center gap-4 my-6">
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-600 to-transparent" />
-              <span className="text-sm text-gray-400">Or continue with</span>
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-600 to-transparent" />
-            </div>
-
-            {/* Social Login */}
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleSocialLogin('google')}
-                disabled={isLoading}
-                className="bg-gray-800/50 border-gray-600/50 text-white hover:bg-gray-700/50 py-3 transition-all duration-300 hover:border-gray-500/50"
-              >
-                <Chrome className="w-4 h-4 mr-2" />
-                Google
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleSocialLogin('github')}
-                disabled={isLoading}
-                className="bg-gray-800/50 border-gray-600/50 text-white hover:bg-gray-700/50 py-3 transition-all duration-300 hover:border-gray-500/50"
-              >
-                <Github className="w-4 h-4 mr-2" />
-                GitHub
-              </Button>
-            </div>
           </div>
 
           {/* Register Link */}

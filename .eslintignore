@@ -38,3 +38,9 @@ pnpm-debug.log*
 # Generated files
 *.generated.ts
 *.generated.js
+
+# Setup scripts
+google-oauth-setup.js
+
+# Vite config files
+vite.config.web.ts

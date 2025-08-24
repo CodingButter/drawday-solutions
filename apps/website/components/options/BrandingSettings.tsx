@@ -12,7 +12,7 @@ import { Input } from '@raffle-spinner/ui';
 import { Switch } from '@raffle-spinner/ui';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@raffle-spinner/ui';
 import { Alert, AlertDescription } from '@raffle-spinner/ui';
-import { useTheme } from '@raffle-spinner/contexts';
+import { useTheme } from '@/contexts';
 import { InfoTooltip } from '@raffle-spinner/ui';
 import { ImageUpload } from '@raffle-spinner/ui';
 import { Building2, AlertCircle } from 'lucide-react';

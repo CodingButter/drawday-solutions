@@ -21,8 +21,8 @@ export interface ThemeSettings {
     canvasBackground: string;
     borderColor: string;
     highlightColor: string;
-    nameSize: number;
-    ticketSize: number;
+    nameSize: "small" | "medium" | "large" | "extra-large";
+    ticketSize: "small" | "medium" | "large" | "extra-large";
     fontFamily: string;
     topShadowOpacity: number;
     bottomShadowOpacity: number;
@@ -78,8 +78,8 @@ export const defaultSettings: Omit<UserSettings, 'userId' | 'updatedAt'> = {
       canvasBackground: '#0a0a0a',
       borderColor: '#333333',
       highlightColor: '#ffd700',
-      nameSize: 18,
-      ticketSize: 14,
+      nameSize: 'large',
+      ticketSize: 'medium',
       fontFamily: 'system-ui, -apple-system, sans-serif',
       topShadowOpacity: 0.8,
       bottomShadowOpacity: 0.8,

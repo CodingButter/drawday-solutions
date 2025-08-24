@@ -49,7 +49,7 @@ export function TicketConversionDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             Non-Numeric Ticket Numbers Detected
-            <InfoTooltip {...helpContent.ticketHandling.nonNumeric} />
+            <InfoTooltip {...helpContent.ticketConversion} />
           </DialogTitle>
           <DialogDescription>
             We found ticket numbers containing letters or special characters. We only support
