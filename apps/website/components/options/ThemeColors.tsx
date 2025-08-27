@@ -13,13 +13,21 @@ import { Button } from '@raffle-spinner/ui';
 import { Input } from '@raffle-spinner/ui';
 import { Popover, PopoverContent, PopoverTrigger } from '@raffle-spinner/ui';
 import { useTheme } from '@/contexts';
+import type { ThemeColorsType } from '@/contexts';
 import { InfoTooltip } from '@raffle-spinner/ui';
 import { Palette, RefreshCw } from 'lucide-react';
-// Storage types are now in contexts;
 
 export function ThemeColors() {
-  const { theme, updateColors, resetTheme } = useTheme();
+  const { theme, updateColors, resetTheme, isLoading } = useTheme();
   const [activeColorPicker, setActiveColorPicker] = useState<string | null>(null);
+  
+  if (isLoading || !theme?.colors) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-muted-foreground">Loading theme colors...</div>
+      </div>
+    );
+  }
 
   const handleColorChange = (field: keyof ThemeColorsType, color: string) => {
     updateColors({ [field]: color });

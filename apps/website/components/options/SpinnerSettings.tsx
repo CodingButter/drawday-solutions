@@ -28,6 +28,14 @@ interface SpinnerSettingsProps {
 }
 
 export function SpinnerSettings({ settings, onUpdate }: SpinnerSettingsProps) {
+  if (!settings) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-muted-foreground">Loading spinner settings...</div>
+      </div>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>

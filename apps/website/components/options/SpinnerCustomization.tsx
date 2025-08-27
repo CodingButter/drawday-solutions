@@ -16,13 +16,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@raffle-spinner/ui';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@raffle-spinner/ui';
 import { useTheme } from '@/contexts';
+import type { SpinnerStyle, SpinnerType } from '@/contexts';
 import { InfoTooltip } from '@raffle-spinner/ui';
 import { Palette, Type, Square, RefreshCw } from 'lucide-react';
-// Storage types are now in contexts;
 
 export function SpinnerCustomization() {
-  const { theme, updateSpinnerStyle, resetTheme } = useTheme();
+  const { theme, updateSpinnerStyle, resetTheme, isLoading } = useTheme();
   const [activeColorPicker, setActiveColorPicker] = useState<string | null>(null);
+  
+  if (isLoading || !theme?.spinnerStyle) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-muted-foreground">Loading spinner settings...</div>
+      </div>
+    );
+  }
 
   const handleColorChange = (field: keyof SpinnerStyle, color: string) => {
     updateSpinnerStyle({ [field]: color });

@@ -18,8 +18,16 @@ import { ImageUpload } from '@raffle-spinner/ui';
 import { Building2, AlertCircle } from 'lucide-react';
 
 export function BrandingSettings() {
-  const { theme, updateBranding } = useTheme();
+  const { theme, updateBranding, isLoading } = useTheme();
   const [uploadError, setUploadError] = useState<string | null>(null);
+  
+  if (isLoading || !theme?.branding) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-muted-foreground">Loading branding settings...</div>
+      </div>
+    );
+  }
 
   const helpContent = {
     logo: {
