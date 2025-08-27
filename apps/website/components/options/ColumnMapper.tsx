@@ -40,6 +40,10 @@ interface SavedMapping {
   id: string;
   name: string;
   mapping: ColumnMapping;
+  createdAt?: number;
+  updatedAt?: number;
+  usageCount?: number;
+  isDefault?: boolean;
 }
 
 interface ColumnMapperProps {
