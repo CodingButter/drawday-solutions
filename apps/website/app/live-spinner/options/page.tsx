@@ -121,6 +121,12 @@ function OptionsContent() {
     setShowDeleteDialog(false);
   };
 
+  const handleUpdateBanner = (id: string, banner: string | undefined) => {
+    if (banner !== undefined) {
+      updateCompetitionBanner(id, banner);
+    }
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-background p-8">
@@ -181,7 +187,7 @@ function OptionsContent() {
                 onFileSelect={handleFileSelect}
                 onDeleteCompetition={handleDeleteClick}
                 onOpenMapper={openMapperModal}
-                onUpdateBanner={updateCompetitionBanner}
+                onUpdateBanner={handleUpdateBanner}
               />
             </CardContent>
           )}
