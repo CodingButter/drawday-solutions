@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import './app.css';
 
 // Get the website URL - using production domain
-const WEBSITE_URL = 'https://drawday.app';
+const WEBSITE_URL = 'https://www.drawday.app';
 
 function OptionsIframe() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -28,7 +28,7 @@ function OptionsIframe() {
       if (iframeRef.current?.contentWindow) {
         try {
           // Inject the openSidepanel function into the iframe's window
-          (iframeRef.current.contentWindow as any).openSidepanel = openSidePanel;
+          (iframeRef.current.contentWindow as Window & { openSidepanel?: typeof openSidePanel }).openSidepanel = openSidePanel;
           console.log('Successfully injected openSidepanel function');
         } catch (error) {
           console.error('Failed to inject function, will use postMessage fallback:', error);

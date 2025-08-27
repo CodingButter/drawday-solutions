@@ -5,6 +5,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
+import type { ColumnMapping, SavedMapping } from '@raffle-spinner/types';
 
 export interface SpinnerSettings {
   minSpinDuration: number;
@@ -44,22 +45,8 @@ export interface UserSettings {
   userId: string;
   spinner: SpinnerSettings;
   theme: ThemeSettings;
-  columnMapping?: {
-    firstName: string | null;
-    lastName: string | null;
-    fullName: string | null;
-    ticketNumber: string | null;
-  };
-  savedMappings?: Array<{
-    id: string;
-    name: string;
-    mapping: {
-      firstName: string | null;
-      lastName: string | null;
-      fullName: string | null;
-      ticketNumber: string | null;
-    };
-  }>;
+  columnMapping?: ColumnMapping;
+  savedMappings?: SavedMapping[];
   updatedAt?: any;
 }
 

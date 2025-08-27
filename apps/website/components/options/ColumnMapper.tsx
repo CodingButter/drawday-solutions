@@ -27,24 +27,7 @@ import { Alert, AlertDescription } from '@raffle-spinner/ui';
 import { InfoIcon } from 'lucide-react';
 import { InfoTooltip } from '@raffle-spinner/ui';
 import { helpContent } from '@/lib/help-content';
-
-// Define types locally since they're not imported
-interface ColumnMapping {
-  firstName: string | null;
-  lastName: string | null;
-  fullName: string | null;
-  ticketNumber: string | null;
-}
-
-interface SavedMapping {
-  id: string;
-  name: string;
-  mapping: ColumnMapping;
-  createdAt?: number;
-  updatedAt?: number;
-  usageCount?: number;
-  isDefault?: boolean;
-}
+import type { ColumnMapping, SavedMapping } from '@raffle-spinner/types';
 
 interface ColumnMapperProps {
   open: boolean;

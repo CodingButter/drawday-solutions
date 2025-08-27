@@ -68,8 +68,17 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
+    // Set a timeout to handle cases where Firebase doesn't respond
+    const timeout = setTimeout(() => {
+      console.error('Firebase auth check timeout - redirecting to login');
+      setLoading(false);
+      router.push('/login');
+    }, 5000); // 5 second timeout
+
     // Check authentication state
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      clearTimeout(timeout); // Clear timeout if auth state is received
+      
       if (firebaseUser) {
         setUser({
           uid: firebaseUser.uid,
@@ -77,16 +86,31 @@ export default function DashboardPage() {
           displayName: firebaseUser.displayName,
         });
         
-        // Load user's competitions
-        await loadData(firebaseUser.uid);
+        try {
+          // Load user's competitions
+          await loadData(firebaseUser.uid);
+        } catch (error) {
+          console.error('Error loading user data:', error);
+          setError('Failed to load data. Please refresh the page.');
+        }
         setLoading(false);
       } else {
         // Not authenticated, redirect to login
+        setLoading(false);
         router.push('/login');
       }
+    }, (error) => {
+      // Handle auth errors
+      clearTimeout(timeout);
+      console.error('Auth state change error:', error);
+      setLoading(false);
+      router.push('/login');
     });
 
-    return () => unsubscribe();
+    return () => {
+      clearTimeout(timeout);
+      unsubscribe();
+    };
   }, [router]);
 
   const handleLogout = async () => {

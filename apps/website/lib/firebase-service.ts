@@ -16,6 +16,7 @@ import {
 import { db } from './firebase';
 import { CSVParser, IntelligentColumnMapper } from '@raffle-spinner/csv-parser';
 import { ColumnMapping } from '@raffle-spinner/storage';
+import type { SavedMapping } from '@raffle-spinner/types';
 
 export interface Participant {
   firstName: string;
@@ -99,7 +100,7 @@ export interface UserSettings {
     spinnerStyle: SpinnerStyle;
     branding: BrandingConfig;
   };
-  csvColumnMappings?: ColumnMapping[];
+  csvColumnMappings?: SavedMapping[];
   lastUpdated: Timestamp;
   createdAt?: Timestamp;
 }
@@ -213,8 +214,8 @@ export const getUserCompetitions = async (userId: string): Promise<Competition[]
       
       // Sort in memory if we couldn't use orderBy
       competitions.sort((a, b) => {
-        const aTime = a.createdAt || 0;
-        const bTime = b.createdAt || 0;
+        const aTime = a.createdAt?.toMillis() || 0;
+        const bTime = b.createdAt?.toMillis() || 0;
         return bTime - aTime;
       });
       
@@ -423,7 +424,7 @@ export const updateBranding = async (
 
 export const saveColumnMapping = async (
   userId: string,
-  mapping: ColumnMapping
+  mapping: SavedMapping
 ): Promise<void> => {
   try {
     const settings = await getUserSettings(userId);

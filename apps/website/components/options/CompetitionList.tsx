@@ -9,7 +9,7 @@
  */
 
 import { useState } from 'react';
-// Storage types are now in contexts;
+import type { Competition } from '@/contexts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@raffle-spinner/ui';
 import { Button } from '@raffle-spinner/ui';
 import { Alert, AlertDescription } from '@raffle-spinner/ui';

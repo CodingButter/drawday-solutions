@@ -17,13 +17,30 @@ const transporter = nodemailer.createTransport({
 });
 
 // Verify transporter configuration
-transporter.verify(function (error, success) {
-  if (error) {
-    console.error('Email transporter verification failed:', error);
-  } else {
-    console.log('Email server is ready to send messages');
-  }
-});
+if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+  transporter.verify(function (error, success) {
+    if (error) {
+      console.error('Email transporter verification failed:', error);
+      console.error('Email config:', {
+        host: process.env.EMAIL_HOST,
+        port: process.env.EMAIL_PORT,
+        secure: process.env.EMAIL_SECURE,
+        user: process.env.EMAIL_USER ? 'SET' : 'NOT SET',
+        pass: process.env.EMAIL_PASS ? 'SET' : 'NOT SET',
+      });
+    } else {
+      console.log('Email server is ready to send messages');
+    }
+  });
+} else {
+  console.error('Email configuration incomplete:', {
+    host: process.env.EMAIL_HOST ? 'SET' : 'NOT SET',
+    user: process.env.EMAIL_USER ? 'SET' : 'NOT SET',
+    pass: process.env.EMAIL_PASS ? 'SET' : 'NOT SET',
+    port: process.env.EMAIL_PORT || '587',
+    secure: process.env.EMAIL_SECURE || 'false',
+  });
+}
 
 export interface EmailOptions {
   to: string;
@@ -33,19 +50,45 @@ export interface EmailOptions {
 }
 
 export async function sendEmail({ to, subject, html, text }: EmailOptions) {
+  // Check if email config is available
+  if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.error('Cannot send email - configuration missing');
+    return { 
+      success: false, 
+      error: { 
+        message: 'Email service not configured',
+        details: 'Missing EMAIL_HOST, EMAIL_USER, or EMAIL_PASS'
+      } 
+    };
+  }
+
   try {
+    const fromAddress = process.env.EMAIL_FROM || '"DrawDay Solutions" <admin@drawday.app>';
+    
+    console.log('Attempting to send email:', {
+      from: fromAddress,
+      to,
+      subject,
+      host: process.env.EMAIL_HOST,
+    });
+
     const info = await transporter.sendMail({
-      from: process.env.EMAIL_FROM || '"DrawDay Solutions" <admin@drawday.app>',
+      from: fromAddress,
       to,
       subject,
       text: text || '',
       html,
     });
 
-    console.log('Email sent:', info.messageId);
+    console.log('Email sent successfully:', info.messageId);
     return { success: true, messageId: info.messageId };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending email:', error);
+    console.error('Email error details:', {
+      code: error.code,
+      message: error.message,
+      response: error.response,
+    });
     return { success: false, error };
   }
 }

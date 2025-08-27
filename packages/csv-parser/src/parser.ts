@@ -130,7 +130,7 @@ export class CSVParser {
       lastName = row[mapping.lastName || ""]?.trim();
     }
 
-    const ticketNumber = row[mapping.ticketNumber]?.trim();
+    const ticketNumber = mapping.ticketNumber !== null ? row[mapping.ticketNumber]?.trim() : undefined;
 
     // Skip if any required field is missing
     if (!firstName || !lastName || !ticketNumber) {

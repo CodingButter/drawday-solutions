@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
@@ -44,7 +44,7 @@ import {
   Eye
 } from 'lucide-react';
 
-export default function ConfigurationPage() {
+function ConfigurationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [user, setUser] = useState<any>(null);
@@ -749,5 +749,13 @@ export default function ConfigurationPage() {
         </Tabs>
       </div>
     </div>
+  );
+}
+
+export default function ConfigurationPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <ConfigurationContent />
+    </Suspense>
   );
 }

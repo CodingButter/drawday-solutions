@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import './app.css';
 
 // Get the website URL - using production domain
-const WEBSITE_URL = 'https://drawday.app';
+const WEBSITE_URL = 'https://www.drawday.app';
 
 function SidePanelIframe() {
   return (

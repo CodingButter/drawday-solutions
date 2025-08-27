@@ -7,6 +7,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import type { Competition } from "@/contexts";
+import type { ColumnMapping, SavedMapping } from "@raffle-spinner/types";
 import { createCompetition } from '@/lib/firebase-service';
 
 // Simple CSV parsing for the website
@@ -55,18 +56,6 @@ function detectColumnMapping(headers: string[]): Partial<ColumnMapping> {
   return mapping;
 }
 
-interface ColumnMapping {
-  firstName: string | null;
-  lastName: string | null;
-  fullName: string | null;
-  ticketNumber: string | null;
-}
-
-interface SavedMapping {
-  id: string;
-  name: string;
-  mapping: ColumnMapping;
-}
 
 interface UseCSVImportProps {
   addCompetition: (competition: Competition) => Promise<void>;
@@ -198,7 +187,7 @@ export function useCSVImport({
     setShowMapperModal(true);
   };
 
-  const handleMappingConfirm = async (mapping: ColumnMapping) => {
+  const handleMappingConfirm = async (mapping: ColumnMapping, _saveMapping?: SavedMapping) => {
     if (!selectedFile) return;
 
     try {

@@ -9,7 +9,7 @@
  * - FR-1.1: CSV File Upload Interface
  */
 
-// Storage types are now in contexts;
+import type { Competition, ColumnMapping } from '@/contexts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@raffle-spinner/ui';
 import { Button } from '@raffle-spinner/ui';
 import { Upload, Settings, Play } from 'lucide-react';

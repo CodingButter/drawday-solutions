@@ -18,7 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@raffle-spinner/ui';
-// Storage types are now in contexts;
+import type { Competition } from '@/contexts';
 
 interface DeleteConfirmDialogProps {
   open: boolean;

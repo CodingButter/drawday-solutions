@@ -12,6 +12,9 @@ export type {
   BrandingConfig 
 } from './ThemeContext';
 
+// Re-export ColumnMapping from shared types
+export type { ColumnMapping } from '@raffle-spinner/types';
+
 // Type aliases for compatibility with existing components
 export type ThemeColorsType = import('./ThemeContext').ThemeColors;
 export type SpinnerType = 'slotMachine' | 'wheel' | 'cards';

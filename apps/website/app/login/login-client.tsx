@@ -45,7 +45,7 @@ export default function LoginClient() {
   }, []);
 
   const router = useRouter();
-  const redirectTo = searchParams?.get('from') || '/live-spinner/spinner';
+  const redirectTo = searchParams?.get('from') || '/dashboard';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

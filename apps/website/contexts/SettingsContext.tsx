@@ -11,22 +11,12 @@ import {
   type SpinnerSettings,
   defaultSettings 
 } from '@/lib/settings-service';
-
-interface ColumnMapping {
-  firstName: string | null;
-  lastName: string | null;
-  fullName: string | null;
-  ticketNumber: string | null;
-}
+import type { ColumnMapping, SavedMapping } from '@raffle-spinner/types';
 
 interface SettingsContextType {
   settings: SpinnerSettings;
   columnMapping: ColumnMapping | null;
-  savedMappings: Array<{
-    id: string;
-    name: string;
-    mapping: ColumnMapping;
-  }>;
+  savedMappings: SavedMapping[];
   updateSettings: (settings: Partial<SpinnerSettings>) => Promise<void>;
   updateColumnMapping: (mapping: ColumnMapping) => void;
   saveMappingTemplate: (name: string, mapping: ColumnMapping) => void;
@@ -39,11 +29,7 @@ const SettingsContext = createContext<SettingsContextType | null>(null);
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<SpinnerSettings>(defaultSettings.spinner);
   const [columnMapping, setColumnMapping] = useState<ColumnMapping | null>(null);
-  const [savedMappings, setSavedMappings] = useState<Array<{
-    id: string;
-    name: string;
-    mapping: ColumnMapping;
-  }>>([]);
+  const [savedMappings, setSavedMappings] = useState<SavedMapping[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
 
   // Sync settings to localStorage for polling
@@ -71,7 +57,17 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           }
           
           if (userSettings.savedMappings) {
-            setSavedMappings(userSettings.savedMappings);
+            // Convert legacy saved mappings to new format
+            const mappings = userSettings.savedMappings.map((m: any) => ({
+              id: m.id,
+              name: m.name,
+              mapping: m.mapping,
+              createdAt: m.createdAt || Date.now(),
+              updatedAt: m.updatedAt || Date.now(),
+              usageCount: m.usageCount || 0,
+              isDefault: m.isDefault || false
+            }));
+            setSavedMappings(mappings);
           }
         } catch (error) {
           console.error('Error loading settings:', error);
@@ -98,7 +94,17 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         }
         
         if (userSettings.savedMappings) {
-          setSavedMappings(userSettings.savedMappings);
+          // Convert legacy saved mappings to new format
+          const mappings = userSettings.savedMappings.map((m: any) => ({
+            id: m.id,
+            name: m.name,
+            mapping: m.mapping,
+            createdAt: m.createdAt || Date.now(),
+            updatedAt: m.updatedAt || Date.now(),
+            usageCount: m.usageCount || 0,
+            isDefault: m.isDefault || false
+          }));
+          setSavedMappings(mappings);
         }
         
         // Update localStorage
@@ -137,10 +143,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   };
 
   const saveMappingTemplate = (name: string, mapping: ColumnMapping) => {
-    const newMapping = {
-      id: Date.now().toString(),
+    const now = Date.now();
+    const newMapping: SavedMapping = {
+      id: now.toString(),
       name,
-      mapping
+      mapping,
+      createdAt: now,
+      updatedAt: now,
+      usageCount: 0
     };
     
     const updatedMappings = [...savedMappings, newMapping];

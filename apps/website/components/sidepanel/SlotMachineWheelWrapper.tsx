@@ -6,8 +6,10 @@
  */
 
 import { SlotMachineWheel } from '@raffle-spinner/spinners';
-// Storage types are now in contexts;
-import { useTheme } from '@raffle-spinner/contexts';
+import type { Participant } from '@raffle-spinner/storage';
+import type { SpinnerSettings } from '@raffle-spinner/storage';
+import type { TextSize } from '@raffle-spinner/types';
+import { useTheme } from '@/contexts';
 
 interface SlotMachineWheelWrapperProps {
   participants: Participant[];
@@ -37,8 +39,8 @@ export function SlotMachineWheelWrapper({
     nameColor: theme.spinnerStyle.nameColor,
     ticketColor: theme.spinnerStyle.ticketColor,
     fontFamily: theme.spinnerStyle.fontFamily,
-    nameSize: theme.spinnerStyle.nameSize,
-    ticketSize: theme.spinnerStyle.ticketSize,
+    nameSize: theme.spinnerStyle.nameSize as TextSize | undefined,
+    ticketSize: theme.spinnerStyle.ticketSize as TextSize | undefined,
     topShadowOpacity: theme.spinnerStyle.topShadowOpacity,
     bottomShadowOpacity: theme.spinnerStyle.bottomShadowOpacity,
     shadowSize: theme.spinnerStyle.shadowSize,
@@ -46,7 +48,7 @@ export function SlotMachineWheelWrapper({
   };
 
   // Show debug info in development mode
-  const showDebug = import.meta.env?.DEV || false;
+  const showDebug = process.env.NODE_ENV === 'development';
 
   return (
     <SlotMachineWheel
