@@ -2,10 +2,9 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './app.css';
 
-// Get the website URL - in production this would be your deployed website
-const WEBSITE_URL = import.meta.env.PROD 
-  ? 'https://drawday.app' // Replace with your production URL
-  : 'http://localhost:3000';
+// Get the website URL - for now always use localhost for development
+// TODO: Update this to use production URL when deploying to Chrome Web Store
+const WEBSITE_URL = 'http://localhost:3000';
 
 function SidePanelIframe() {
   return (
