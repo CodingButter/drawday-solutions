@@ -26,6 +26,7 @@ import confetti from 'canvas-confetti';
 function SidePanelContent() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
+  const [isInIframe, setIsInIframe] = useState(false);
   const { competitions, selectedCompetition, selectCompetition, refreshCompetitions } = useCompetitions();
   const { settings, refreshSettings } = useSettings();
   const { theme } = useTheme();
@@ -71,8 +72,23 @@ function SidePanelContent() {
     }
   });
 
-  // Auth check
+  // Check if we're in an iframe
   useEffect(() => {
+    setIsInIframe(window !== window.parent);
+  }, []);
+
+  // Auth check - skip if in iframe (extension handles auth)
+  useEffect(() => {
+    if (isInIframe) {
+      // In iframe/extension context, assume authenticated
+      setUser({
+        uid: 'extension-user',
+        email: 'user@extension',
+        displayName: 'Extension User',
+      });
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         setUser({
@@ -86,7 +102,7 @@ function SidePanelContent() {
     });
 
     return () => unsubscribe();
-  }, [router]);
+  }, [router, isInIframe]);
 
   const handleSpin = () => {
     setError(null);

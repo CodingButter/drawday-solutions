@@ -29,6 +29,7 @@ import type { Competition } from '@/contexts';
 function OptionsContent() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
+  const [isInIframe, setIsInIframe] = useState(false);
   const { competitions, addCompetition, deleteCompetition, updateCompetitionBanner } =
     useCompetitions();
   const { settings, columnMapping, updateSettings, updateColumnMapping } = useSettings();
@@ -37,8 +38,23 @@ function OptionsContent() {
   const [competitionToDelete, setCompetitionToDelete] = useState<Competition | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-  // Auth check
+  // Check if we're in an iframe
   useEffect(() => {
+    setIsInIframe(window !== window.parent);
+  }, []);
+
+  // Auth check - skip if in iframe (extension handles auth)
+  useEffect(() => {
+    if (isInIframe) {
+      // In iframe/extension context, assume authenticated
+      setUser({
+        uid: 'extension-user',
+        email: 'user@extension',
+        displayName: 'Extension User',
+      });
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         setUser({
@@ -52,7 +68,7 @@ function OptionsContent() {
     });
 
     return () => unsubscribe();
-  }, [router]);
+  }, [router, isInIframe]);
 
   const {
     fileInputRef,

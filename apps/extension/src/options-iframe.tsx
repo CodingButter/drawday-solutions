@@ -26,9 +26,15 @@ function OptionsIframe() {
 
     // Wait for iframe to load and inject the function
     const handleIframeLoad = () => {
+      console.log('Iframe loaded, attempting to inject openSidepanel function');
       if (iframeRef.current?.contentWindow) {
-        // Inject the openSidepanel function into the iframe's window
-        (iframeRef.current.contentWindow as any).openSidepanel = openSidePanel;
+        try {
+          // Inject the openSidepanel function into the iframe's window
+          (iframeRef.current.contentWindow as any).openSidepanel = openSidePanel;
+          console.log('Successfully injected openSidepanel function');
+        } catch (error) {
+          console.error('Failed to inject function, will use postMessage fallback:', error);
+        }
       }
     };
 
@@ -67,6 +73,8 @@ function OptionsIframe() {
         className="w-full h-full border-0"
         allow="clipboard-write; clipboard-read"
         title="DrawDay Spinner Options"
+        // Remove sandbox to avoid the warning - extension iframes are already isolated
+        style={{ border: 'none' }}
       />
     </div>
   );
