@@ -44,10 +44,10 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      // Positioning
-      "fixed inset-0 z-50",
-      // Background
-      "bg-black/80",
+      // Positioning - using explicit values for Tailwind v4
+      "fixed top-0 right-0 bottom-0 left-0 z-50",
+      // Background with explicit opacity
+      "bg-black bg-opacity-80",
       // Animation
       "animate-in animate-out",
       "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
@@ -73,9 +73,10 @@ const DialogContent = React.forwardRef<
       <DialogPrimitive.Content
         ref={ref}
         className={cn(
-        // Positioning
-        "fixed left-[50%] top-[50%] z-50",
-        "translate-x-[-50%] translate-y-[-50%]",
+        // Positioning - explicit for Tailwind v4
+        "fixed left-1/2 top-1/2 z-50",
+        "-translate-x-1/2 -translate-y-1/2",
+        "transform", // Ensure transform is applied
         // Sizing
         "w-full max-w-lg",
         // Styling
