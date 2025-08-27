@@ -158,15 +158,13 @@ export function ColumnMapper({
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1">
-              <DialogTitle>Map CSV Columns</DialogTitle>
-              <DialogDescription className="mt-1.5">
-                Select which columns in your CSV correspond to the required fields.
-              </DialogDescription>
-            </div>
-            <InfoTooltip {...helpContent.csvImport.columnMapping} />
-          </div>
+          <DialogTitle className="flex items-center gap-2">
+            Map CSV Columns
+            <InfoTooltip {...helpContent.csvImport.columnMapping} className="ml-1" />
+          </DialogTitle>
+          <DialogDescription>
+            Select which columns in your CSV correspond to the required fields.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
