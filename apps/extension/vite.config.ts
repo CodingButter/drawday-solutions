@@ -11,20 +11,48 @@ export default defineConfig({
     {
       name: 'copy-assets',
       writeBundle() {
-        // Copy manifest.json to DrawDaySpinner
-        copyFileSync(
-          resolve(__dirname, 'public/manifest.json'),
-          resolve(__dirname, 'DrawDaySpinner/manifest.json')
-        );
-
-        // Copy icons from shared assets package
-        const assetsPath = resolve(__dirname, '../../packages/assets/src');
         const outputPath = resolve(__dirname, 'DrawDaySpinner');
 
         // Ensure directories exist
         if (!existsSync(outputPath)) {
           mkdirSync(outputPath, { recursive: true });
         }
+
+        // Copy manifest.json to DrawDaySpinner
+        copyFileSync(
+          resolve(__dirname, 'public/manifest.json'),
+          resolve(__dirname, 'DrawDaySpinner/manifest.json')
+        );
+
+        // Copy background.js
+        copyFileSync(
+          resolve(__dirname, 'src/background.js'),
+          resolve(__dirname, 'DrawDaySpinner/background.js')
+        );
+
+        // Rename HTML files to match manifest.json expectations
+        if (existsSync(resolve(outputPath, 'sidepanel.html'))) {
+          // Already named correctly
+        } else if (existsSync(resolve(outputPath, 'sidepanel-iframe.html'))) {
+          // Rename to expected name
+          copyFileSync(
+            resolve(outputPath, 'sidepanel-iframe.html'),
+            resolve(outputPath, 'sidepanel.html')
+          );
+        }
+
+        if (existsSync(resolve(outputPath, 'options.html'))) {
+          // Already named correctly
+        } else if (existsSync(resolve(outputPath, 'options-iframe.html'))) {
+          // Rename to expected name
+          copyFileSync(
+            resolve(outputPath, 'options-iframe.html'),
+            resolve(outputPath, 'options.html')
+          );
+        }
+
+        // Copy icons from shared assets package
+        const assetsPath = resolve(__dirname, '../../packages/assets/src');
 
         // Copy icon files to extension output
         const iconFiles = ['icon-16.png', 'icon-32.png', 'icon-48.png', 'icon-128.png'];
@@ -48,11 +76,16 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        sidepanel: resolve(__dirname, 'sidepanel.html'),
-        options: resolve(__dirname, 'options.html'),
+        sidepanel: resolve(__dirname, 'sidepanel-iframe.html'),
+        options: resolve(__dirname, 'options-iframe.html'),
       },
       output: {
-        entryFileNames: '[name].js',
+        entryFileNames: (chunkInfo) => {
+          // Rename the output files to match what manifest.json expects
+          if (chunkInfo.name === 'sidepanel') return 'sidepanel.js';
+          if (chunkInfo.name === 'options') return 'options.js';
+          return '[name].js';
+        },
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name].[ext]',
       },
