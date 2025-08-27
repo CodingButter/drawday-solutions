@@ -122,15 +122,21 @@ export function ColumnMapper({
           usageCount: 1,
           isDefault: false,
         };
-        await storage.saveSavedMapping(savedMapping);
+        // Save to localStorage
+        const existingMappings = savedMappings || [];
+        const updatedMappings = [...existingMappings, savedMapping];
+        localStorage.setItem('savedMappings', JSON.stringify(updatedMappings));
       } else if (selectedSavedMappingId) {
         // Increment usage count of existing mapping
         const existing = savedMappings.find((m) => m.id === selectedSavedMappingId);
         if (existing) {
-          await storage.saveSavedMapping({
-            ...existing,
-            usageCount: existing.usageCount + 1,
-          });
+          // Update usage count in localStorage
+          const updatedMappings = savedMappings.map(m => 
+            m.id === existing.id 
+              ? { ...m, usageCount: (m.usageCount || 0) + 1 }
+              : m
+          );
+          localStorage.setItem('savedMappings', JSON.stringify(updatedMappings));
         }
       }
 
