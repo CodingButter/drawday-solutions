@@ -140,7 +140,12 @@ export function ColumnMapper({
         }
       }
 
-      onConfirm(finalMapping as ColumnMapping, savedMapping);
+      onConfirm({
+        firstName: finalMapping.firstName || null,
+        lastName: finalMapping.lastName || null,
+        fullName: finalMapping.fullName || null,
+        ticketNumber: finalMapping.ticketNumber || null,
+      } as ColumnMapping, savedMapping);
     }
   };
 
