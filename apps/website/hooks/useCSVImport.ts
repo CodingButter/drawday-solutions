@@ -320,9 +320,9 @@ export function useCSVImport({
     }
   };
 
-  const handleConversionProceed = async (conversions: any[]) => {
+  const handleConversionProceed = async () => {
     // Handle ticket number conversions if needed
-    const participants = conversions.map(c => ({
+    const participants = ticketConversions.map(c => ({
       firstName: c.firstName,
       lastName: c.lastName,
       ticketNumber: c.converted || c.original
