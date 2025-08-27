@@ -49,7 +49,7 @@ const DialogOverlay = React.forwardRef<
       // Background
       "bg-black/80",
       // Animation
-      "data-[state=open]:animate-in data-[state=closed]:animate-out",
+      "animate-in animate-out",
       "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className,
     )}
@@ -65,12 +65,14 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
-  <DialogPortal>
-    <DialogOverlay />
-    <DialogPrimitive.Content
-      ref={ref}
-      className={cn(
+>(({ className, children, ...props }, ref) => {
+  // Use a portal to ensure the dialog renders at the document body level
+  return (
+    <DialogPortal>
+      <DialogOverlay />
+      <DialogPrimitive.Content
+        ref={ref}
+        className={cn(
         // Positioning
         "fixed left-[50%] top-[50%] z-50",
         "translate-x-[-50%] translate-y-[-50%]",
@@ -84,11 +86,9 @@ const DialogContent = React.forwardRef<
         "grid",
         // Animation
         "duration-200",
-        "data-[state=open]:animate-in data-[state=closed]:animate-out",
+        "animate-in animate-out",
         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-        "data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%]",
-        "data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
         className,
       )}
       {...props}
@@ -100,7 +100,8 @@ const DialogContent = React.forwardRef<
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>
   </DialogPortal>
-));
+  );
+});
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 /**

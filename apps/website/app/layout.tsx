@@ -48,6 +48,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${inter.variable} font-sans antialiased bg-night text-white`}>
         <LayoutContent>{children}</LayoutContent>
+        <div id="portal-root" />
       </body>
     </html>
   );
