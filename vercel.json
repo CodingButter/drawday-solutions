@@ -1,9 +1,10 @@
 {
+  "framework": "nextjs",
   "buildCommand": "pnpm build:website",
   "outputDirectory": "apps/website/.next",
+  "installCommand": "pnpm install --frozen-lockfile",
   "env": {
     "ENABLE_EXPERIMENTAL_COREPACK": "1",
-    "COREPACK_ENABLE_STRICT": "0",
-    "VERCEL_FORCE_NO_BUILD_CACHE": "1"
+    "COREPACK_ENABLE_STRICT": "0"
   }
 }
