@@ -6,7 +6,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { getUserCompetitions, getCompetition, addWinners, type Competition } from '@/lib/firebase-service';
 import { getUserSettings, type UserSettings } from '@/lib/settings-service';
-import { SlotMachineWheel } from '@raffle-spinner/spinners';
+import { SlotMachineWheel, type SpinnerTheme } from '@raffle-spinner/spinners';
 import { Button } from '@raffle-spinner/ui';
 import { Input } from '@raffle-spinner/ui';
 import { Card, CardContent, CardHeader, CardTitle } from '@raffle-spinner/ui';
@@ -282,8 +282,8 @@ export default function LiveSpinnerPage() {
     canvasBackground: '#0a0a0a',
     borderColor: '#333333',
     highlightColor: '#ffd700',
-    nameSize: 18,
-    ticketSize: 14,
+    nameSize: 'medium',
+    ticketSize: 'small',
     fontFamily: 'system-ui, -apple-system, sans-serif',
     topShadowOpacity: 0.8,
     bottomShadowOpacity: 0.8,

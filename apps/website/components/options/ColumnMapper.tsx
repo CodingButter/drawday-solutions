@@ -107,7 +107,12 @@ export function ColumnMapper({
         savedMapping = {
           id: `mapping-${Date.now()}`,
           name: mappingName.trim(),
-          mapping: finalMapping as ColumnMapping,
+          mapping: {
+            firstName: finalMapping.firstName || null,
+            lastName: finalMapping.lastName || null,
+            fullName: finalMapping.fullName || null,
+            ticketNumber: finalMapping.ticketNumber || null,
+          } as ColumnMapping,
           createdAt: Date.now(),
           updatedAt: Date.now(),
           usageCount: 1,

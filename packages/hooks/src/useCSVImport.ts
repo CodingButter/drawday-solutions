@@ -1,37 +1,83 @@
 /**
- * CSV Import Hook
- *
- * Purpose: Handles the complete CSV import workflow including file selection,
- * column detection, mapping, duplicate handling, and competition creation.
- *
- * SRS Reference:
- * - FR-1.1: CSV File Upload Interface
- * - FR-1.2: CSV Parser Integration
- * - FR-1.4: Column Mapping Interface
- * - FR-1.5: Data Validation and Error Handling
+ * CSV Import Hook for Website
+ * 
+ * Adapted version of the extension's CSV import hook for use in the Next.js website.
+ * Uses React state and localStorage instead of Chrome storage API.
  */
 
 import { useState, useRef, useEffect } from "react";
-import { storage } from "@raffle-spinner/storage";
-import type {
-  ColumnMapping,
-  Competition,
-  SavedMapping,
-} from "@raffle-spinner/types";
-import { useCSVUpload } from "./useCSVUpload";
+// Competition type should be imported from the app using this hook
 
-interface UseCSVImportProps {
-  addCompetition: (competition: Competition) => Promise<void>;
-  columnMapping: ColumnMapping | null;
-  updateColumnMapping: (mapping: ColumnMapping) => Promise<void>;
+// Simple CSV parsing for the website
+function parseCSV(text: string): string[][] {
+  const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+  return lines.map(line => {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    
+    result.push(current.trim());
+    return result;
+  });
 }
 
-export function useCSVImport({
+function detectColumnMapping(headers: string[]): Partial<ColumnMapping> {
+  const mapping: Partial<ColumnMapping> = {};
+  
+  headers.forEach((header) => {
+    const lower = header.toLowerCase();
+    
+    if (lower.includes('first') && lower.includes('name')) {
+      mapping.firstName = header;
+    } else if (lower.includes('last') && lower.includes('name')) {
+      mapping.lastName = header;
+    } else if (lower === 'name' || lower === 'full name' || lower === 'fullname') {
+      mapping.fullName = header;
+    } else if (lower.includes('ticket') || lower.includes('number') || lower === 'no' || lower === '#') {
+      mapping.ticketNumber = header;
+    }
+  });
+  
+  return mapping;
+}
+
+interface ColumnMapping {
+  firstName: string | null;
+  lastName: string | null;
+  fullName: string | null;
+  ticketNumber: string | null;
+}
+
+interface SavedMapping {
+  id: string;
+  name: string;
+  mapping: ColumnMapping;
+}
+
+interface UseCSVImportProps<T = any> {
+  addCompetition: (competition: T) => Promise<void>;
+  columnMapping: ColumnMapping | null;
+  updateColumnMapping: (mapping: ColumnMapping) => void;
+}
+
+export function useCSVImport<T = any>({
   addCompetition,
   columnMapping,
   updateColumnMapping,
-}: UseCSVImportProps) {
-  const { upload, detectColumns } = useCSVUpload();
+}: UseCSVImportProps<T>) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [savedMappings, setSavedMappings] = useState<SavedMapping[]>([]);
@@ -43,13 +89,11 @@ export function useCSVImport({
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [showConversionModal, setShowConversionModal] = useState(false);
   const [detectedHeaders, setDetectedHeaders] = useState<string[]>([]);
-  const [detectedMapping, setDetectedMapping] = useState<
-    Partial<ColumnMapping>
-  >({});
+  const [detectedMapping, setDetectedMapping] = useState<Partial<ColumnMapping>>({});
   const [duplicates, setDuplicates] = useState<
     Array<{ ticketNumber: string; names: string[] }>
   >([]);
-  const [ticketConversions, setTicketConversions] = useState<
+  const [ticketConversions] = useState<
     Array<{
       original: string;
       converted: string | null;
@@ -63,29 +107,51 @@ export function useCSVImport({
     message: string;
   } | null>(null);
 
-  // Load saved mappings on mount and listen for changes
+  // Load saved mappings from localStorage
   useEffect(() => {
-    loadSavedMappings();
-
-    // Listen for storage changes to keep mappings in sync
-    const handleStorageChange = (changes: {
-      [key: string]: chrome.storage.StorageChange;
-    }) => {
-      if (changes.data?.newValue?.savedMappings) {
-        setSavedMappings(changes.data.newValue.savedMappings || []);
+    const loadSavedMappings = () => {
+      try {
+        const stored = localStorage.getItem('savedMappings');
+        if (stored) {
+          setSavedMappings(JSON.parse(stored));
+        }
+      } catch (error) {
+        console.error('Error loading saved mappings:', error);
       }
     };
 
-    chrome.storage.onChanged.addListener(handleStorageChange);
+    loadSavedMappings();
 
-    return () => {
-      chrome.storage.onChanged.removeListener(handleStorageChange);
+    // Listen for storage changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'savedMappings' && e.newValue) {
+        try {
+          setSavedMappings(JSON.parse(e.newValue));
+        } catch (error) {
+          console.error('Error parsing saved mappings:', error);
+        }
+      }
     };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const loadSavedMappings = async () => {
-    const mappings = await storage.getSavedMappings();
-    setSavedMappings(mappings);
+  const detectColumns = async (file: File) => {
+    const text = await file.text();
+    const lines = text.split('\n').filter(line => line.trim());
+    
+    if (lines.length === 0) {
+      throw new Error('CSV file is empty');
+    }
+
+    // Parse the first line to get headers
+    const headers = parseCSV(lines[0])[0];
+    
+    // Use the detection function from csv-parser
+    const detected = detectColumnMapping(headers);
+    
+    return { headers, detected };
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -98,194 +164,206 @@ export function useCSVImport({
     try {
       const { headers, detected } = await detectColumns(file);
       setDetectedHeaders(headers);
+      setDetectedMapping(detected);
 
-      // Try to find the best matching saved mapping
-      const defaultMapping = await storage.getDefaultMapping();
-      let bestMappingId = "";
+      // Suggest a saved mapping if headers match
+      const matchingMapping = savedMappings.find(m => {
+        const mappingHeaders = Object.values(m.mapping).filter(Boolean);
+        return mappingHeaders.every(h => headers.includes(h as string));
+      });
 
-      if (defaultMapping) {
-        // Use default if set
-        bestMappingId = defaultMapping.id;
-      } else if (savedMappings.length > 0) {
-        // Try to match based on headers
-        const matchingMapping = savedMappings.find((mapping) => {
-          const m = mapping.mapping;
-          return (
-            headers.includes(m.ticketNumber) &&
-            (m.fullName
-              ? headers.includes(m.fullName)
-              : m.firstName &&
-                headers.includes(m.firstName) &&
-                m.lastName &&
-                headers.includes(m.lastName))
-          );
-        });
-
-        if (matchingMapping) {
-          bestMappingId = matchingMapping.id;
-        } else {
-          // Use most recently used mapping
-          const sortedByUsage = [...savedMappings].sort(
-            (a, b) => b.usageCount - a.usageCount,
-          );
-          if (sortedByUsage[0].usageCount > 0) {
-            bestMappingId = sortedByUsage[0].id;
-          }
-        }
+      if (matchingMapping) {
+        setSuggestedMappingId(matchingMapping.id);
       }
 
-      setSuggestedMappingId(bestMappingId);
+      // Use previously saved mapping if available
+      if (columnMapping) {
+        setDetectedMapping(columnMapping);
+      }
 
-      // Always show mapper modal to give user chance to confirm or change
-      setDetectedMapping({
-        firstName: detected.firstName || "",
-        lastName: detected.lastName || "",
-        fullName: detected.fullName || "",
-        ticketNumber: detected.ticketNumber || "",
-      });
-      setShowMapperModal(true);
+      setShowNameModal(true);
     } catch (error) {
-      console.error("Failed to detect columns:", error);
+      console.error('Error detecting columns:', error);
+      setImportSummary({
+        success: false,
+        message: 'Failed to read CSV file',
+      });
     }
   };
 
-  const handleMappingConfirm = async (
-    mapping: ColumnMapping,
-    savedMapping?: SavedMapping,
-  ) => {
-    await updateColumnMapping(mapping);
-
-    // Reload saved mappings if a new one was created
-    if (savedMapping) {
-      await loadSavedMappings();
-    }
-
-    setShowMapperModal(false);
-    setShowNameModal(true);
-  };
-
-  const handleNameConfirm = async (name: string) => {
+  const handleNameConfirm = (name: string) => {
     setCompetitionName(name);
     setShowNameModal(false);
+    setShowMapperModal(true);
+  };
 
-    if (!selectedFile || !columnMapping) return;
+  const handleMappingConfirm = async (mapping: ColumnMapping) => {
+    if (!selectedFile) return;
 
     try {
-      const result = await upload(selectedFile, name, columnMapping);
+      // Save the mapping for future use
+      updateColumnMapping(mapping);
 
-      // Check for ticket conversions first
-      if (result.ticketConversions && result.ticketConversions.length > 0) {
-        setTicketConversions(result.ticketConversions);
-        setShowConversionModal(true);
-        // Don't proceed until user confirms conversions
+      // Parse the CSV with the confirmed mapping
+      const text = await selectedFile.text();
+      const rows = parseCSV(text);
+      
+      if (rows.length < 2) {
+        throw new Error('CSV file has no data rows');
+      }
+
+      // Skip header row and process data
+      const participants = rows.slice(1).map(row => {
+        const firstName = mapping.firstName ? row[detectedHeaders.indexOf(mapping.firstName)] : '';
+        const lastName = mapping.lastName ? row[detectedHeaders.indexOf(mapping.lastName)] : '';
+        const fullName = mapping.fullName ? row[detectedHeaders.indexOf(mapping.fullName)] : '';
+        const ticketNumber = mapping.ticketNumber ? row[detectedHeaders.indexOf(mapping.ticketNumber)] : '';
+
+        // If using fullName, split it
+        let finalFirstName = firstName;
+        let finalLastName = lastName;
+        
+        if (!firstName && !lastName && fullName) {
+          const parts = fullName.trim().split(/\s+/);
+          finalFirstName = parts[0] || '';
+          finalLastName = parts.slice(1).join(' ') || '';
+        }
+
+        return {
+          firstName: finalFirstName,
+          lastName: finalLastName,
+          ticketNumber: ticketNumber
+        };
+      }).filter(p => p.ticketNumber); // Filter out entries without ticket numbers
+
+      // Check for duplicates
+      const ticketMap = new Map<string, string[]>();
+      participants.forEach(p => {
+        const key = p.ticketNumber;
+        if (!ticketMap.has(key)) {
+          ticketMap.set(key, []);
+        }
+        ticketMap.get(key)!.push(`${p.firstName} ${p.lastName}`);
+      });
+
+      const duplicateTickets = Array.from(ticketMap.entries())
+        .filter(([_, names]) => names.length > 1)
+        .map(([ticketNumber, names]) => ({ ticketNumber, names }));
+
+      if (duplicateTickets.length > 0) {
+        setDuplicates(duplicateTickets);
+        setShowMapperModal(false);
+        setShowDuplicateModal(true);
         return;
       }
 
-      if (result.duplicates.length > 0) {
-        setDuplicates(result.duplicates);
-        setShowDuplicateModal(true);
-      } else {
-        await addCompetition(result.competition);
-        setImportSummary({
-          success: true,
-          message: `Success! ${result.competition.participants.length} participants imported. ${
-            result.skippedRows > 0
-              ? `${result.skippedRows} rows were skipped due to missing data.`
-              : ""
-          }`,
-        });
-      }
+      // No duplicates, proceed to create competition
+      await createAndSaveCompetition(participants);
     } catch (error) {
+      console.error('Error processing CSV:', error);
       setImportSummary({
         success: false,
-        message: "Failed to import CSV. Please check the file format.",
+        message: 'Failed to process CSV file',
       });
+      setShowMapperModal(false);
     }
-
-    resetFileInput();
-  };
-
-  const handleConversionProceed = async () => {
-    setShowConversionModal(false);
-
-    if (!selectedFile || !columnMapping || !competitionName) return;
-
-    // Re-process the file - conversions are already handled in the parser
-    try {
-      const result = await upload(selectedFile, competitionName, columnMapping);
-
-      if (result.duplicates.length > 0) {
-        setDuplicates(result.duplicates);
-        setShowDuplicateModal(true);
-      } else {
-        await addCompetition(result.competition);
-        const conversionCount = ticketConversions.filter(
-          (c) => c.converted,
-        ).length;
-        setImportSummary({
-          success: true,
-          message: `Success! ${result.competition.participants.length} participants imported. ${
-            conversionCount > 0
-              ? `${conversionCount} ticket numbers were converted to numeric format. `
-              : ""
-          }${
-            result.skippedRows > 0
-              ? `${result.skippedRows} rows were skipped due to missing data or invalid tickets.`
-              : ""
-          }`,
-        });
-      }
-    } catch (error) {
-      setImportSummary({
-        success: false,
-        message: "Failed to import CSV.",
-      });
-    }
-
-    resetFileInput();
   };
 
   const handleDuplicateProceed = async () => {
-    setShowDuplicateModal(false);
-
-    if (!selectedFile || !columnMapping || !competitionName) return;
+    if (!selectedFile || !columnMapping) return;
 
     try {
-      const result = await upload(selectedFile, competitionName, columnMapping);
-      await addCompetition(result.competition);
-      setImportSummary({
-        success: true,
-        message: `Success! ${result.competition.participants.length} participants imported. ${
-          result.duplicates.length
-        } duplicate ticket numbers were found (only first occurrence kept). ${
-          result.skippedRows > 0
-            ? `${result.skippedRows} rows were skipped due to missing data.`
-            : ""
-        }`,
+      const text = await selectedFile.text();
+      const rows = parseCSV(text);
+      
+      // Process with duplicates (keeping first occurrence)
+      const seen = new Set<string>();
+      const participants = rows.slice(1).map(row => {
+        const firstName = columnMapping.firstName ? row[detectedHeaders.indexOf(columnMapping.firstName)] : '';
+        const lastName = columnMapping.lastName ? row[detectedHeaders.indexOf(columnMapping.lastName)] : '';
+        const fullName = columnMapping.fullName ? row[detectedHeaders.indexOf(columnMapping.fullName)] : '';
+        const ticketNumber = columnMapping.ticketNumber ? row[detectedHeaders.indexOf(columnMapping.ticketNumber)] : '';
+
+        // If using fullName, split it
+        let finalFirstName = firstName;
+        let finalLastName = lastName;
+        
+        if (!firstName && !lastName && fullName) {
+          const parts = fullName.trim().split(/\s+/);
+          finalFirstName = parts[0] || '';
+          finalLastName = parts.slice(1).join(' ') || '';
+        }
+
+        return {
+          firstName: finalFirstName,
+          lastName: finalLastName,
+          ticketNumber: ticketNumber
+        };
+      }).filter(p => {
+        if (!p.ticketNumber || seen.has(p.ticketNumber)) {
+          return false;
+        }
+        seen.add(p.ticketNumber);
+        return true;
       });
+
+      await createAndSaveCompetition(participants);
+      setShowDuplicateModal(false);
     } catch (error) {
+      console.error('Error processing CSV with duplicates:', error);
       setImportSummary({
         success: false,
-        message: "Failed to import CSV.",
+        message: 'Failed to process CSV file',
+      });
+      setShowDuplicateModal(false);
+    }
+  };
+
+  const handleConversionProceed = async () => {
+    // Handle ticket number conversions if needed
+    const participants = ticketConversions.map(c => ({
+      firstName: c.firstName,
+      lastName: c.lastName,
+      ticketNumber: c.converted || c.original
+    }));
+
+    await createAndSaveCompetition(participants);
+    setShowConversionModal(false);
+  };
+
+  const createAndSaveCompetition = async (participants: any[]) => {
+    try {
+      const competition: any = {
+        id: `comp-${Date.now()}`,
+        name: competitionName,
+        participants,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+
+      await addCompetition(competition);
+
+      setImportSummary({
+        success: true,
+        message: `Successfully imported ${participants.length} participants into "${competitionName}"`,
+      });
+
+      // Reset form
+      setSelectedFile(null);
+      setCompetitionName('');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error) {
+      console.error('Error creating competition:', error);
+      setImportSummary({
+        success: false,
+        message: 'Failed to create competition',
       });
     }
   };
 
-  const resetFileInput = () => {
-    setSelectedFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const openMapperModal = async () => {
-    // Refresh saved mappings before opening modal
-    await loadSavedMappings();
-
-    setDetectedHeaders(["First Name", "Last Name", "Ticket Number"]);
-    if (columnMapping) {
-      setDetectedMapping(columnMapping);
-    }
+  const openMapperModal = () => {
     setShowMapperModal(true);
   };
 

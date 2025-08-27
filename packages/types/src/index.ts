@@ -49,10 +49,10 @@ export interface SpinnerSettings {
  * CSV column mapping configuration
  */
 export interface ColumnMapping {
-  firstName?: string;
-  lastName?: string;
-  fullName?: string; // Single column containing both first and last name
-  ticketNumber: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  fullName?: string | null; // Single column containing both first and last name
+  ticketNumber: string | null;
 }
 
 /**

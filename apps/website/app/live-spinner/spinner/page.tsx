@@ -7,7 +7,7 @@ import { auth } from '@/lib/firebase';
 import { CompetitionProvider, useCompetitions } from '@/contexts';
 import { SettingsProvider, useSettings } from '@/contexts';
 import { ThemeProvider, useTheme } from '@/contexts';
-import { useLocalStoragePolling } from '@/hooks/useLocalStoragePolling';
+import { useLocalStoragePolling } from '@raffle-spinner/hooks';
 import { SlotMachineWheel } from '@raffle-spinner/spinners';
 import { SessionWinners, Winner } from '@/components/sidepanel/SessionWinners';
 import { Button } from '@raffle-spinner/ui';
@@ -264,7 +264,21 @@ function SidePanelContent() {
                     isSpinning={isSpinning}
                     onSpinComplete={handleSpinComplete}
                     settings={settings}
-                    theme={theme.spinnerStyle}
+                    theme={{
+                      nameColor: theme.spinnerStyle.nameColor,
+                      ticketColor: theme.spinnerStyle.ticketColor,
+                      backgroundColor: theme.spinnerStyle.backgroundColor,
+                      canvasBackground: theme.spinnerStyle.canvasBackground,
+                      borderColor: theme.spinnerStyle.borderColor,
+                      highlightColor: theme.spinnerStyle.highlightColor,
+                      nameSize: theme.spinnerStyle.nameSize as "small" | "medium" | "large" | "extra-large",
+                      ticketSize: theme.spinnerStyle.ticketSize as "small" | "medium" | "large" | "extra-large",
+                      fontFamily: theme.spinnerStyle.fontFamily,
+                      topShadowOpacity: theme.spinnerStyle.topShadowOpacity,
+                      bottomShadowOpacity: theme.spinnerStyle.bottomShadowOpacity,
+                      shadowSize: theme.spinnerStyle.shadowSize,
+                      shadowColor: theme.spinnerStyle.shadowColor,
+                    }}
                   />
                 </div>
 

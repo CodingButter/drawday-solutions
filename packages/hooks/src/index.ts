@@ -22,3 +22,6 @@ export { useDebounce, useDebounceCallback } from "./useDebounce";
 // CSV Import hooks
 export { useCSVImport } from "./useCSVImport";
 export { useCSVUpload } from "./useCSVUpload";
+
+// Storage polling hooks
+export { useLocalStoragePolling, useMultipleLocalStoragePolling } from "./useLocalStoragePolling";
