@@ -70,36 +70,48 @@ const DialogContent = React.forwardRef<
   return (
     <DialogPortal>
       <DialogOverlay />
-      <div className="fixed inset-0 z-50 flex items-center justify-center">
-        <DialogPrimitive.Content
-          ref={ref}
-          className={cn(
-            // Positioning
-            "relative",
-            // Size constraints
-            "w-full max-w-lg mx-4",
-            // Styling
-            "gap-4 border bg-background p-6 shadow-lg",
-            // Border radius
-            "rounded-lg",
-            // Grid layout for content
-            "grid",
-            // Animation
-            "duration-200",
-            "animate-in animate-out",
-            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-            "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-            className,
-          )}
-          {...props}
-        >
-          {children}
-          <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </DialogPrimitive.Close>
-        </DialogPrimitive.Content>
-      </div>
+      <DialogPrimitive.Content
+        ref={ref}
+        className={cn(
+          // Fixed positioning with explicit centering
+          "fixed",
+          "top-[50%] left-[50%]",
+          // Transform to center (using explicit values for Tailwind v4)
+          "transform",
+          "translate-x-[-50%] translate-y-[-50%]",
+          // Z-index above overlay
+          "z-[51]",
+          // Size constraints
+          "w-[90vw] max-w-lg",
+          // Styling
+          "gap-4 border bg-background p-6 shadow-lg",
+          // Border radius
+          "rounded-lg",
+          // Grid layout for content
+          "grid",
+          // Animation
+          "duration-200",
+          "animate-in animate-out",
+          "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+          "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+          className,
+        )}
+        style={{
+          // Fallback inline styles for critical positioning
+          position: "fixed",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          zIndex: 51,
+        }}
+        {...props}
+      >
+        {children}
+        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </DialogPrimitive.Close>
+      </DialogPrimitive.Content>
     </DialogPortal>
   );
 });
