@@ -132,9 +132,9 @@ function OptionsContent() {
           </Alert>
         )}
 
-        <Card>
+        <Card className="transition-all duration-200 hover:shadow-md">
           <CardHeader
-            className="cursor-pointer select-none"
+            className="cursor-pointer select-none transition-colors duration-200 hover:bg-muted/50 rounded-t-lg"
             onClick={() => toggleSection('competitions')}
           >
             <div className="flex items-center justify-between">
@@ -142,7 +142,12 @@ function OptionsContent() {
                 <CardTitle>Competition Management</CardTitle>
                 <CardDescription>Import and manage raffle competitions</CardDescription>
               </div>
-              <Button variant="ghost" size="icon">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                aria-label={collapsedSections.competitions ? "Expand Competition Management" : "Collapse Competition Management"}
+                aria-expanded={!collapsedSections.competitions}
+              >
                 {collapsedSections.competitions ? (
                   <ChevronRight className="h-4 w-4" />
                 ) : (
@@ -166,9 +171,9 @@ function OptionsContent() {
           )}
         </Card>
 
-        <Card>
+        <Card className="transition-all duration-200 hover:shadow-md">
           <CardHeader
-            className="cursor-pointer select-none"
+            className="cursor-pointer select-none transition-colors duration-200 hover:bg-muted/50 rounded-t-lg"
             onClick={() => toggleSection('settings')}
           >
             <div className="flex items-center justify-between">
@@ -176,7 +181,12 @@ function OptionsContent() {
                 <CardTitle>Spinner Settings</CardTitle>
                 <CardDescription>Configure spin duration and physics</CardDescription>
               </div>
-              <Button variant="ghost" size="icon">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                aria-label={collapsedSections.settings ? "Expand Spinner Settings" : "Collapse Spinner Settings"}
+                aria-expanded={!collapsedSections.settings}
+              >
                 {collapsedSections.settings ? (
                   <ChevronRight className="h-4 w-4" />
                 ) : (
@@ -192,14 +202,19 @@ function OptionsContent() {
           )}
         </Card>
 
-        <Card>
-          <CardHeader className="cursor-pointer select-none" onClick={() => toggleSection('theme')}>
+        <Card className="transition-all duration-200 hover:shadow-md">
+          <CardHeader className="cursor-pointer select-none transition-colors duration-200 hover:bg-muted/50 rounded-t-lg" onClick={() => toggleSection('theme')}>
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>Spinner Appearance</CardTitle>
                 <CardDescription>Customize the look of your spinner</CardDescription>
               </div>
-              <Button variant="ghost" size="icon">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                aria-label={collapsedSections.theme ? "Expand Spinner Appearance" : "Collapse Spinner Appearance"}
+                aria-expanded={!collapsedSections.theme}
+              >
                 {collapsedSections.theme ? (
                   <ChevronRight className="h-4 w-4" />
                 ) : (
@@ -218,9 +233,9 @@ function OptionsContent() {
           )}
         </Card>
 
-        <Card>
+        <Card className="transition-all duration-200 hover:shadow-md">
           <CardHeader
-            className="cursor-pointer select-none"
+            className="cursor-pointer select-none transition-colors duration-200 hover:bg-muted/50 rounded-t-lg"
             onClick={() => toggleSection('branding')}
           >
             <div className="flex items-center justify-between">
@@ -228,7 +243,12 @@ function OptionsContent() {
                 <CardTitle>Branding</CardTitle>
                 <CardDescription>Add your logo and company information</CardDescription>
               </div>
-              <Button variant="ghost" size="icon">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                aria-label={collapsedSections.branding ? "Expand Branding" : "Collapse Branding"}
+                aria-expanded={!collapsedSections.branding}
+              >
                 {collapsedSections.branding ? (
                   <ChevronRight className="h-4 w-4" />
                 ) : (
@@ -244,14 +264,19 @@ function OptionsContent() {
           )}
         </Card>
 
-        <Card>
-          <CardHeader className="cursor-pointer select-none" onClick={() => toggleSection('help')}>
+        <Card className="transition-all duration-200 hover:shadow-md">
+          <CardHeader className="cursor-pointer select-none transition-colors duration-200 hover:bg-muted/50 rounded-t-lg" onClick={() => toggleSection('help')}>
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>CSV Column Mappings</CardTitle>
                 <CardDescription>Manage saved column mapping templates</CardDescription>
               </div>
-              <Button variant="ghost" size="icon">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                aria-label={collapsedSections.help ? "Expand CSV Column Mappings" : "Collapse CSV Column Mappings"}
+                aria-expanded={!collapsedSections.help}
+              >
                 {collapsedSections.help ? (
                   <ChevronRight className="h-4 w-4" />
                 ) : (
