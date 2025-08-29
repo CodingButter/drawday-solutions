@@ -2,8 +2,11 @@ import React, { useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 import './app.css';
 
-// Get the website URL - using production domain
-const WEBSITE_URL = 'https://www.drawday.app';
+// For development, always use localhost
+// Change this to 'https://www.drawday.app' for production builds
+const WEBSITE_URL = 'http://localhost:3000';
+
+console.log('DrawDay Options URL:', WEBSITE_URL);
 
 function OptionsIframe() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -71,7 +74,6 @@ function OptionsIframe() {
         className="w-full h-full border-0"
         allow="clipboard-write; clipboard-read"
         title="DrawDay Spinner Options"
-        // Remove sandbox to avoid the warning - extension iframes are already isolated
         style={{ border: 'none' }}
       />
     </div>

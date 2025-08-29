@@ -29,6 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@raffle-spinner/ui';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@raffle-spinner/ui';
 import { SlotMachineWheel } from '@raffle-spinner/spinners';
+import { BannerImage } from '@/components/BannerImage';
 import { 
   ChevronDown, 
   ChevronRight, 
@@ -182,42 +183,68 @@ function ConfigurationContent() {
   };
 
   const handleImageUpload = async (type: 'logo' | 'banner', file: File) => {
-    // Convert to base64
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64 = reader.result as string;
+    try {
+      // Compress image using API route
+      const { compressImage } = await import('@/lib/image-utils');
+      const compressed = await compressImage(file, {
+        quality: 80,
+        maxWidth: type === 'logo' ? 400 : 1200,
+        maxHeight: type === 'logo' ? 400 : 600
+      });
       
       if (type === 'logo') {
-        await handleBrandingChange('logoImage', base64);
+        await handleBrandingChange('logoImage', compressed);
       } else {
-        await handleBrandingChange('bannerImage', base64);
+        await handleBrandingChange('bannerImage', compressed);
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Error compressing image:', err);
+      alert('Failed to process image. The image may be too large.');
+    }
   };
 
   const handleCompetitionBannerUpload = async (competitionId: string, file: File) => {
+    console.log('Starting banner upload for competition:', competitionId, 'File:', file);
     setUploadingBanner(competitionId);
     
-    // Convert to base64
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64 = reader.result as string;
+    try {
+      // Compress image using API route
+      const { compressImage } = await import('@/lib/image-utils');
+      console.log('Compressing image...');
+      const compressed = await compressImage(file, {
+        quality: 70,
+        maxWidth: 1200,
+        maxHeight: 400 // Good for banners
+      });
+      console.log('Image compressed successfully');
       
-      try {
-        await updateCompetition(competitionId, { bannerImage: base64 });
-        
-        // Update local state
-        setCompetitions(prev => prev.map(c => 
-          c.id === competitionId ? { ...c, bannerImage: base64 } : c
-        ));
-      } catch (err) {
-        console.error('Error uploading banner:', err);
+      // Store image in IndexedDB
+      const { imageStore } = await import('@/lib/image-utils');
+      const imageId = `banner-${competitionId}-${Date.now()}`;
+      console.log('Saving to IndexedDB with ID:', imageId);
+      await imageStore.saveImage(imageId, compressed);
+      console.log('Saved to IndexedDB');
+      
+      // Update competition with image reference
+      console.log('Updating competition in Firebase...');
+      await updateCompetition(competitionId, { bannerImageId: imageId });
+      console.log('Competition updated');
+      
+      // Update local state
+      setCompetitions(prev => prev.map(c => 
+        c.id === competitionId ? { ...c, bannerImageId: imageId } : c
+      ));
+      console.log('Local state updated');
+    } catch (err) {
+      console.error('Error uploading banner - Full error:', err);
+      if (err instanceof Error) {
+        alert(`Failed to upload banner: ${err.message}`);
+      } else {
+        alert('Failed to upload banner. The image may be too large.');
       }
-      
-      setUploadingBanner(null);
-    };
-    reader.readAsDataURL(file);
+    }
+    
+    setUploadingBanner(null);
   };
 
   const handleDeleteCompetition = async (competitionId: string) => {
@@ -323,18 +350,20 @@ function ConfigurationContent() {
                             {/* Competition Banner */}
                             <div className="mt-4">
                               <Label className="text-sm text-gray-400">Competition Banner</Label>
-                              {competition.bannerImage ? (
+                              {competition.bannerImageId ? (
                                 <div className="mt-2 relative">
-                                  <img 
-                                    src={competition.bannerImage} 
-                                    alt="Competition banner" 
-                                    className="w-full h-32 object-cover rounded-lg"
-                                  />
+                                  <BannerImage imageId={competition.bannerImageId} />
                                   <button
-                                    onClick={() => {
-                                      updateCompetition(competition.id!, { bannerImage: undefined });
+                                    onClick={async () => {
+                                      // Delete from IndexedDB
+                                      if (competition.bannerImageId) {
+                                        const { imageStore } = await import('@/lib/image-utils');
+                                        await imageStore.deleteImage(competition.bannerImageId);
+                                      }
+                                      // Update competition
+                                      await updateCompetition(competition.id!, { bannerImageId: undefined });
                                       setCompetitions(prev => prev.map(c => 
-                                        c.id === competition.id ? { ...c, bannerImage: undefined } : c
+                                        c.id === competition.id ? { ...c, bannerImageId: undefined } : c
                                       ));
                                     }}
                                     className="absolute top-2 right-2 p-1 bg-red-600 rounded hover:bg-red-700"
@@ -351,9 +380,13 @@ function ConfigurationContent() {
                                     accept="image/*"
                                     className="hidden"
                                     onChange={(e) => {
+                                      console.log('File input changed:', e.target.files);
                                       const file = e.target.files?.[0];
                                       if (file && competition.id) {
+                                        console.log('Calling handleCompetitionBannerUpload with:', competition.id, file);
                                         handleCompetitionBannerUpload(competition.id, file);
+                                      } else {
+                                        console.log('No file or competition ID:', { file, competitionId: competition.id });
                                       }
                                     }}
                                     disabled={uploadingBanner === competition.id}

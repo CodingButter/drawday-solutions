@@ -45,7 +45,8 @@ export interface Competition {
   drawDate?: Date;
   participantCount: number;
   winnersCount?: number;
-  bannerImage?: string; // Base64 encoded image for this specific competition
+  bannerImage?: string; // Legacy: Base64 encoded image (for backward compatibility)
+  bannerImageId?: string; // New: Reference to image stored in IndexedDB
 }
 
 export interface UserStats {

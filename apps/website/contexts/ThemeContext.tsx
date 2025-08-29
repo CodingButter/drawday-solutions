@@ -144,7 +144,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const updateColors = async (colors: Partial<ThemeColors>) => {
-    if (!userId) return;
+    // Check if we're in iframe context
+    const isInIframe = window !== window.parent;
+    const effectiveUserId = userId || (isInIframe ? 'extension-user' : null);
+    
+    if (!effectiveUserId) return;
     
     const newTheme = {
       ...theme,
@@ -155,19 +159,26 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // Update localStorage immediately for local updates
     localStorage.setItem('theme', JSON.stringify(newTheme));
     
-    try {
-      await updateThemeColors(userId, colors);
-      // Update timestamp after successful update
-      const timestamp = await getUserSettingsTimestamp(userId);
-      setLastTimestamp(timestamp);
-    } catch (error) {
-      console.error('Error updating theme colors:', error);
-      throw error;
+    // Only update database if we have a real userId (not in iframe)
+    if (userId && !isInIframe) {
+      try {
+        await updateThemeColors(userId, colors);
+        // Update timestamp after successful update
+        const timestamp = await getUserSettingsTimestamp(userId);
+        setLastTimestamp(timestamp);
+      } catch (error) {
+        console.error('Error updating theme colors:', error);
+        if (!isInIframe) throw error;
+      }
     }
   };
 
   const updateSpinnerStyle = async (style: Partial<SpinnerStyle>) => {
-    if (!userId) return;
+    // Check if we're in iframe context
+    const isInIframe = window !== window.parent;
+    const effectiveUserId = userId || (isInIframe ? 'extension-user' : null);
+    
+    if (!effectiveUserId) return;
     
     const newTheme = {
       ...theme,
@@ -178,19 +189,33 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // Update localStorage immediately for local updates
     localStorage.setItem('theme', JSON.stringify(newTheme));
     
-    try {
-      await updateSpinnerStyleInDb(userId, style);
-      // Update timestamp after successful update
-      const timestamp = await getUserSettingsTimestamp(userId);
-      setLastTimestamp(timestamp);
-    } catch (error) {
-      console.error('Error updating spinner style:', error);
-      throw error;
+    // Only update database if we have a real userId (not in iframe)
+    if (userId && !isInIframe) {
+      try {
+        await updateSpinnerStyleInDb(userId, style);
+        // Update timestamp after successful update
+        const timestamp = await getUserSettingsTimestamp(userId);
+        setLastTimestamp(timestamp);
+      } catch (error) {
+        console.error('Error updating spinner style:', error);
+        if (!isInIframe) throw error;
+      }
     }
   };
 
   const updateBranding = async (branding: Partial<BrandingConfig>) => {
-    if (!userId) return;
+    console.log('updateBranding called with:', branding, 'userId:', userId);
+    
+    // Check if we're in iframe context
+    const isInIframe = window !== window.parent;
+    
+    // If no userId and in iframe, use a default extension user ID
+    const effectiveUserId = userId || (isInIframe ? 'extension-user' : null);
+    
+    if (!effectiveUserId) {
+      console.warn('No user ID available for branding update');
+      return;
+    }
     
     const newTheme = {
       ...theme,
@@ -200,15 +225,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     
     // Update localStorage immediately for local updates
     localStorage.setItem('theme', JSON.stringify(newTheme));
+    console.log('Theme updated in localStorage');
     
-    try {
-      await updateBrandingInDb(userId, branding);
-      // Update timestamp after successful update
-      const timestamp = await getUserSettingsTimestamp(userId);
-      setLastTimestamp(timestamp);
-    } catch (error) {
-      console.error('Error updating branding:', error);
-      throw error;
+    // Only update database if we have a real userId (not in iframe)
+    if (userId && !isInIframe) {
+      try {
+        await updateBrandingInDb(userId, branding);
+        // Update timestamp after successful update
+        const timestamp = await getUserSettingsTimestamp(userId);
+        setLastTimestamp(timestamp);
+        console.log('Branding updated in database');
+      } catch (error) {
+        console.error('Error updating branding in database:', error);
+        // Don't throw in iframe context
+        if (!isInIframe) throw error;
+      }
     }
   };
 

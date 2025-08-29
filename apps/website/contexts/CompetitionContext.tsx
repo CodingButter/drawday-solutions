@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { imageStore } from '@/lib/image-utils';
 
 export interface Participant {
   firstName: string;
@@ -13,7 +14,7 @@ export interface Competition {
   name: string;
   participants: Participant[];
   winners?: Participant[];
-  bannerImage?: string;
+  bannerImageId?: string; // Store ID reference instead of actual image
   createdAt: number;
   updatedAt: number;
 }
@@ -26,6 +27,7 @@ interface CompetitionContextType {
   deleteCompetition: (id: string) => Promise<void>;
   selectCompetition: (competition: Competition) => void;
   updateCompetitionBanner: (id: string, bannerImage: string) => Promise<void>;
+  getBannerImage: (imageId: string | undefined) => Promise<string | null>;
   refreshCompetitions: () => void;
 }
 
@@ -137,8 +139,7 @@ export function CompetitionProvider({ children }: { children: React.ReactNode })
     setCompetitions(updatedCompetitions);
     saveCompetitionsToStorage(updatedCompetitions);
     
-    // Auto-select the newly created competition
-    selectCompetition(newCompetition);
+    // Don't auto-select - let user choose from dropdown
   };
 
   const updateCompetition = async (id: string, updates: Partial<Competition>) => {
@@ -190,7 +191,25 @@ export function CompetitionProvider({ children }: { children: React.ReactNode })
   };
 
   const updateCompetitionBanner = async (id: string, bannerImage: string) => {
-    await updateCompetition(id, { bannerImage });
+    // Store image in IndexedDB instead of localStorage
+    const imageId = `banner-${id}-${Date.now()}`;
+    await imageStore.saveImage(imageId, bannerImage);
+    
+    // Store only the reference in localStorage
+    await updateCompetition(id, { bannerImageId: imageId });
+    
+    // Clean up old images after 24 hours
+    imageStore.cleanOldImages(24).catch(console.error);
+  };
+  
+  const getBannerImage = async (imageId: string | undefined): Promise<string | null> => {
+    if (!imageId) return null;
+    try {
+      return await imageStore.getImage(imageId);
+    } catch (error) {
+      console.error('Error loading banner image:', error);
+      return null;
+    }
   };
 
   return (
@@ -203,6 +222,7 @@ export function CompetitionProvider({ children }: { children: React.ReactNode })
         deleteCompetition, 
         selectCompetition,
         updateCompetitionBanner,
+        getBannerImage,
         refreshCompetitions
       }}
     >

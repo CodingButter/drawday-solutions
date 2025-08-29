@@ -8,18 +8,62 @@
  * - FR-1.6: Competition Management
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Competition } from '@/contexts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@raffle-spinner/ui';
 import { Button } from '@raffle-spinner/ui';
 import { Alert, AlertDescription } from '@raffle-spinner/ui';
 import { ImageUpload } from '@raffle-spinner/ui';
 import { Trash2, Users, AlertCircle } from 'lucide-react';
+import { imageStore } from '@/lib/image-utils';
 
 interface CompetitionListProps {
   competitions: Competition[];
   onDelete: (id: string) => void;
   onUpdateBanner?: (id: string, banner: string | undefined) => void;
+}
+
+// Component to handle loading banner from IndexedDB
+function CompetitionBanner({ 
+  competition, 
+  onUpdateBanner 
+}: { 
+  competition: Competition; 
+  onUpdateBanner?: (id: string, banner: string | undefined) => void;
+}) {
+  const [bannerUrl, setBannerUrl] = useState<string | undefined>(undefined);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const loadBanner = async () => {
+      if (competition.bannerImageId) {
+        setLoading(true);
+        try {
+          const image = await imageStore.getImage(competition.bannerImageId);
+          setBannerUrl(image || undefined);
+        } catch (error) {
+          console.error('Error loading banner:', error);
+        } finally {
+          setLoading(false);
+        }
+      } else if (competition.bannerImage) {
+        // Fallback to legacy base64 image
+        setBannerUrl(competition.bannerImage);
+      }
+    };
+    loadBanner();
+  }, [competition.bannerImageId, competition.bannerImage]);
+
+  return (
+    <ImageUpload
+      value={bannerUrl}
+      onChange={(value) => onUpdateBanner?.(competition.id, value)}
+      onError={(error) => console.error('Upload error:', error)}
+      height="h-24"
+      compact
+      loading={loading}
+    />
+  );
 }
 
 export function CompetitionList({ competitions, onDelete, onUpdateBanner }: CompetitionListProps) {
@@ -68,12 +112,9 @@ export function CompetitionList({ competitions, onDelete, onUpdateBanner }: Comp
           <CardContent>
             <div className="space-y-3">
               {/* Competition Banner */}
-              <ImageUpload
-                value={competition.bannerImage}
-                onChange={(value) => onUpdateBanner?.(competition.id, value)}
-                onError={setUploadError}
-                height="h-24"
-                compact
+              <CompetitionBanner
+                competition={competition}
+                onUpdateBanner={onUpdateBanner}
               />
 
               <div className="text-xs text-muted-foreground">

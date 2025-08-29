@@ -74,6 +74,7 @@ export default defineConfig({
   build: {
     outDir: 'DrawDaySpinner',
     emptyOutDir: true,
+    base: './',
     rollupOptions: {
       input: {
         sidepanel: resolve(__dirname, 'sidepanel-iframe.html'),

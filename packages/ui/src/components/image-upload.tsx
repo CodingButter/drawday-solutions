@@ -23,6 +23,13 @@ interface ImageUploadProps {
   width?: string;
   placeholder?: React.ReactNode;
   compact?: boolean; // For smaller UI in lists
+  loading?: boolean; // For async loading states
+  compress?: boolean; // Whether to compress images (default: true)
+  compressionOptions?: {
+    quality?: number;
+    maxWidth?: number;
+    maxHeight?: number;
+  };
 }
 
 export function ImageUpload({
@@ -36,9 +43,50 @@ export function ImageUpload({
   width = "w-full",
   placeholder,
   compact = false,
+  loading = false,
+  compress = true,
+  compressionOptions = {
+    quality: 80,
+    maxWidth: 1200,
+    maxHeight: 800,
+  },
 }: ImageUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const compressImage = async (file: File): Promise<string> => {
+    // Check if we're in a browser environment and have access to the API
+    if (typeof window !== 'undefined' && compress) {
+      try {
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('quality', compressionOptions.quality?.toString() || '80');
+        formData.append('maxWidth', compressionOptions.maxWidth?.toString() || '1200');
+        formData.append('maxHeight', compressionOptions.maxHeight?.toString() || '800');
+
+        const response = await fetch('/api/compress-image', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          return data.compressed;
+        }
+      } catch (error) {
+        console.warn('Image compression failed, using original:', error);
+      }
+    }
+    
+    // Fallback to uncompressed base64
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
 
   const handleFileUpload = async (file: File) => {
     // Validate file size
@@ -55,16 +103,16 @@ export function ImageUpload({
       return;
     }
 
-    // Convert to base64
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
+    setIsProcessing(true);
+    try {
+      const result = await compressImage(file);
       onChange(result);
-    };
-    reader.onerror = () => {
-      onError?.("Failed to read file");
-    };
-    reader.readAsDataURL(file);
+    } catch (error) {
+      onError?.("Failed to process image");
+      console.error('Image processing error:', error);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -120,6 +168,26 @@ export function ImageUpload({
       fileInputRef.current.value = "";
     }
   };
+
+  if (loading || isProcessing) {
+    return (
+      <div
+        className={cn(
+          "relative border-2 border-dashed border-border rounded flex items-center justify-center",
+          width,
+          height,
+          className,
+        )}
+      >
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground">
+            {isProcessing ? "Processing..." : "Loading..."}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (value) {
     return (

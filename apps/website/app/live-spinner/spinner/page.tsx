@@ -27,7 +27,7 @@ function SidePanelContent() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [isInIframe, setIsInIframe] = useState(false);
-  const { competitions, selectedCompetition, selectCompetition, refreshCompetitions } = useCompetitions();
+  const { competitions, selectedCompetition, selectCompetition, refreshCompetitions, getBannerImage } = useCompetitions();
   const { settings, refreshSettings } = useSettings();
   const { theme } = useTheme();
   const [ticketNumber, setTicketNumber] = useState('');
@@ -35,6 +35,7 @@ function SidePanelContent() {
   const [sessionWinners, setSessionWinners] = useState<Winner[]>([]);
   const [currentWinner, setCurrentWinner] = useState<Participant | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [bannerImage, setBannerImage] = useState<string | null>(null);
 
   // Poll localStorage for live updates
   useLocalStoragePolling({
@@ -181,8 +182,19 @@ function SidePanelContent() {
     }, 5000);
   };
 
-  // Determine which banner to show
-  const bannerImage = selectedCompetition?.bannerImage || theme.branding.bannerImage;
+  // Load banner image - show company banner by default, competition banner when selected
+  useEffect(() => {
+    const loadBanner = async () => {
+      if (selectedCompetition?.bannerImageId) {
+        const image = await getBannerImage(selectedCompetition.bannerImageId);
+        setBannerImage(image || theme.branding.bannerImage || null);
+      } else {
+        // No competition selected - show company branding banner
+        setBannerImage(theme.branding.bannerImage || null);
+      }
+    };
+    loadBanner();
+  }, [selectedCompetition, theme.branding.bannerImage, getBannerImage]);
 
   if (!user) {
     return (
@@ -196,37 +208,35 @@ function SidePanelContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Branding Header */}
-      {(bannerImage || theme.branding.logoImage) && (
-        <div className="relative">
-          {/* Banner */}
-          {bannerImage && (
-            <div className="w-full h-48 overflow-hidden">
-              <img src={bannerImage} alt="Event Banner" className="w-full h-full object-cover" />
-            </div>
-          )}
+      {/* Branding Header - Always show if configured */}
+      <div className="relative">
+        {/* Banner - either competition or company */}
+        {bannerImage && (
+          <div className="w-full h-48 overflow-hidden">
+            <img src={bannerImage} alt="Event Banner" className="w-full h-full object-cover" />
+          </div>
+        )}
 
-          {/* Logo and Company Name - Centered in banner */}
-          {theme.branding.logoImage && (
-            <div
-              className={`${bannerImage ? 'absolute inset-0' : 'relative py-8'} flex items-center px-4 ${
-                theme.branding.logoPosition === 'center'
-                  ? 'justify-center'
-                  : theme.branding.logoPosition === 'right'
-                    ? 'justify-end'
-                    : 'justify-start'
-              }`}
-            >
-              <div className="flex items-center gap-3 bg-background/70 backdrop-blur-md px-6 py-3 rounded-lg shadow-lg border border-white/10">
-                <img src={theme.branding.logoImage} alt="Company Logo" className="h-16 w-auto" />
-                {theme.branding.showCompanyName && theme.branding.companyName && (
-                  <span className="text-2xl font-bold">{theme.branding.companyName}</span>
-                )}
-              </div>
+        {/* Logo and Company Name - Always show if configured */}
+        {theme.branding.logoImage && (
+          <div
+            className={`${bannerImage ? 'absolute inset-0' : 'relative py-8'} flex items-center px-4 ${
+              theme.branding.logoPosition === 'center'
+                ? 'justify-center'
+                : theme.branding.logoPosition === 'right'
+                  ? 'justify-end'
+                  : 'justify-start'
+            }`}
+          >
+            <div className="flex items-center gap-3 bg-background/70 backdrop-blur-md px-6 py-3 rounded-lg shadow-lg border border-white/10">
+              <img src={theme.branding.logoImage} alt="Company Logo" className="h-16 w-auto" />
+              {theme.branding.showCompanyName && theme.branding.companyName && (
+                <span className="text-2xl font-bold">{theme.branding.companyName}</span>
+              )}
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
 
       <div className="max-w-2xl mx-auto space-y-4 p-4">
         {/* Competition Selector - Minimal UI */}
@@ -252,7 +262,7 @@ function SidePanelContent() {
           <InfoTooltip {...helpContent.competitionSelector} />
         </div>
 
-        {selectedCompetition && (
+        {selectedCompetition ? (
           <>
             {/* Spinner Section */}
             <Card className="bg-background/80 backdrop-blur">
@@ -333,6 +343,16 @@ function SidePanelContent() {
             {/* Session Winners */}
             {sessionWinners.length > 0 && <SessionWinners winners={sessionWinners} />}
           </>
+        ) : (
+          // No competition selected - show prompt
+          <Card className="bg-background/80 backdrop-blur">
+            <CardContent className="p-12 text-center">
+              <h3 className="text-xl font-semibold mb-2">No Competition Selected</h3>
+              <p className="text-muted-foreground">
+                Please select a competition from the dropdown above to start the raffle
+              </p>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>

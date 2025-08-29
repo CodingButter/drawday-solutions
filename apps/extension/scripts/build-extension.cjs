@@ -51,6 +51,20 @@ try {
     fs.copyFileSync(backgroundScript, path.join(distDir, 'background.js'));
   }
 
+  // Fix paths in HTML files to use relative paths
+  console.log('🔧 Fixing asset paths in HTML files...');
+  const htmlFiles = ['options.html', 'sidepanel.html'];
+  htmlFiles.forEach(htmlFile => {
+    const htmlPath = path.join(distDir, htmlFile);
+    if (fs.existsSync(htmlPath)) {
+      let content = fs.readFileSync(htmlPath, 'utf-8');
+      // Replace absolute paths with relative paths
+      content = content.replace(/src="\/([^"]+)"/g, 'src="$1"');
+      content = content.replace(/href="\/([^"]+)"/g, 'href="$1"');
+      fs.writeFileSync(htmlPath, content, 'utf-8');
+    }
+  });
+
   // Create ZIP file
   console.log('🗜️  Creating ZIP package...');
   

@@ -2,8 +2,11 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './app.css';
 
-// Get the website URL - using production domain
-const WEBSITE_URL = 'https://www.drawday.app';
+// For development, always use localhost
+// Change this to 'https://www.drawday.app' for production builds
+const WEBSITE_URL = 'http://localhost:3000';
+
+console.log('DrawDay Extension URL:', WEBSITE_URL);
 
 function SidePanelIframe() {
   return (

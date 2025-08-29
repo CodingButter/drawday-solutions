@@ -68,6 +68,49 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
+    // Check for token cookie first (magic link auth)
+    const checkTokenAuth = () => {
+      const cookies = document.cookie.split(';').map(c => c.trim());
+      const tokenCookie = cookies.find(c => c.startsWith('token='));
+      
+      if (tokenCookie) {
+        try {
+          const token = tokenCookie.split('=')[1];
+          // Decode JWT token to get email (basic base64 decode, not verification)
+          const payload = token.split('.')[1];
+          const decoded = JSON.parse(atob(payload));
+          
+          if (decoded && decoded.email && decoded.type === 'magic-link') {
+            // User authenticated via magic link
+            setUser({
+              uid: `magic-${decoded.email}`, // Create a unique ID for magic link users
+              email: decoded.email,
+              displayName: decoded.email.split('@')[0], // Use email prefix as display name
+            });
+            
+            // For magic link users, create mock data or limited functionality
+            setStats({
+              totalCompetitions: 0,
+              totalParticipants: 0,
+              activeDraws: 0,
+              completedDraws: 0,
+            });
+            setCompetitions([]);
+            setLoading(false);
+            return true; // Token auth found
+          }
+        } catch (e) {
+          console.error('Error parsing token cookie:', e);
+        }
+      }
+      return false; // No token found
+    };
+
+    // Check token auth first
+    if (checkTokenAuth()) {
+      return; // Token auth successful, no need for Firebase check
+    }
+
     // Set a timeout to handle cases where Firebase doesn't respond
     const timeout = setTimeout(() => {
       console.error('Firebase auth check timeout - redirecting to login');

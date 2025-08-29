@@ -55,6 +55,39 @@ function OptionsContent() {
       return;
     }
 
+    // Check for token cookie first (magic link auth)
+    const checkTokenAuth = () => {
+      const cookies = document.cookie.split(';').map(c => c.trim());
+      const tokenCookie = cookies.find(c => c.startsWith('token='));
+      
+      if (tokenCookie) {
+        try {
+          const token = tokenCookie.split('=')[1];
+          // Decode JWT token to get email (basic base64 decode, not verification)
+          const payload = token.split('.')[1];
+          const decoded = JSON.parse(atob(payload));
+          
+          if (decoded && decoded.email && decoded.type === 'magic-link') {
+            // User authenticated via magic link
+            setUser({
+              uid: `magic-${decoded.email}`,
+              email: decoded.email,
+              displayName: decoded.email.split('@')[0],
+            });
+            return true;
+          }
+        } catch (e) {
+          console.error('Error parsing token cookie:', e);
+        }
+      }
+      return false;
+    };
+
+    // Check token auth first
+    if (checkTokenAuth()) {
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         setUser({
@@ -121,9 +154,19 @@ function OptionsContent() {
     setShowDeleteDialog(false);
   };
 
-  const handleUpdateBanner = (id: string, banner: string | undefined) => {
-    if (banner !== undefined) {
-      updateCompetitionBanner(id, banner);
+  const handleUpdateBanner = async (id: string, banner: string | undefined) => {
+    if (banner) {
+      // New banner uploaded
+      await updateCompetitionBanner(id, banner);
+    } else {
+      // Banner removed - need to delete from IndexedDB
+      const competition = competitions.find(c => c.id === id);
+      if (competition?.bannerImageId) {
+        const { imageStore } = await import('@/lib/image-utils');
+        await imageStore.deleteImage(competition.bannerImageId);
+      }
+      // Clear the banner reference
+      await updateCompetitionBanner(id, '');
     }
   };
 

@@ -98,6 +98,12 @@ export function BrandingSettings() {
               width="w-32"
               height="h-20"
               compact={true}
+              compress={true}
+              compressionOptions={{
+                quality: 85,
+                maxWidth: 400,
+                maxHeight: 400,
+              }}
             />
 
             <div className="flex-1">
@@ -132,6 +138,12 @@ export function BrandingSettings() {
             onChange={(value) => updateBranding({ bannerImage: value })}
             onError={setUploadError}
             height="h-32"
+            compress={true}
+            compressionOptions={{
+              quality: 80,
+              maxWidth: 1200,
+              maxHeight: 400,
+            }}
           />
         </div>
 

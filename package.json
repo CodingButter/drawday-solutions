@@ -4,7 +4,8 @@
   "private": true,
   "description": "DrawDay Spinner - Professional Live Draw Chrome Extension",
   "scripts": {
-    "dev": "pnpm -r --parallel dev",
+    "dev": "pnpm --filter @raffle-spinner/extension build && pnpm --filter @raffle-spinner/website dev",
+    "dev:all": "pnpm -r --parallel dev",
     "build": "pnpm -r --filter='!@raffle-spinner/extension' build && pnpm --filter @raffle-spinner/extension build",
     "build:website": "pnpm -r --filter='!@raffle-spinner/extension' build",
     "clean": "pnpm -r clean",
