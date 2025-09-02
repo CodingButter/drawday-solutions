@@ -6,9 +6,7 @@ export default defineConfig({
   dts: {
     resolve: true,
     compilerOptions: {
-      jsx: "react",
-      jsxFactory: "React.createElement",
-      jsxFragmentFactory: "React.Fragment",
+      jsx: "react-jsx",
       moduleResolution: "bundler",
     },
   },
@@ -19,8 +17,5 @@ export default defineConfig({
   splitting: false,
   banner: {
     js: "'use client';\n",
-  },
-  esbuildOptions(options) {
-    options.jsx = 'automatic';
   },
 });

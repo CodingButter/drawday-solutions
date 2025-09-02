@@ -7,7 +7,7 @@
 
 "use client";
 
-import { useRef, useState, DragEvent } from "react";
+import React, { useRef, useState, DragEvent } from "react";
 import { Button } from "./button";
 import { cn } from "../lib/utils";
 import { Image as ImageIcon, Upload, Trash2 } from "lucide-react";
