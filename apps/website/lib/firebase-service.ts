@@ -284,7 +284,9 @@ export const getUserSettings = async (userId: string): Promise<UserSettings | nu
     const settingsSnap = await getDoc(settingsRef);
     
     if (settingsSnap.exists()) {
-      return settingsSnap.data() as UserSettings;
+      const data = settingsSnap.data() as UserSettings;
+      console.log('Retrieved user settings from Firebase:', data);
+      return data;
     }
     
     // If no settings exist, create default settings
@@ -334,6 +336,58 @@ export const getUserSettings = async (userId: string): Promise<UserSettings | nu
   }
 };
 
+// Helper to clean data for Firebase (remove undefined, functions, etc)
+const cleanForFirebase = (obj: any, path: string = ''): any => {
+  // Handle primitives and null
+  if (obj === null) return null;
+  if (obj === undefined) {
+    console.log(`Removing undefined at path: ${path}`);
+    return null;
+  }
+  
+  // Handle special types
+  if (obj instanceof Date) return obj;
+  if (obj instanceof Timestamp) return obj;
+  
+  // Handle serverTimestamp
+  if (typeof obj === 'function') {
+    console.log(`Removing function at path: ${path}`);
+    return null;
+  }
+  
+  // Handle primitives
+  if (typeof obj !== 'object') {
+    // Check for NaN or Infinity
+    if (typeof obj === 'number' && (!isFinite(obj) || isNaN(obj))) {
+      console.log(`Removing invalid number at path: ${path}`);
+      return null;
+    }
+    return obj;
+  }
+  
+  // Handle arrays
+  if (Array.isArray(obj)) {
+    return obj.map((item, index) => cleanForFirebase(item, `${path}[${index}]`))
+              .filter(item => item !== undefined);
+  }
+  
+  // Handle objects
+  const cleaned: any = {};
+  for (const key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      const value = obj[key];
+      const cleanedValue = cleanForFirebase(value, path ? `${path}.${key}` : key);
+      
+      // Only include if not undefined
+      if (cleanedValue !== undefined) {
+        cleaned[key] = cleanedValue;
+      }
+    }
+  }
+  
+  return cleaned;
+};
+
 export const updateUserSettings = async (
   userId: string, 
   updates: Partial<UserSettings>
@@ -341,15 +395,30 @@ export const updateUserSettings = async (
   try {
     const settingsRef = doc(db, 'userSettings', userId);
     
-    // Ensure settings exist first
-    const existingSettings = await getUserSettings(userId);
+    console.log('Raw updates before cleaning:', JSON.stringify(updates, null, 2));
     
-    await updateDoc(settingsRef, {
-      ...updates,
+    // Clean the data to remove any invalid values for Firebase
+    const cleanedUpdates = cleanForFirebase(updates);
+    
+    console.log('Cleaned updates:', JSON.stringify(cleanedUpdates, null, 2));
+    
+    // Final data to save
+    const dataToSave = {
+      ...cleanedUpdates,
+      userId, // Ensure userId is always set
       lastUpdated: serverTimestamp(),
-    });
+    };
+    
+    console.log('Final data structure (without serverTimestamp):', 
+      JSON.stringify({...dataToSave, lastUpdated: 'serverTimestamp()'}, null, 2));
+    
+    // Use setDoc with merge to handle both creation and update
+    await setDoc(settingsRef, dataToSave, { merge: true });
+    
+    console.log('Successfully saved to Firebase');
   } catch (error) {
     console.error('Error updating user settings:', error);
+    console.error('Failed data:', updates);
     throw error;
   }
 };
@@ -405,18 +474,29 @@ export const updateBranding = async (
   branding: Partial<BrandingConfig>
 ): Promise<void> => {
   try {
+    console.log('updateBranding called with userId:', userId, 'branding:', branding);
+    
     const settings = await getUserSettings(userId);
-    if (!settings) return;
+    if (!settings) {
+      console.error('No settings found for user:', userId);
+      return;
+    }
+    
+    const updatedTheme = {
+      ...settings.theme,
+      branding: {
+        ...settings.theme.branding,
+        ...branding,
+      },
+    };
+    
+    console.log('Updating settings with theme:', updatedTheme);
     
     await updateUserSettings(userId, {
-      theme: {
-        ...settings.theme,
-        branding: {
-          ...settings.theme.branding,
-          ...branding,
-        },
-      },
+      theme: updatedTheme,
     });
+    
+    console.log('Branding updated successfully in Firebase');
   } catch (error) {
     console.error('Error updating branding:', error);
     throw error;

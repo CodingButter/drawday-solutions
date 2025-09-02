@@ -11,7 +11,6 @@
 import { useState, useEffect } from 'react';
 import type { Competition } from '@/contexts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@raffle-spinner/ui';
-import { Button } from '@raffle-spinner/ui';
 import { Alert, AlertDescription } from '@raffle-spinner/ui';
 import { ImageUpload } from '@raffle-spinner/ui';
 import { Trash2, Users, AlertCircle } from 'lucide-react';
@@ -93,20 +92,28 @@ export function CompetitionList({ competitions, onDelete, onUpdateBanner }: Comp
 
       {competitions.map((competition) => (
         <Card key={competition.id}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative">
             <div className="space-y-1">
               <CardTitle className="text-lg">{competition.name}</CardTitle>
               <CardDescription>{competition.participants.length} participants</CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onDelete(competition.id)}
-                className="text-destructive hover:text-destructive/90"
+              <button
+                type="button"
+                data-delete-competition={competition.id}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Delete button clicked - event:', e.type);
+                  console.log('Delete clicked for competition:', competition.id, competition.name);
+                  onDelete(competition.id);
+                }}
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 w-10 text-destructive hover:text-destructive/90 hover:bg-destructive/10 cursor-pointer relative z-10"
+                style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+                aria-label={`Delete ${competition.name}`}
               >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+                <Trash2 className="h-4 w-4 pointer-events-none" />
+              </button>
             </div>
           </CardHeader>
           <CardContent>

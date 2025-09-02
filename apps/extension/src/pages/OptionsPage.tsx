@@ -16,7 +16,7 @@ import { CollapsibleStateProvider, useCollapsibleState } from '@raffle-spinner/c
 import { useCSVImport } from '@raffle-spinner/hooks';
 import { CompetitionManagementContent } from '@/components/options/CompetitionManagementContent';
 import { CSVUploadModal } from '@/components/options/CSVUploadModal';
-import { ColumnMapper } from '@/components/options/ColumnMapper';
+import { ColumnMapper } from '@raffle-spinner/ui';
 import { DuplicateHandler } from '@/components/options/DuplicateHandler';
 import { DeleteConfirmDialog } from '@/components/options/DeleteConfirmDialog';
 import { TicketConversionDialog } from '@/components/options/TicketConversionDialog';
@@ -80,9 +80,15 @@ function OptionsContent() {
 
   const handleDeleteConfirm = async () => {
     if (competitionToDelete) {
-      await deleteCompetition(competitionToDelete.id);
-      setCompetitionToDelete(null);
-      setShowDeleteDialog(false);
+      try {
+        await deleteCompetition(competitionToDelete.id);
+        setCompetitionToDelete(null);
+        setShowDeleteDialog(false);
+      } catch (error) {
+        console.error('Failed to delete competition:', error);
+        // Optionally, you could show an error message to the user here
+        setShowDeleteDialog(false);
+      }
     }
   };
 
@@ -259,6 +265,11 @@ function OptionsContent() {
           onConfirm={handleMappingConfirm}
           savedMappings={savedMappings}
           suggestedMappingId={suggestedMappingId}
+          onSaveMapping={async (mapping) => {
+            // Extension uses chrome storage
+            const { storage } = await import('@raffle-spinner/storage');
+            await storage.saveSavedMapping(mapping);
+          }}
         />
 
         <DuplicateHandler

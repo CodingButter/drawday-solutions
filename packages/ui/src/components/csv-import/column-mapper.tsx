@@ -3,6 +3,7 @@
  *
  * Purpose: Modal interface for mapping CSV column headers to required data fields
  * (First Name, Last Name, Ticket Number) with auto-detection and manual override.
+ * This is a shared component used by both the extension and website.
  *
  * SRS Reference:
  * - FR-1.4: Column Mapping Interface
@@ -17,16 +18,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@raffle-spinner/ui';
-import { Button } from '@raffle-spinner/ui';
-import { Label } from '@raffle-spinner/ui';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@raffle-spinner/ui';
-import { Input } from '@raffle-spinner/ui';
-import { Checkbox } from '@raffle-spinner/ui';
-import { Alert, AlertDescription } from '@raffle-spinner/ui';
+} from '../dialog';
+import { Button } from '../button';
+import { Label } from '../label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../select';
+import { Input } from '../input';
+import { Checkbox } from '../checkbox';
+import { Alert, AlertDescription } from '../alert';
 import { InfoIcon } from 'lucide-react';
-import { InfoTooltip } from '@raffle-spinner/ui';
-import { helpContent } from '@/lib/help-content';
 import type { ColumnMapping, SavedMapping } from '@raffle-spinner/types';
 
 interface ColumnMapperProps {
@@ -37,6 +36,7 @@ interface ColumnMapperProps {
   onConfirm: (mapping: ColumnMapping, saveMapping?: SavedMapping) => void;
   savedMappings?: SavedMapping[];
   suggestedMappingId?: string;
+  onSaveMapping?: (mapping: SavedMapping) => Promise<void>;
 }
 
 export function ColumnMapper({
@@ -47,33 +47,131 @@ export function ColumnMapper({
   onConfirm,
   savedMappings = [],
   suggestedMappingId,
+  onSaveMapping,
 }: ColumnMapperProps) {
-  const [mapping, setMapping] = React.useState<Partial<ColumnMapping>>(detectedMapping);
+  // Ensure headers is always a valid array
+  const safeHeaders = React.useMemo(() => {
+    if (!headers || !Array.isArray(headers)) {
+      return [];
+    }
+    return headers.filter(h => h && typeof h === 'string' && h.trim());
+  }, [headers]);
+
+  // Validate that mapping values exist in headers
+  const validateMapping = React.useCallback((mappingToValidate: Partial<ColumnMapping>): Partial<ColumnMapping> => {
+    const validated: Partial<ColumnMapping> = {};
+    
+    if (mappingToValidate.firstName && safeHeaders.includes(mappingToValidate.firstName)) {
+      validated.firstName = mappingToValidate.firstName;
+    }
+    if (mappingToValidate.lastName && safeHeaders.includes(mappingToValidate.lastName)) {
+      validated.lastName = mappingToValidate.lastName;
+    }
+    if (mappingToValidate.fullName && safeHeaders.includes(mappingToValidate.fullName)) {
+      validated.fullName = mappingToValidate.fullName;
+    }
+    if (mappingToValidate.ticketNumber && safeHeaders.includes(mappingToValidate.ticketNumber)) {
+      validated.ticketNumber = mappingToValidate.ticketNumber;
+    }
+    
+    return validated;
+  }, [safeHeaders]);
+
+  // Initialize with validated mapping
+  const initialMapping = React.useMemo(() => {
+    const validated = validateMapping(detectedMapping);
+    // If no valid mapping found, try to auto-detect from headers
+    if (Object.keys(validated).length === 0 && safeHeaders.length > 0) {
+      const autoDetected: Partial<ColumnMapping> = {};
+      
+      safeHeaders.forEach((header) => {
+        const lower = header.toLowerCase();
+        
+        // Detect full name column
+        if (!autoDetected.fullName && (
+          lower === 'name' || 
+          lower === 'full name' || 
+          lower === 'fullname' ||
+          lower === 'participant'
+        )) {
+          autoDetected.fullName = header;
+        }
+        
+        // Detect first name
+        if (!autoDetected.firstName && (
+          lower.includes('first') && lower.includes('name')
+        )) {
+          autoDetected.firstName = header;
+        }
+        
+        // Detect last name
+        if (!autoDetected.lastName && (
+          lower.includes('last') && lower.includes('name')
+        )) {
+          autoDetected.lastName = header;
+        }
+        
+        // Detect ticket number
+        if (!autoDetected.ticketNumber && (
+          lower.includes('ticket') || 
+          lower.includes('number') || 
+          lower === 'no' || 
+          lower === '#' ||
+          lower === 'id' ||
+          lower === 'entry'
+        )) {
+          autoDetected.ticketNumber = header;
+        }
+      });
+      
+      return autoDetected;
+    }
+    return validated;
+  }, [detectedMapping, validateMapping, safeHeaders]);
+
+  const [mapping, setMapping] = React.useState<Partial<ColumnMapping>>(initialMapping);
   const [useFullName, setUseFullName] = React.useState<boolean>(
-    !!detectedMapping.fullName || (!detectedMapping.firstName && !detectedMapping.lastName)
+    !!initialMapping.fullName || (!initialMapping.firstName && !initialMapping.lastName)
   );
   const [shouldSaveMapping, setShouldSaveMapping] = React.useState(false);
   const [mappingName, setMappingName] = React.useState('');
   const [selectedSavedMappingId, setSelectedSavedMappingId] = React.useState<string>('');
 
-  React.useEffect(() => {
-    // If we have a suggested mapping, use it
-    if (suggestedMappingId && savedMappings.length > 0) {
-      const suggested = savedMappings.find((m) => m.id === suggestedMappingId);
-      if (suggested) {
-        setMapping(suggested.mapping);
-        setUseFullName(!!suggested.mapping.fullName);
-        setSelectedSavedMappingId(suggestedMappingId);
-        return;
-      }
-    }
+  // Track if modal just opened
+  const [hasInitialized, setHasInitialized] = React.useState(false);
 
-    // Otherwise use detected mapping
-    setMapping(detectedMapping);
-    setUseFullName(
-      !!detectedMapping.fullName || (!detectedMapping.firstName && !detectedMapping.lastName)
-    );
-  }, [detectedMapping, suggestedMappingId, savedMappings]);
+  // Reset when modal opens
+  React.useEffect(() => {
+    if (open && !hasInitialized) {
+      // Re-initialize mapping when modal opens
+      
+      // If we have a suggested saved mapping, try to use it
+      if (suggestedMappingId && savedMappings.length > 0) {
+        const suggested = savedMappings.find((m) => m.id === suggestedMappingId);
+        if (suggested) {
+          const validatedSuggested = validateMapping(suggested.mapping);
+          if (Object.keys(validatedSuggested).length > 0) {
+            setMapping(validatedSuggested);
+            setUseFullName(!!validatedSuggested.fullName);
+            setSelectedSavedMappingId(suggestedMappingId);
+            setHasInitialized(true);
+            return;
+          }
+        }
+      }
+      
+      // Otherwise use the initial mapping
+      setMapping(initialMapping);
+      setUseFullName(!!initialMapping.fullName || (!initialMapping.firstName && !initialMapping.lastName));
+      setHasInitialized(true);
+    }
+    
+    if (!open) {
+      setHasInitialized(false);
+      setShouldSaveMapping(false);
+      setMappingName('');
+    }
+  }, [open, hasInitialized, detectedMapping, suggestedMappingId, savedMappings, validateMapping, initialMapping]);
 
   const handleConfirm = async () => {
     const finalMapping = useFullName
@@ -90,7 +188,7 @@ export function ColumnMapper({
     ) {
       let savedMapping: SavedMapping | undefined;
 
-      if (shouldSaveMapping && mappingName.trim()) {
+      if (shouldSaveMapping && mappingName.trim() && onSaveMapping) {
         savedMapping = {
           id: `mapping-${Date.now()}`,
           name: mappingName.trim(),
@@ -105,21 +203,15 @@ export function ColumnMapper({
           usageCount: 1,
           isDefault: false,
         };
-        // Save to localStorage
-        const existingMappings = savedMappings || [];
-        const updatedMappings = [...existingMappings, savedMapping];
-        localStorage.setItem('savedMappings', JSON.stringify(updatedMappings));
-      } else if (selectedSavedMappingId) {
+        await onSaveMapping(savedMapping);
+      } else if (selectedSavedMappingId && onSaveMapping) {
         // Increment usage count of existing mapping
         const existing = savedMappings.find((m) => m.id === selectedSavedMappingId);
         if (existing) {
-          // Update usage count in localStorage
-          const updatedMappings = savedMappings.map(m => 
-            m.id === existing.id 
-              ? { ...m, usageCount: (m.usageCount || 0) + 1 }
-              : m
-          );
-          localStorage.setItem('savedMappings', JSON.stringify(updatedMappings));
+          await onSaveMapping({
+            ...existing,
+            usageCount: (existing.usageCount || 0) + 1,
+          });
         }
       }
 
@@ -137,16 +229,15 @@ export function ColumnMapper({
       // Reset to manual configuration
       setSelectedSavedMappingId('');
       setShouldSaveMapping(false);
-      // Keep current mapping or use detected
-      setMapping(detectedMapping);
-      setUseFullName(
-        !!detectedMapping.fullName || (!detectedMapping.firstName && !detectedMapping.lastName)
-      );
+      // Use initial mapping
+      setMapping(initialMapping);
+      setUseFullName(!!initialMapping.fullName || (!initialMapping.firstName && !initialMapping.lastName));
     } else {
       const saved = savedMappings.find((m) => m.id === mappingId);
       if (saved) {
-        setMapping(saved.mapping);
-        setUseFullName(!!saved.mapping.fullName);
+        const validated = validateMapping(saved.mapping);
+        setMapping(validated);
+        setUseFullName(!!validated.fullName);
         setSelectedSavedMappingId(mappingId);
         setShouldSaveMapping(false);
       }
@@ -163,7 +254,6 @@ export function ColumnMapper({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             Map CSV Columns
-            <InfoTooltip {...helpContent.csvImport.columnMapping} className="ml-1" />
           </DialogTitle>
           <DialogDescription>
             Select which columns in your CSV correspond to the required fields.
@@ -202,6 +292,7 @@ export function ColumnMapper({
               )}
             </div>
           )}
+          
           {/* Toggle between full name and separate name columns */}
           <div className="flex items-center space-x-2 pb-2 border-b">
             <input
@@ -249,11 +340,17 @@ export function ColumnMapper({
                   <SelectValue placeholder="Select a column" />
                 </SelectTrigger>
                 <SelectContent>
-                  {headers.map((header) => (
-                    <SelectItem key={header} value={header}>
-                      {header}
+                  {safeHeaders.length > 0 ? (
+                    safeHeaders.map((header) => (
+                      <SelectItem key={header} value={header}>
+                        {header}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="_no_headers" disabled>
+                      No columns detected
                     </SelectItem>
-                  ))}
+                  )}
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
@@ -273,11 +370,17 @@ export function ColumnMapper({
                     <SelectValue placeholder="Select a column" />
                   </SelectTrigger>
                   <SelectContent>
-                    {headers.map((header) => (
-                      <SelectItem key={header} value={header}>
-                        {header}
+                    {safeHeaders.length > 0 ? (
+                      safeHeaders.map((header) => (
+                        <SelectItem key={header} value={header}>
+                          {header}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="_no_headers" disabled>
+                        No columns detected
                       </SelectItem>
-                    ))}
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -292,11 +395,17 @@ export function ColumnMapper({
                     <SelectValue placeholder="Select a column" />
                   </SelectTrigger>
                   <SelectContent>
-                    {headers.map((header) => (
-                      <SelectItem key={header} value={header}>
-                        {header}
+                    {safeHeaders.length > 0 ? (
+                      safeHeaders.map((header) => (
+                        <SelectItem key={header} value={header}>
+                          {header}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="_no_headers" disabled>
+                        No columns detected
                       </SelectItem>
-                    ))}
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -313,36 +422,44 @@ export function ColumnMapper({
                 <SelectValue placeholder="Select a column" />
               </SelectTrigger>
               <SelectContent>
-                {headers.map((header) => (
-                  <SelectItem key={header} value={header}>
-                    {header}
+                {safeHeaders.length > 0 ? (
+                  safeHeaders.map((header) => (
+                    <SelectItem key={header} value={header}>
+                      {header}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="_no_headers" disabled>
+                    No columns detected
                   </SelectItem>
-                ))}
+                )}
               </SelectContent>
             </Select>
           </div>
 
           {/* Save Mapping Option */}
-          <div className="space-y-2 pt-4 border-t">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="saveMapping"
-                checked={shouldSaveMapping}
-                onCheckedChange={(checked) => setShouldSaveMapping(checked as boolean)}
-                disabled={!!selectedSavedMappingId}
-              />
-              <Label htmlFor="saveMapping" className="font-normal cursor-pointer">
-                Save this mapping for future use
-              </Label>
+          {onSaveMapping && (
+            <div className="space-y-2 pt-4 border-t">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="saveMapping"
+                  checked={shouldSaveMapping}
+                  onCheckedChange={(checked) => setShouldSaveMapping(checked as boolean)}
+                  disabled={!!selectedSavedMappingId}
+                />
+                <Label htmlFor="saveMapping" className="font-normal cursor-pointer">
+                  Save this mapping for future use
+                </Label>
+              </div>
+              {shouldSaveMapping && (
+                <Input
+                  placeholder="Enter a name for this mapping (e.g., 'Standard Format')"
+                  value={mappingName}
+                  onChange={(e) => setMappingName(e.target.value)}
+                />
+              )}
             </div>
-            {shouldSaveMapping && (
-              <Input
-                placeholder="Enter a name for this mapping (e.g., 'Standard Format')"
-                value={mappingName}
-                onChange={(e) => setMappingName(e.target.value)}
-              />
-            )}
-          </div>
+          )}
         </div>
 
         <DialogFooter>

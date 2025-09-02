@@ -66,6 +66,8 @@ function OptionsIframe() {
     };
   }, []);
 
+  // The iframe will load /live-spinner/options, which will redirect to auth if needed
+  // The auth pages will then redirect back to /live-spinner/options after login
   return (
     <div className="w-full h-screen bg-background">
       <iframe

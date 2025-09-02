@@ -2,6 +2,12 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { imageStore } from '@/lib/image-utils';
+import { 
+  createCompetition as createCompetitionInDb,
+  deleteCompetition as deleteCompetitionFromDb 
+} from '@/lib/firebase-service';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 export interface Participant {
   firstName: string;
@@ -17,6 +23,7 @@ export interface Competition {
   bannerImageId?: string; // Store ID reference instead of actual image
   createdAt: number;
   updatedAt: number;
+  userId?: string; // Firebase user ID for ownership
 }
 
 interface CompetitionContextType {
@@ -128,18 +135,67 @@ export function CompetitionProvider({ children }: { children: React.ReactNode })
   }, []);
 
   const addCompetition = async (competition: Competition) => {
-    const newCompetition: Competition = {
-      ...competition,
-      id: competition.id || `comp-${Date.now()}`,
-      createdAt: competition.createdAt || Date.now(),
-      updatedAt: Date.now()
-    };
-    
-    const updatedCompetitions = [...competitions, newCompetition];
-    setCompetitions(updatedCompetitions);
-    saveCompetitionsToStorage(updatedCompetitions);
-    
-    // Don't auto-select - let user choose from dropdown
+    try {
+      // Get current user
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        console.warn('No authenticated user, saving locally only');
+        // Fallback to local storage only
+        const newCompetition: Competition = {
+          ...competition,
+          id: competition.id || `comp-${Date.now()}`,
+          createdAt: competition.createdAt || Date.now(),
+          updatedAt: Date.now()
+        };
+        
+        const updatedCompetitions = [...competitions, newCompetition];
+        setCompetitions(updatedCompetitions);
+        saveCompetitionsToStorage(updatedCompetitions);
+        return;
+      }
+
+      // Save to Firebase with userId
+      const competitionData = {
+        name: competition.name,
+        participants: competition.participants,
+        participantCount: competition.participants.length,
+        status: 'active' as const,
+        userId: currentUser.uid,
+        winners: competition.winners,
+        bannerImageId: competition.bannerImageId,
+        bannerImage: competition.bannerImage
+      };
+
+      const competitionId = await createCompetitionInDb(competitionData);
+      
+      // Create the competition with the Firebase ID
+      const newCompetition: Competition = {
+        ...competition,
+        id: competitionId,
+        userId: currentUser.uid,
+        createdAt: competition.createdAt || Date.now(),
+        updatedAt: Date.now()
+      };
+      
+      const updatedCompetitions = [...competitions, newCompetition];
+      setCompetitions(updatedCompetitions);
+      saveCompetitionsToStorage(updatedCompetitions);
+      
+      console.log('Competition saved to Firebase with ID:', competitionId);
+    } catch (error) {
+      console.error('Error saving competition to Firebase:', error);
+      // Fallback to local storage
+      const newCompetition: Competition = {
+        ...competition,
+        id: competition.id || `comp-${Date.now()}`,
+        createdAt: competition.createdAt || Date.now(),
+        updatedAt: Date.now()
+      };
+      
+      const updatedCompetitions = [...competitions, newCompetition];
+      setCompetitions(updatedCompetitions);
+      saveCompetitionsToStorage(updatedCompetitions);
+    }
   };
 
   const updateCompetition = async (id: string, updates: Partial<Competition>) => {
@@ -162,16 +218,40 @@ export function CompetitionProvider({ children }: { children: React.ReactNode })
   };
 
   const deleteCompetition = async (id: string) => {
-    const updatedCompetitions = competitions.filter(comp => comp.id !== id);
-    setCompetitions(updatedCompetitions);
-    saveCompetitionsToStorage(updatedCompetitions);
-    
-    // Clear selection if deleted competition was selected
-    if (selectedCompetition?.id === id) {
-      setSelectedCompetition(null);
-      if (typeof window !== 'undefined' && window.localStorage) {
-        localStorage.removeItem('selectedCompetition');
+    try {
+      // Try to delete from Firebase first
+      console.log('Attempting to delete competition from Firebase:', id);
+      await deleteCompetitionFromDb(id);
+      console.log('Competition deleted from Firebase successfully');
+    } catch (error: any) {
+      console.error('Error deleting from Firebase:', error);
+      // If it's a permissions error, continue with local deletion
+      // If it's another type of error, still continue but log it
+      if (error?.code === 'permission-denied' || error?.message?.includes('permissions')) {
+        console.log('Firebase permission denied, proceeding with local deletion only');
+      } else {
+        console.log('Firebase deletion failed, proceeding with local deletion');
       }
+    }
+    
+    // Always update local state regardless of Firebase result
+    try {
+      const updatedCompetitions = competitions.filter(comp => comp.id !== id);
+      setCompetitions(updatedCompetitions);
+      saveCompetitionsToStorage(updatedCompetitions);
+      
+      // Clear selection if deleted competition was selected
+      if (selectedCompetition?.id === id) {
+        setSelectedCompetition(null);
+        if (typeof window !== 'undefined' && window.localStorage) {
+          localStorage.removeItem('selectedCompetition');
+        }
+      }
+      
+      console.log('Competition deleted from local storage successfully');
+    } catch (localError) {
+      console.error('Error deleting from local storage:', localError);
+      throw localError; // Only throw if local deletion fails
     }
   };
 

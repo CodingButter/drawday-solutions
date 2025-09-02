@@ -26,7 +26,7 @@ import confetti from 'canvas-confetti';
 function SidePanelContent() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [isInIframe, setIsInIframe] = useState(false);
+  const [loading, setLoading] = useState(true);
   const { competitions, selectedCompetition, selectCompetition, refreshCompetitions, getBannerImage } = useCompetitions();
   const { settings, refreshSettings } = useSettings();
   const { theme } = useTheme();
@@ -36,6 +36,17 @@ function SidePanelContent() {
   const [currentWinner, setCurrentWinner] = useState<Participant | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [bannerImage, setBannerImage] = useState<string | null>(null);
+
+  // Debug logging for branding
+  useEffect(() => {
+    console.log('Theme loaded:', !!theme);
+    console.log('Theme branding:', theme?.branding);
+    console.log('Logo image:', theme?.branding?.logoImage);
+    console.log('Banner image:', theme?.branding?.bannerImage);
+    console.log('Company name:', theme?.branding?.companyName);
+    console.log('Show company name:', theme?.branding?.showCompanyName);
+    console.log('Current banner image state:', bannerImage);
+  }, [theme, bannerImage]);
 
   // Poll localStorage for live updates
   useLocalStoragePolling({
@@ -73,23 +84,8 @@ function SidePanelContent() {
     }
   });
 
-  // Check if we're in an iframe
+  // Auth check - require proper Firebase authentication
   useEffect(() => {
-    setIsInIframe(window !== window.parent);
-  }, []);
-
-  // Auth check - skip if in iframe (extension handles auth)
-  useEffect(() => {
-    if (isInIframe) {
-      // In iframe/extension context, assume authenticated
-      setUser({
-        uid: 'extension-user',
-        email: 'user@extension',
-        displayName: 'Extension User',
-      });
-      return;
-    }
-
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         setUser({
@@ -97,13 +93,16 @@ function SidePanelContent() {
           email: firebaseUser.email,
           displayName: firebaseUser.displayName,
         });
+        setLoading(false);
       } else {
-        router.push('/login?from=/live-spinner/spinner');
+        // Not authenticated, redirect to login with proper redirect parameter
+        setLoading(false);
+        router.push('/auth/login?redirect=/live-spinner/spinner');
       }
     });
 
     return () => unsubscribe();
-  }, [router, isInIframe]);
+  }, [router]);
 
   const handleSpin = () => {
     setError(null);
@@ -187,16 +186,19 @@ function SidePanelContent() {
     const loadBanner = async () => {
       if (selectedCompetition?.bannerImageId) {
         const image = await getBannerImage(selectedCompetition.bannerImageId);
-        setBannerImage(image || theme.branding.bannerImage || null);
+        setBannerImage(image || theme?.branding?.bannerImage || null);
       } else {
         // No competition selected - show company branding banner
-        setBannerImage(theme.branding.bannerImage || null);
+        setBannerImage(theme?.branding?.bannerImage || null);
       }
     };
-    loadBanner();
-  }, [selectedCompetition, theme.branding.bannerImage, getBannerImage]);
+    
+    if (theme?.branding) {
+      loadBanner();
+    }
+  }, [selectedCompetition, theme?.branding, getBannerImage]);
 
-  if (!user) {
+  if (loading || !user) {
     return (
       <div className="min-h-screen bg-background">
         <div className="max-w-2xl mx-auto p-4">
@@ -208,35 +210,37 @@ function SidePanelContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Branding Header - Always show if configured */}
-      <div className="relative">
-        {/* Banner - either competition or company */}
-        {bannerImage && (
-          <div className="w-full h-48 overflow-hidden">
-            <img src={bannerImage} alt="Event Banner" className="w-full h-full object-cover" />
-          </div>
-        )}
-
-        {/* Logo and Company Name - Always show if configured */}
-        {theme.branding.logoImage && (
-          <div
-            className={`${bannerImage ? 'absolute inset-0' : 'relative py-8'} flex items-center px-4 ${
-              theme.branding.logoPosition === 'center'
-                ? 'justify-center'
-                : theme.branding.logoPosition === 'right'
-                  ? 'justify-end'
-                  : 'justify-start'
-            }`}
-          >
-            <div className="flex items-center gap-3 bg-background/70 backdrop-blur-md px-6 py-3 rounded-lg shadow-lg border border-white/10">
-              <img src={theme.branding.logoImage} alt="Company Logo" className="h-16 w-auto" />
-              {theme.branding.showCompanyName && theme.branding.companyName && (
-                <span className="text-2xl font-bold">{theme.branding.companyName}</span>
-              )}
+      {/* Branding Header - Show when there's a banner or logo */}
+      {(bannerImage || (theme?.branding?.logoImage && theme?.branding?.logoImage.trim())) && (
+        <div className="relative">
+          {/* Banner - either competition or company */}
+          {bannerImage && (
+            <div className="w-full h-48 overflow-hidden">
+              <img src={bannerImage} alt="Event Banner" className="w-full h-full object-cover" />
             </div>
-          </div>
-        )}
-      </div>
+          )}
+
+          {/* Logo and Company Name - Show if logo exists */}
+          {theme?.branding?.logoImage && theme.branding.logoImage.trim() && (
+            <div
+              className={`${bannerImage ? 'absolute inset-0' : 'relative py-8'} flex items-center px-4 ${
+                theme?.branding?.logoPosition === 'center'
+                  ? 'justify-center'
+                  : theme?.branding?.logoPosition === 'right'
+                    ? 'justify-end'
+                    : 'justify-start'
+              }`}
+            >
+              <div className="flex items-center gap-3 bg-background/70 backdrop-blur-md px-6 py-3 rounded-lg shadow-lg border border-white/10">
+                <img src={theme.branding.logoImage} alt="Company Logo" className="h-16 w-auto" />
+                {theme?.branding?.showCompanyName && theme?.branding?.companyName && (
+                  <span className="text-2xl font-bold">{theme.branding.companyName}</span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="max-w-2xl mx-auto space-y-4 p-4">
         {/* Competition Selector - Minimal UI */}

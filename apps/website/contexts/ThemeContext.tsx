@@ -15,6 +15,7 @@ import {
   type BrandingConfig,
   type UserSettings
 } from '@/lib/firebase-service';
+import { compressImage } from '@/lib/image-utils';
 
 interface ThemeSettings {
   colors: ThemeColors;
@@ -68,6 +69,8 @@ const defaultTheme: ThemeSettings = {
 const ThemeContext = createContext<ThemeContextType | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  // Theme is loaded from Firebase only - no localStorage
+  // This prevents quota exceeded errors with large images
   const [theme, setTheme] = useState<ThemeSettings>(defaultTheme);
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -88,9 +91,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           if (settings) {
             setTheme(settings.theme);
             setLastTimestamp(timestamp);
-            
-            // Also update localStorage for immediate local updates
-            localStorage.setItem('theme', JSON.stringify(settings.theme));
           }
         }
       } catch (error) {
@@ -124,9 +124,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             setTheme(userSettings.theme);
             const timestamp = userSettings.lastUpdated?.toMillis?.() || null;
             setLastTimestamp(timestamp);
-            
-            // Also update localStorage for immediate local updates
-            localStorage.setItem('theme', JSON.stringify(userSettings.theme));
           }
         } catch (error) {
           console.error('Error loading theme:', error);
@@ -144,11 +141,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const updateColors = async (colors: Partial<ThemeColors>) => {
-    // Check if we're in iframe context
-    const isInIframe = window !== window.parent;
-    const effectiveUserId = userId || (isInIframe ? 'extension-user' : null);
-    
-    if (!effectiveUserId) return;
+    if (!userId) return;
     
     const newTheme = {
       ...theme,
@@ -156,29 +149,20 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     };
     setTheme(newTheme);
     
-    // Update localStorage immediately for local updates
-    localStorage.setItem('theme', JSON.stringify(newTheme));
-    
-    // Only update database if we have a real userId (not in iframe)
-    if (userId && !isInIframe) {
-      try {
-        await updateThemeColors(userId, colors);
-        // Update timestamp after successful update
-        const timestamp = await getUserSettingsTimestamp(userId);
-        setLastTimestamp(timestamp);
-      } catch (error) {
-        console.error('Error updating theme colors:', error);
-        if (!isInIframe) throw error;
-      }
+    // Update database only - no localStorage
+    try {
+      await updateThemeColors(userId, colors);
+      // Update timestamp after successful update
+      const timestamp = await getUserSettingsTimestamp(userId);
+      setLastTimestamp(timestamp);
+    } catch (error) {
+      console.error('Error updating theme colors:', error);
+      throw error;
     }
   };
 
   const updateSpinnerStyle = async (style: Partial<SpinnerStyle>) => {
-    // Check if we're in iframe context
-    const isInIframe = window !== window.parent;
-    const effectiveUserId = userId || (isInIframe ? 'extension-user' : null);
-    
-    if (!effectiveUserId) return;
+    if (!userId) return;
     
     const newTheme = {
       ...theme,
@@ -186,60 +170,63 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     };
     setTheme(newTheme);
     
-    // Update localStorage immediately for local updates
-    localStorage.setItem('theme', JSON.stringify(newTheme));
-    
-    // Only update database if we have a real userId (not in iframe)
-    if (userId && !isInIframe) {
-      try {
-        await updateSpinnerStyleInDb(userId, style);
-        // Update timestamp after successful update
-        const timestamp = await getUserSettingsTimestamp(userId);
-        setLastTimestamp(timestamp);
-      } catch (error) {
-        console.error('Error updating spinner style:', error);
-        if (!isInIframe) throw error;
-      }
+    // Update database only - no localStorage
+    try {
+      await updateSpinnerStyleInDb(userId, style);
+      // Update timestamp after successful update
+      const timestamp = await getUserSettingsTimestamp(userId);
+      setLastTimestamp(timestamp);
+    } catch (error) {
+      console.error('Error updating spinner style:', error);
+      throw error;
     }
   };
 
   const updateBranding = async (branding: Partial<BrandingConfig>) => {
     console.log('updateBranding called with:', branding, 'userId:', userId);
+    console.log('Current theme.branding before update:', theme.branding);
+    console.log('showCompanyName value:', branding.showCompanyName, 'type:', typeof branding.showCompanyName);
     
-    // Check if we're in iframe context
-    const isInIframe = window !== window.parent;
-    
-    // If no userId and in iframe, use a default extension user ID
-    const effectiveUserId = userId || (isInIframe ? 'extension-user' : null);
-    
-    if (!effectiveUserId) {
+    if (!userId) {
       console.warn('No user ID available for branding update');
       return;
     }
     
+    // Compress images before saving
+    let processedBranding = { ...branding };
+    
+    if (branding.logoImage && branding.logoImage.startsWith('data:image')) {
+      console.log('Compressing logo image...');
+      processedBranding.logoImage = await compressImage(branding.logoImage, 'logo');
+    }
+    
+    if (branding.bannerImage && branding.bannerImage.startsWith('data:image')) {
+      console.log('Compressing banner image...');
+      processedBranding.bannerImage = await compressImage(branding.bannerImage, 'banner');
+    }
+    
     const newTheme = {
       ...theme,
-      branding: { ...theme.branding, ...branding }
+      branding: { ...theme.branding, ...processedBranding }
     };
+    console.log('New theme.branding after update:', newTheme.branding);
+    console.log('New showCompanyName value:', newTheme.branding.showCompanyName);
     setTheme(newTheme);
     
-    // Update localStorage immediately for local updates
-    localStorage.setItem('theme', JSON.stringify(newTheme));
-    console.log('Theme updated in localStorage');
+    // Don't store images in localStorage - only in Firebase
+    // This prevents quota exceeded errors
+    console.log('Theme updated in state');
     
-    // Only update database if we have a real userId (not in iframe)
-    if (userId && !isInIframe) {
-      try {
-        await updateBrandingInDb(userId, branding);
-        // Update timestamp after successful update
-        const timestamp = await getUserSettingsTimestamp(userId);
-        setLastTimestamp(timestamp);
-        console.log('Branding updated in database');
-      } catch (error) {
-        console.error('Error updating branding in database:', error);
-        // Don't throw in iframe context
-        if (!isInIframe) throw error;
-      }
+    // Update database with compressed images
+    try {
+      await updateBrandingInDb(userId, processedBranding);
+      // Update timestamp after successful update
+      const timestamp = await getUserSettingsTimestamp(userId);
+      setLastTimestamp(timestamp);
+      console.log('Branding updated in database');
+    } catch (error) {
+      console.error('Error updating branding in database:', error);
+      throw error;
     }
   };
 
@@ -257,7 +244,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (!userId) return;
     
     setTheme(defaultTheme);
-    localStorage.setItem('theme', JSON.stringify(defaultTheme));
     
     try {
       await updateThemeColors(userId, defaultTheme.colors);

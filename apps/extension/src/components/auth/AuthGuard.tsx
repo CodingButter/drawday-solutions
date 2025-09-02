@@ -6,8 +6,9 @@ import {
   saveAuthState,
   clearAuthState,
 } from '@/services/firebase-config';
+import { syncSettingsOnLogin } from '@/services/settings-sync';
 import { getStorageEnvironment } from '@raffle-spinner/storage';
-import LoginForm from './LoginForm';
+import ExtensionAuth from './ExtensionAuth';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -41,6 +42,8 @@ export default function AuthGuard({ children, requireAuth = true }: AuthGuardPro
       if (user) {
         // Save to storage for persistence
         await saveAuthState(user);
+        // Sync settings from Firebase
+        await syncSettingsOnLogin(user);
       } else {
         // Clear from storage
         await clearAuthState();
@@ -67,7 +70,7 @@ export default function AuthGuard({ children, requireAuth = true }: AuthGuardPro
   }
 
   if (!user) {
-    return <LoginForm onSuccess={() => {}} />;
+    return <ExtensionAuth onSuccess={() => {}} />;
   }
 
   return <>{children}</>;

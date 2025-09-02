@@ -12,7 +12,7 @@ import { normalizeTicketNumber, logger } from "@raffle-spinner/utils";
 interface AnimationOptions {
   participants: Participant[];
   targetTicketNumber: string;
-  settings: SpinnerSettings;
+  settings?: SpinnerSettings;
   onSpinComplete: (winner: Participant) => void;
   onError?: (error: string) => void;
   onPositionUpdate: (position: number) => void;
@@ -145,7 +145,7 @@ export function useSlotMachineAnimation({
     const targetPosition = winnerIndex * itemHeight;
 
     // Calculate spin duration and distance
-    const duration = settings.minSpinDuration * 1000; // Convert to ms
+    const duration = (settings?.minSpinDuration || 3) * 1000; // Convert to ms with fallback
     const minRotations = 5;
     const maxRotations = 8;
     const rotations =

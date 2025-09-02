@@ -5,7 +5,7 @@
  * logos, banners, and company name display.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@raffle-spinner/ui';
 import { Label } from '@raffle-spinner/ui';
 import { Input } from '@raffle-spinner/ui';
@@ -20,6 +20,13 @@ import { Building2, AlertCircle } from 'lucide-react';
 export function BrandingSettings() {
   const { theme, updateBranding, isLoading } = useTheme();
   const [uploadError, setUploadError] = useState<string | null>(null);
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('BrandingSettings - showCompanyName value:', theme?.branding?.showCompanyName);
+    console.log('BrandingSettings - showCompanyName type:', typeof theme?.branding?.showCompanyName);
+    console.log('BrandingSettings - full branding:', theme?.branding);
+  }, [theme?.branding?.showCompanyName]);
   
   if (isLoading || !theme?.branding) {
     return (
@@ -164,10 +171,13 @@ export function BrandingSettings() {
             <div className="flex items-center space-x-2">
               <Switch
                 id="show-company-name"
-                checked={theme.branding.showCompanyName}
-                onCheckedChange={(checked) => updateBranding({ showCompanyName: checked })}
+                checked={theme.branding.showCompanyName === true}
+                onCheckedChange={(checked) => {
+                  console.log('Switch toggled:', checked, 'type:', typeof checked);
+                  updateBranding({ showCompanyName: Boolean(checked) });
+                }}
               />
-              <Label htmlFor="show-company-name">Display company name with logo</Label>
+              <Label htmlFor="show-company-name" className="cursor-pointer">Display company name with logo</Label>
             </div>
           </div>
         </div>

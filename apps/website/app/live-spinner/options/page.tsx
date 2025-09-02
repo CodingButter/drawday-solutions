@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { clearLargeStorageItems } from '@/lib/clear-storage';
 import { CompetitionProvider, useCompetitions } from '@/contexts';
 import { SettingsProvider, useSettings } from '@/contexts';
 import { ThemeProvider } from '@/contexts';
@@ -11,7 +12,7 @@ import { CollapsibleStateProvider, useCollapsibleState } from '@/contexts';
 import { useCSVImport } from '@raffle-spinner/hooks';
 import { CompetitionManagementContent } from '@/components/options/CompetitionManagementContent';
 import { CSVUploadModal } from '@/components/options/CSVUploadModal';
-import { ColumnMapper } from '@/components/options/ColumnMapper';
+import { ColumnMapper } from '@raffle-spinner/ui';
 import { DuplicateHandler } from '@/components/options/DuplicateHandler';
 import { DeleteConfirmDialog } from '@/components/options/DeleteConfirmDialog';
 import { TicketConversionDialog } from '@/components/options/TicketConversionDialog';
@@ -23,13 +24,13 @@ import { SavedMappingsManager } from '@/components/options/SavedMappingsManager'
 import { Alert, AlertDescription } from '@raffle-spinner/ui';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@raffle-spinner/ui';
 import { Button } from '@raffle-spinner/ui';
-import { CheckCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { CheckCircle, ChevronDown, ChevronRight, User, LogOut, Mail } from 'lucide-react';
 import type { Competition } from '@/contexts';
 
 function OptionsContent() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [isInIframe, setIsInIframe] = useState(false);
+  const [loading, setLoading] = useState(true);
   const { competitions, addCompetition, deleteCompetition, updateCompetitionBanner } =
     useCompetitions();
   const { settings, columnMapping, updateSettings, updateColumnMapping } = useSettings();
@@ -37,57 +38,18 @@ function OptionsContent() {
 
   const [competitionToDelete, setCompetitionToDelete] = useState<Competition | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-
-  // Check if we're in an iframe
+  
+  // Debug state changes
   useEffect(() => {
-    setIsInIframe(window !== window.parent);
-  }, []);
+    console.log('DeleteDialog state changed - showDeleteDialog:', showDeleteDialog, 'competitionToDelete:', competitionToDelete?.name);
+  }, [showDeleteDialog, competitionToDelete]);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // Auth check - skip if in iframe (extension handles auth)
+  // Auth check - require proper Firebase authentication
   useEffect(() => {
-    if (isInIframe) {
-      // In iframe/extension context, assume authenticated
-      setUser({
-        uid: 'extension-user',
-        email: 'user@extension',
-        displayName: 'Extension User',
-      });
-      return;
-    }
-
-    // Check for token cookie first (magic link auth)
-    const checkTokenAuth = () => {
-      const cookies = document.cookie.split(';').map(c => c.trim());
-      const tokenCookie = cookies.find(c => c.startsWith('token='));
-      
-      if (tokenCookie) {
-        try {
-          const token = tokenCookie.split('=')[1];
-          // Decode JWT token to get email (basic base64 decode, not verification)
-          const payload = token.split('.')[1];
-          const decoded = JSON.parse(atob(payload));
-          
-          if (decoded && decoded.email && decoded.type === 'magic-link') {
-            // User authenticated via magic link
-            setUser({
-              uid: `magic-${decoded.email}`,
-              email: decoded.email,
-              displayName: decoded.email.split('@')[0],
-            });
-            return true;
-          }
-        } catch (e) {
-          console.error('Error parsing token cookie:', e);
-        }
-      }
-      return false;
-    };
-
-    // Check token auth first
-    if (checkTokenAuth()) {
-      return;
-    }
-
+    // Clear any large localStorage items on load to prevent quota issues
+    clearLargeStorageItems();
+    
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         setUser({
@@ -95,13 +57,16 @@ function OptionsContent() {
           email: firebaseUser.email,
           displayName: firebaseUser.displayName,
         });
+        setLoading(false);
       } else {
-        router.push('/login?from=/live-spinner/options');
+        // Not authenticated, redirect to login with proper redirect parameter
+        setLoading(false);
+        router.push('/auth/login?redirect=/live-spinner/options');
       }
     });
 
     return () => unsubscribe();
-  }, [router, isInIframe]);
+  }, [router]);
 
   const {
     fileInputRef,
@@ -134,18 +99,32 @@ function OptionsContent() {
   });
 
   const handleDeleteClick = (id: string) => {
+    console.log('handleDeleteClick called with id:', id);
     const competition = competitions.find((c) => c.id === id);
+    console.log('Found competition:', competition);
     if (competition) {
+      console.log('Setting competitionToDelete and showDeleteDialog to true');
+      // Set both states at the same time
       setCompetitionToDelete(competition);
       setShowDeleteDialog(true);
+      console.log('Both states set, dialog should appear');
+    } else {
+      console.error('Competition not found with id:', id);
     }
   };
 
   const handleDeleteConfirm = async () => {
+    console.log('handleDeleteConfirm called, competitionToDelete:', competitionToDelete);
     if (competitionToDelete) {
-      await deleteCompetition(competitionToDelete.id);
-      setCompetitionToDelete(null);
-      setShowDeleteDialog(false);
+      try {
+        await deleteCompetition(competitionToDelete.id);
+        console.log('Competition deleted successfully');
+        setCompetitionToDelete(null);
+        setShowDeleteDialog(false);
+      } catch (error) {
+        console.error('Failed to delete competition:', error);
+        alert('Failed to delete raffle. Please try again.');
+      }
     }
   };
 
@@ -170,7 +149,21 @@ function OptionsContent() {
     }
   };
 
-  if (!user) {
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await auth.signOut();
+      // Clear any local storage
+      localStorage.clear();
+      // Redirect to login page
+      router.push('/auth/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      setIsLoggingOut(false);
+    }
+  };
+
+  if (loading || !user) {
     return (
       <div className="min-h-screen bg-background p-8">
         <div className="max-w-4xl mx-auto">
@@ -183,11 +176,46 @@ function OptionsContent() {
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-4xl mx-auto space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold">Raffle Spinner Configuration</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage competitions and customize spinner settings
-          </p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold">Raffle Spinner Configuration</h1>
+            <p className="text-muted-foreground mt-2">
+              Manage competitions and customize spinner settings
+            </p>
+          </div>
+          
+          {/* User Account Info */}
+          <Card className="w-80">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <User className="h-5 w-5 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium">Account</CardTitle>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  <LogOut className="h-4 w-4 mr-1" />
+                  {isLoggingOut ? 'Signing out...' : 'Sign Out'}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-1">
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <Mail className="h-3 w-3 mr-2" />
+                  {user.email}
+                </div>
+                {user.displayName && (
+                  <div className="text-sm font-medium">{user.displayName}</div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {importSummary && (
@@ -367,12 +395,21 @@ function OptionsContent() {
 
         <ColumnMapper
           open={showMapperModal}
-          onClose={() => setShowMapperModal(false)}
+          onClose={() => {
+            console.log('Closing mapper modal');
+            setShowMapperModal(false);
+          }}
           headers={detectedHeaders}
           detectedMapping={detectedMapping}
           onConfirm={handleMappingConfirm}
           savedMappings={savedMappings}
           suggestedMappingId={suggestedMappingId}
+          onSaveMapping={async (mapping) => {
+            // Save to localStorage for website
+            const existingMappings = savedMappings || [];
+            const updatedMappings = [...existingMappings.filter(m => m.id !== mapping.id), mapping];
+            localStorage.setItem('savedMappings', JSON.stringify(updatedMappings));
+          }}
         />
 
         <DuplicateHandler

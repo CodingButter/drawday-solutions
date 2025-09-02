@@ -9,20 +9,59 @@ import { useState, useRef, useEffect } from "react";
 import type { ColumnMapping, SavedMapping } from "@raffle-spinner/types";
 // Competition type should be imported from the app using this hook
 
-// Simple CSV parsing for the website
+// Enhanced CSV parsing that detects delimiter
 function parseCSV(text: string): string[][] {
-  const lines = text.split('\n').map(line => line.trim()).filter(line => line);
-  return lines.map(line => {
+  const lines = text.split(/\r?\n/).map(line => line.trim()).filter(line => line);
+  if (lines.length === 0) return [];
+  
+  // Detect delimiter by checking first line
+  const firstLine = lines[0];
+  let delimiter = ',';
+  
+  // Count occurrences of common delimiters (excluding those within quotes)
+  let inQuotes = false;
+  let commaCount = 0;
+  let semicolonCount = 0;
+  let tabCount = 0;
+  
+  for (let i = 0; i < firstLine.length; i++) {
+    const char = firstLine[i];
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (!inQuotes) {
+      if (char === ',') commaCount++;
+      else if (char === ';') semicolonCount++;
+      else if (char === '\t') tabCount++;
+    }
+  }
+  
+  // Choose the most frequent delimiter
+  if (semicolonCount > commaCount && semicolonCount > tabCount) {
+    delimiter = ';';
+  } else if (tabCount > commaCount && tabCount > semicolonCount) {
+    delimiter = '\t';
+  }
+  
+  console.log(`Detected delimiter: "${delimiter}" (comma: ${commaCount}, semicolon: ${semicolonCount}, tab: ${tabCount})`);
+  
+  return lines.map((line, lineIndex) => {
     const result = [];
     let current = '';
     let inQuotes = false;
     
     for (let i = 0; i < line.length; i++) {
       const char = line[i];
+      const nextChar = line[i + 1];
       
       if (char === '"') {
-        inQuotes = !inQuotes;
-      } else if (char === ',' && !inQuotes) {
+        if (inQuotes && nextChar === '"') {
+          // Handle escaped quotes
+          current += '"';
+          i++; // Skip the next quote
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === delimiter && !inQuotes) {
         result.push(current.trim());
         current = '';
       } else {
@@ -30,7 +69,14 @@ function parseCSV(text: string): string[][] {
       }
     }
     
+    // Add the last field
     result.push(current.trim());
+    
+    // Debug first line parsing
+    if (lineIndex === 0) {
+      console.log('Parsed header fields:', result);
+    }
+    
     return result;
   });
 }
@@ -75,6 +121,11 @@ export function useCSVImport<T = any>({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [showNameModal, setShowNameModal] = useState(false);
   const [showMapperModal, setShowMapperModal] = useState(false);
+  
+  // Debug modal state changes
+  useEffect(() => {
+    console.log('useCSVImport - showMapperModal state changed to:', showMapperModal);
+  }, [showMapperModal]);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [showConversionModal, setShowConversionModal] = useState(false);
   const [detectedHeaders, setDetectedHeaders] = useState<string[]>([]);
@@ -82,7 +133,7 @@ export function useCSVImport<T = any>({
   const [duplicates, setDuplicates] = useState<
     Array<{ ticketNumber: string; names: string[] }>
   >([]);
-  const [ticketConversions] = useState<
+  const [ticketConversions, setTicketConversions] = useState<
     Array<{
       original: string;
       converted: string | null;
@@ -95,6 +146,12 @@ export function useCSVImport<T = any>({
     success: boolean;
     message: string;
   } | null>(null);
+
+  // Monitor detected headers changes
+  useEffect(() => {
+    console.log('useCSVImport - detectedHeaders updated:', detectedHeaders);
+    console.log('useCSVImport - detectedHeaders length:', detectedHeaders.length);
+  }, [detectedHeaders]);
 
   // Load saved mappings from localStorage
   useEffect(() => {
@@ -128,19 +185,32 @@ export function useCSVImport<T = any>({
 
   const detectColumns = async (file: File) => {
     const text = await file.text();
-    const lines = text.split('\n').filter(line => line.trim());
     
-    if (lines.length === 0) {
+    // Parse the entire CSV to get proper headers
+    const parsedData = parseCSV(text);
+    console.log('Parsed CSV data, rows:', parsedData.length);
+    
+    if (parsedData.length === 0) {
       throw new Error('CSV file is empty');
     }
-
-    // Parse the first line to get headers
-    const headers = parseCSV(lines[0])[0];
+    
+    // Get the headers from the first row
+    const headers = parsedData[0] || [];
+    
+    console.log('Detected CSV headers:', headers);
+    console.log('Number of headers:', headers.length);
+    console.log('Headers are valid array?', Array.isArray(headers));
+    console.log('Each header:', headers.map((h, i) => `[${i}]: "${h}"`));
+    
+    // Filter out empty headers
+    const cleanHeaders = headers.filter(h => h && h.trim());
+    console.log('Clean headers:', cleanHeaders);
     
     // Use the detection function from csv-parser
-    const detected = detectColumnMapping(headers);
+    const detected = detectColumnMapping(cleanHeaders);
+    console.log('Auto-detected mapping:', detected);
     
-    return { headers, detected };
+    return { headers: cleanHeaders, detected };
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -152,8 +222,11 @@ export function useCSVImport<T = any>({
 
     try {
       const { headers, detected } = await detectColumns(file);
+      console.log('handleFileSelect - Setting headers:', headers);
+      console.log('handleFileSelect - Headers length:', headers.length);
       setDetectedHeaders(headers);
       setDetectedMapping(detected);
+      console.log('handleFileSelect - Headers set, state will update');
 
       // Suggest a saved mapping if headers match
       const matchingMapping = savedMappings.find(m => {
@@ -183,7 +256,14 @@ export function useCSVImport<T = any>({
   const handleNameConfirm = (name: string) => {
     setCompetitionName(name);
     setShowNameModal(false);
-    setShowMapperModal(true);
+    console.log('Opening mapper modal with headers:', detectedHeaders);
+    console.log('Headers at modal open:', detectedHeaders.length, 'headers');
+    console.log('Headers array:', JSON.stringify(detectedHeaders));
+    console.log('Headers are:', detectedHeaders.map((h, i) => `[${i}]: "${h}"`).join(', '));
+    // Small delay to ensure state updates are processed
+    setTimeout(() => {
+      setShowMapperModal(true);
+    }, 100);
   };
 
   const handleMappingConfirm = async (mapping: ColumnMapping, _saveMapping?: SavedMapping) => {
@@ -202,11 +282,14 @@ export function useCSVImport<T = any>({
       }
 
       // Skip header row and process data
-      const participants = rows.slice(1).map(row => {
-        const firstName = mapping.firstName ? row[detectedHeaders.indexOf(mapping.firstName)] : '';
-        const lastName = mapping.lastName ? row[detectedHeaders.indexOf(mapping.lastName)] : '';
-        const fullName = mapping.fullName ? row[detectedHeaders.indexOf(mapping.fullName)] : '';
-        const ticketNumber = mapping.ticketNumber ? row[detectedHeaders.indexOf(mapping.ticketNumber)] : '';
+      const headerRow = rows[0];
+      console.log('Using header row for mapping:', headerRow);
+      
+      let participants = rows.slice(1).map(row => {
+        const firstName = mapping.firstName ? row[headerRow.indexOf(mapping.firstName)] : '';
+        const lastName = mapping.lastName ? row[headerRow.indexOf(mapping.lastName)] : '';
+        const fullName = mapping.fullName ? row[headerRow.indexOf(mapping.fullName)] : '';
+        const ticketNumber = mapping.ticketNumber ? row[headerRow.indexOf(mapping.ticketNumber)] : '';
 
         // If using fullName, split it
         let finalFirstName = firstName;
@@ -224,6 +307,42 @@ export function useCSVImport<T = any>({
           ticketNumber: ticketNumber
         };
       }).filter(p => p.ticketNumber); // Filter out entries without ticket numbers
+
+      // Check for non-numeric ticket numbers that need conversion
+      console.log('Checking for non-numeric ticket numbers...');
+      console.log('Participants before conversion:', participants.map(p => ({ 
+        name: `${p.firstName} ${p.lastName}`, 
+        ticket: p.ticketNumber 
+      })));
+      
+      const needsConversion = participants.filter(p => {
+        // Check if ticket number contains non-numeric characters
+        const hasNonNumeric = p.ticketNumber && !/^\d+$/.test(p.ticketNumber);
+        if (hasNonNumeric) {
+          console.log(`Ticket ${p.ticketNumber} needs conversion`);
+        }
+        return hasNonNumeric;
+      });
+      
+      console.log(`Found ${needsConversion.length} tickets needing conversion`);
+
+      if (needsConversion.length > 0) {
+        // Convert ticket numbers by extracting only digits
+        const conversions = needsConversion.map(p => ({
+          original: p.ticketNumber,
+          converted: p.ticketNumber.replace(/\D/g, '') || null,
+          firstName: p.firstName,
+          lastName: p.lastName
+        }));
+
+        // Always show the conversion modal when there are non-numeric tickets
+        // This gives users visibility into what's being converted
+        setTicketConversions(conversions);
+        setShowMapperModal(false);
+        setShowConversionModal(true);
+        console.log(`Showing conversion dialog for ${needsConversion.length} non-numeric tickets`);
+        return;
+      }
 
       // Check for duplicates
       const ticketMap = new Map<string, string[]>();
@@ -248,6 +367,9 @@ export function useCSVImport<T = any>({
 
       // No duplicates, proceed to create competition
       await createAndSaveCompetition(participants);
+      console.log('No duplicates found, closing mapper modal');
+      setShowMapperModal(false);
+      console.log('setShowMapperModal(false) called after save');
     } catch (error) {
       console.error('Error processing CSV:', error);
       setImportSummary({
@@ -298,6 +420,7 @@ export function useCSVImport<T = any>({
 
       await createAndSaveCompetition(participants);
       setShowDuplicateModal(false);
+      setShowMapperModal(false);
     } catch (error) {
       console.error('Error processing CSV with duplicates:', error);
       setImportSummary({
@@ -309,15 +432,48 @@ export function useCSVImport<T = any>({
   };
 
   const handleConversionProceed = async () => {
-    // Handle ticket number conversions if needed
-    const participants = ticketConversions.map(c => ({
-      firstName: c.firstName,
-      lastName: c.lastName,
-      ticketNumber: c.converted || c.original
-    }));
+    // Filter out invalid conversions (those with no numeric characters)
+    const validParticipants = ticketConversions
+      .filter(c => c.converted !== null && c.converted !== '')
+      .map(c => ({
+        firstName: c.firstName,
+        lastName: c.lastName,
+        ticketNumber: c.converted as string
+      }));
 
-    await createAndSaveCompetition(participants);
+    if (validParticipants.length === 0) {
+      setImportSummary({
+        success: false,
+        message: 'No valid participants found after conversion',
+      });
+      setShowConversionModal(false);
+      return;
+    }
+
+    // Check for duplicates after conversion
+    const ticketMap = new Map<string, string[]>();
+    validParticipants.forEach(p => {
+      const key = p.ticketNumber;
+      if (!ticketMap.has(key)) {
+        ticketMap.set(key, []);
+      }
+      ticketMap.get(key)!.push(`${p.firstName} ${p.lastName}`);
+    });
+
+    const duplicateTickets = Array.from(ticketMap.entries())
+      .filter(([_, names]) => names.length > 1)
+      .map(([ticketNumber, names]) => ({ ticketNumber, names }));
+
+    if (duplicateTickets.length > 0) {
+      setDuplicates(duplicateTickets);
+      setShowConversionModal(false);
+      setShowDuplicateModal(true);
+      return;
+    }
+
+    await createAndSaveCompetition(validParticipants);
     setShowConversionModal(false);
+    setShowMapperModal(false);
   };
 
   const createAndSaveCompetition = async (participants: any[]) => {

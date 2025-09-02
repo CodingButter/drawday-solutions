@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/services/firebase-config';
+import { auth } from '@/lib/firebase';
 import { Button } from '@raffle-spinner/ui';
 import { Input } from '@raffle-spinner/ui';
 import { Label } from '@raffle-spinner/ui';
 import { Alert, AlertDescription } from '@raffle-spinner/ui';
 import { Eye, EyeOff, Loader2, Mail, Lock, Wand2 } from 'lucide-react';
-import { cn } from '@raffle-spinner/utils';
+import { cn } from '@/lib/utils';
 
 interface LoginFormProps {
   onSuccess?: () => void;
@@ -21,6 +21,7 @@ interface LoginFormProps {
 export function LoginForm({ 
   onSuccess, 
   onRegisterClick,
+  redirectTo = '/dashboard',
   className,
   showMagicLink = true
 }: LoginFormProps) {
@@ -43,6 +44,12 @@ export function LoginForm({
       // Check if we're in an iframe (extension)
       if (window.parent !== window) {
         window.parent.postMessage({ type: 'AUTH_SUCCESS', user: { email } }, '*');
+      }
+      
+      // If redirectTo is provided and we're on the website, navigate there
+      if (redirectTo && typeof window !== 'undefined') {
+        window.location.href = redirectTo;
+        return; // Don't call onSuccess if we're already redirecting
       }
       
       onSuccess?.();

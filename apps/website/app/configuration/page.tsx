@@ -184,13 +184,17 @@ function ConfigurationContent() {
 
   const handleImageUpload = async (type: 'logo' | 'banner', file: File) => {
     try {
+      // Convert file to base64
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      
       // Compress image using API route
       const { compressImage } = await import('@/lib/image-utils');
-      const compressed = await compressImage(file, {
-        quality: 80,
-        maxWidth: type === 'logo' ? 400 : 1200,
-        maxHeight: type === 'logo' ? 400 : 600
-      });
+      const compressed = await compressImage(base64, type);
       
       if (type === 'logo') {
         await handleBrandingChange('logoImage', compressed);

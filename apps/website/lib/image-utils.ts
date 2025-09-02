@@ -1,36 +1,32 @@
 /**
- * Compress an image file using the API route
- * @param file - The image file to compress
- * @param options - Compression options
- * @returns Compressed image as base64 string
+ * Compress an image using the API route
+ * @param image Base64 image data URL
+ * @param type 'logo' or 'banner'
+ * @returns Compressed base64 image data URL
  */
-export async function compressImage(
-  file: File,
-  options: {
-    quality?: number;
-    maxWidth?: number;
-    maxHeight?: number;
-  } = {}
-): Promise<string> {
-  const formData = new FormData();
-  formData.append('image', file);
-  formData.append('quality', (options.quality || 80).toString());
-  formData.append('maxWidth', (options.maxWidth || 1200).toString());
-  formData.append('maxHeight', (options.maxHeight || 800).toString());
+export async function compressImage(image: string, type: 'logo' | 'banner'): Promise<string> {
+  try {
+    const response = await fetch('/api/compress-image', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ image, type }),
+    });
 
-  const response = await fetch('/api/compress-image', {
-    method: 'POST',
-    body: formData,
-  });
+    if (!response.ok) {
+      throw new Error('Failed to compress image');
+    }
 
-  if (!response.ok) {
-    throw new Error('Failed to compress image');
+    const data = await response.json();
+    console.log(`Image compressed (${type}): ${data.reduction} reduction, from ${data.originalSize} to ${data.compressedSize} bytes`);
+    
+    return data.image;
+  } catch (error) {
+    console.error('Error compressing image:', error);
+    // Return original if compression fails
+    return image;
   }
-
-  const data = await response.json();
-  console.log(`Image compressed: ${data.compressionRatio}% reduction`);
-  
-  return data.compressed;
 }
 
 /**

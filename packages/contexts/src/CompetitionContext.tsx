@@ -67,11 +67,18 @@ export function CompetitionProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteCompetition = async (id: string) => {
-    await storage.deleteCompetition(id);
-    if (selectedCompetition?.id === id) {
-      setSelectedCompetition(null);
+    try {
+      console.log('Deleting competition with ID:', id);
+      await storage.deleteCompetition(id);
+      if (selectedCompetition?.id === id) {
+        setSelectedCompetition(null);
+      }
+      await loadCompetitions();
+      console.log('Competition deleted successfully');
+    } catch (error) {
+      console.error('Error deleting competition:', error);
+      throw error;
     }
-    await loadCompetitions();
   };
 
   const updateCompetitionBanner = async (

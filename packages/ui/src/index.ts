@@ -43,5 +43,8 @@ export * from "./components/table";
 // Tabs components
 export * from "./components/tabs";
 
+// CSV Import components
+export * from "./components/csv-import";
+
 // Utility functions
 export { cn } from "./lib/utils";

@@ -71,9 +71,13 @@ export class ChromeStorageAdapter implements StorageAdapter {
   }
 
   async deleteCompetition(id: string): Promise<void> {
+    console.log('ChromeStorageAdapter: Deleting competition', id);
     const competitions = await this.getCompetitions();
+    console.log('Current competitions:', competitions.length);
     const filtered = competitions.filter((c) => c.id !== id);
+    console.log('Filtered competitions:', filtered.length);
     await this.setData({ competitions: filtered });
+    console.log('ChromeStorageAdapter: Competition deleted');
   }
 
   async getSettings(): Promise<SpinnerSettings> {

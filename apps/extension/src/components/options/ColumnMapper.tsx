@@ -48,32 +48,99 @@ export function ColumnMapper({
   savedMappings = [],
   suggestedMappingId,
 }: ColumnMapperProps) {
-  const [mapping, setMapping] = React.useState<Partial<ColumnMapping>>(detectedMapping);
+  console.log('ColumnMapper component rendering');
+  console.log('ColumnMapper - props:', { open, headers, detectedMapping });
+  console.log('ColumnMapper - headers received:', headers);
+  console.log('ColumnMapper - headers length:', headers.length);
+  console.log('ColumnMapper - headers type:', typeof headers);
+  console.log('ColumnMapper - headers is array:', Array.isArray(headers));
+  
+  if (headers.length > 0) {
+    console.log('ColumnMapper - first header:', headers[0]);
+    console.log('ColumnMapper - all headers:', headers.map((h, i) => `[${i}]: "${h}"`).join(', '));
+  } else {
+    console.log('ColumnMapper - No headers or empty array!');
+  }
+  
+  // Validate that detected mapping values exist in headers
+  const validateMapping = (mappingToValidate: Partial<ColumnMapping>): Partial<ColumnMapping> => {
+    const validated: Partial<ColumnMapping> = {};
+    
+    if (mappingToValidate.firstName && headers.includes(mappingToValidate.firstName)) {
+      validated.firstName = mappingToValidate.firstName;
+    }
+    if (mappingToValidate.lastName && headers.includes(mappingToValidate.lastName)) {
+      validated.lastName = mappingToValidate.lastName;
+    }
+    if (mappingToValidate.fullName && headers.includes(mappingToValidate.fullName)) {
+      validated.fullName = mappingToValidate.fullName;
+    }
+    if (mappingToValidate.ticketNumber && headers.includes(mappingToValidate.ticketNumber)) {
+      validated.ticketNumber = mappingToValidate.ticketNumber;
+    }
+    
+    return validated;
+  };
+  
+  const validatedMapping = validateMapping(detectedMapping);
+  
+  const [mapping, setMapping] = React.useState<Partial<ColumnMapping>>(validatedMapping);
   const [useFullName, setUseFullName] = React.useState<boolean>(
-    !!detectedMapping.fullName || (!detectedMapping.firstName && !detectedMapping.lastName)
+    !!validatedMapping.fullName || (!validatedMapping.firstName && !validatedMapping.lastName)
   );
   const [shouldSaveMapping, setShouldSaveMapping] = React.useState(false);
   const [mappingName, setMappingName] = React.useState('');
   const [selectedSavedMappingId, setSelectedSavedMappingId] = React.useState<string>('');
 
+  // Track if modal just opened
+  const [hasInitialized, setHasInitialized] = React.useState(false);
+  
   React.useEffect(() => {
-    // If we have a suggested mapping, use it
+    if (open && !hasInitialized) {
+      console.log('ColumnMapper - Modal opened for first time, initializing mapping');
+      console.log('ColumnMapper - detectedMapping:', detectedMapping);
+      console.log('ColumnMapper - suggestedMappingId:', suggestedMappingId);
+      setHasInitialized(true);
+    }
+    
+    if (!open) {
+      // Reset initialization when modal closes
+      setHasInitialized(false);
+    }
+  }, [open, hasInitialized, detectedMapping, suggestedMappingId]);
+
+  React.useEffect(() => {
+    console.log('ColumnMapper - useEffect triggered, headers:', headers);
+    console.log('ColumnMapper - detectedMapping:', detectedMapping);
+    console.log('ColumnMapper - suggestedMappingId:', suggestedMappingId);
+    
+    // Only process if we have headers
+    if (!headers || headers.length === 0) {
+      console.log('ColumnMapper - No headers available, skipping mapping');
+      return;
+    }
+    
+    // If we have a suggested mapping, validate and use it
     if (suggestedMappingId && savedMappings.length > 0) {
       const suggested = savedMappings.find((m) => m.id === suggestedMappingId);
       if (suggested) {
-        setMapping(suggested.mapping);
-        setUseFullName(!!suggested.mapping.fullName);
+        const validatedSuggested = validateMapping(suggested.mapping);
+        console.log('ColumnMapper - Using suggested mapping:', validatedSuggested);
+        setMapping(validatedSuggested);
+        setUseFullName(!!validatedSuggested.fullName);
         setSelectedSavedMappingId(suggestedMappingId);
         return;
       }
     }
 
-    // Otherwise use detected mapping
-    setMapping(detectedMapping);
+    // Otherwise use validated detected mapping
+    const validated = validateMapping(detectedMapping);
+    console.log('ColumnMapper - Using validated detected mapping:', validated);
+    setMapping(validated);
     setUseFullName(
-      !!detectedMapping.fullName || (!detectedMapping.firstName && !detectedMapping.lastName)
+      !!validated.fullName || (!validated.firstName && !validated.lastName)
     );
-  }, [detectedMapping, suggestedMappingId, savedMappings]);
+  }, [detectedMapping, suggestedMappingId, savedMappings, headers]);
 
   const handleConfirm = async () => {
     const finalMapping = useFullName
@@ -121,22 +188,32 @@ export function ColumnMapper({
       // Reset to manual configuration
       setSelectedSavedMappingId('');
       setShouldSaveMapping(false);
-      // Keep current mapping or use detected
-      setMapping(detectedMapping);
+      // Keep current mapping or use validated detected mapping
+      const validated = validateMapping(detectedMapping);
+      setMapping(validated);
       setUseFullName(
-        !!detectedMapping.fullName || (!detectedMapping.firstName && !detectedMapping.lastName)
+        !!validated.fullName || (!validated.firstName && !validated.lastName)
       );
     } else {
       const saved = savedMappings.find((m) => m.id === mappingId);
       if (saved) {
-        setMapping(saved.mapping);
-        setUseFullName(!!saved.mapping.fullName);
+        const validated = validateMapping(saved.mapping);
+        setMapping(validated);
+        setUseFullName(!!validated.fullName);
         setSelectedSavedMappingId(mappingId);
         setShouldSaveMapping(false);
       }
     }
   };
 
+  React.useEffect(() => {
+    console.log('ColumnMapper - mapping state updated:', mapping);
+  }, [mapping]);
+  
+  // Filter headers to ensure they're not empty
+  const filteredHeaders = headers.filter(h => h && h.trim());
+  console.log('ColumnMapper - filtered headers:', filteredHeaders);
+  
   const isValid = useFullName
     ? mapping.fullName && mapping.ticketNumber
     : mapping.firstName && mapping.lastName && mapping.ticketNumber;
@@ -233,7 +310,7 @@ export function ColumnMapper({
                   <SelectValue placeholder="Select a column" />
                 </SelectTrigger>
                 <SelectContent>
-                  {headers.map((header) => (
+                  {filteredHeaders.map((header) => (
                     <SelectItem key={header} value={header}>
                       {header}
                     </SelectItem>
@@ -257,7 +334,7 @@ export function ColumnMapper({
                     <SelectValue placeholder="Select a column" />
                   </SelectTrigger>
                   <SelectContent>
-                    {headers.map((header) => (
+                    {filteredHeaders.map((header) => (
                       <SelectItem key={header} value={header}>
                         {header}
                       </SelectItem>
@@ -276,7 +353,7 @@ export function ColumnMapper({
                     <SelectValue placeholder="Select a column" />
                   </SelectTrigger>
                   <SelectContent>
-                    {headers.map((header) => (
+                    {filteredHeaders.map((header) => (
                       <SelectItem key={header} value={header}>
                         {header}
                       </SelectItem>

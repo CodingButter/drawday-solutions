@@ -9,8 +9,10 @@ export function LayoutContent({ children }: { children: React.ReactNode }) {
   
   // Don't show nav/footer on live-spinner pages (they will be iframed)
   const isLiveSpinnerPage = pathname?.startsWith('/live-spinner');
+  // Don't show nav/footer on auth pages (for clean iframe experience)
+  const isAuthPage = pathname?.startsWith('/auth');
   
-  if (isLiveSpinnerPage) {
+  if (isLiveSpinnerPage || isAuthPage) {
     return <>{children}</>;
   }
   

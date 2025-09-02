@@ -81,7 +81,7 @@ export interface BaseSpinnerProps {
   /** Target ticket number to land on */
   targetTicketNumber?: string;
   /** Spinner animation settings */
-  settings: SpinnerSettings;
+  settings?: SpinnerSettings;
   /** Whether the spinner is currently spinning */
   isSpinning: boolean;
   /** Callback when spin completes */
