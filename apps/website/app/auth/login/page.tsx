@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@raffle-spinner/ui';
 import { LoginForm } from '@/components/auth/LoginForm';
 
-export default function ExtensionLoginPage() {
+function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isInIframe, setIsInIframe] = useState(false);
@@ -41,5 +41,21 @@ export default function ExtensionLoginPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function ExtensionLoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold text-center">Loading...</CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
+    }>
+      <LoginPageContent />
+    </Suspense>
   );
 }

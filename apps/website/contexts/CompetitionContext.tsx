@@ -4,27 +4,26 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { imageStore } from '@/lib/image-utils';
 import { 
   createCompetition as createCompetitionInDb,
-  deleteCompetition as deleteCompetitionFromDb 
+  deleteCompetition as deleteCompetitionFromDb,
+  type Participant,
+  type Winner,
+  type Competition as FirebaseCompetition
 } from '@/lib/firebase-service';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-
-export interface Participant {
-  firstName: string;
-  lastName: string;
-  ticketNumber: string;
-}
 
 export interface Competition {
   id: string;
   name: string;
   participants: Participant[];
-  winners?: Participant[];
+  winners?: Winner[];
   bannerImageId?: string; // Store ID reference instead of actual image
   createdAt: number;
   updatedAt: number;
   userId?: string; // Firebase user ID for ownership
 }
+
+export type { Participant, Winner };
 
 interface CompetitionContextType {
   competitions: Competition[];
