@@ -162,8 +162,7 @@ export function CompetitionProvider({ children }: { children: React.ReactNode })
         status: 'active' as const,
         userId: currentUser.uid,
         winners: competition.winners,
-        bannerImageId: competition.bannerImageId,
-        bannerImage: competition.bannerImage
+        bannerImageId: competition.bannerImageId
       };
 
       const competitionId = await createCompetitionInDb(competitionData);

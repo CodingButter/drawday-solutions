@@ -45,13 +45,10 @@ function CompetitionBanner({
         } finally {
           setLoading(false);
         }
-      } else if (competition.bannerImage) {
-        // Fallback to legacy base64 image
-        setBannerUrl(competition.bannerImage);
       }
     };
     loadBanner();
-  }, [competition.bannerImageId, competition.bannerImage]);
+  }, [competition.bannerImageId]);
 
   return (
     <ImageUpload

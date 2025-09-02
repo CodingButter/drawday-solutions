@@ -212,14 +212,18 @@ function ConfigurationContent() {
     setUploadingBanner(competitionId);
     
     try {
+      // Convert file to base64
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      
       // Compress image using API route
       const { compressImage } = await import('@/lib/image-utils');
       console.log('Compressing image...');
-      const compressed = await compressImage(file, {
-        quality: 70,
-        maxWidth: 1200,
-        maxHeight: 400 // Good for banners
-      });
+      const compressed = await compressImage(base64, 'banner');
       console.log('Image compressed successfully');
       
       // Store image in IndexedDB
