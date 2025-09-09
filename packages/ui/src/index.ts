@@ -26,6 +26,7 @@ export * from "./components/badge";
 // Form components (additional)
 export * from "./components/checkbox";
 export * from "./components/select";
+export * from "./components/native-select";
 export * from "./components/slider";
 export * from "./components/switch";
 
@@ -45,6 +46,9 @@ export * from "./components/tabs";
 
 // CSV Import components
 export * from "./components/csv-import";
+
+// Theme components
+export { ThemeApplier } from "./components/ThemeApplier";
 
 // Utility functions
 export { cn } from "./lib/utils";

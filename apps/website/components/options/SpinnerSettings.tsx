@@ -11,7 +11,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@raffle-spinner/ui';
 import { Label } from '@raffle-spinner/ui';
 import { Slider } from '@raffle-spinner/ui';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@raffle-spinner/ui';
+import { NativeSelect, NativeSelectOption } from '@raffle-spinner/ui';
 // Storage types are now in contexts
 import { InfoTooltip } from '@raffle-spinner/ui';
 import { helpContent } from '@/lib/help-content';
@@ -71,21 +71,15 @@ export function SpinnerSettings({ settings, onUpdate }: SpinnerSettingsProps) {
             <Label htmlFor="deceleration">Deceleration Rate</Label>
             <InfoTooltip {...helpContent.spinnerSettings.decelerationRate} />
           </div>
-          <Select
+          <NativeSelect
+            id="deceleration"
             value={settings.decelerationRate}
-            onValueChange={(value: 'slow' | 'medium' | 'fast') =>
-              onUpdate({ decelerationRate: value })
-            }
+            onChange={(e) => onUpdate({ decelerationRate: e.target.value as 'slow' | 'medium' | 'fast' })}
           >
-            <SelectTrigger id="deceleration">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="slow">Slow</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="fast">Fast</SelectItem>
-            </SelectContent>
-          </Select>
+            <NativeSelectOption value="slow">Slow</NativeSelectOption>
+            <NativeSelectOption value="medium">Medium</NativeSelectOption>
+            <NativeSelectOption value="fast">Fast</NativeSelectOption>
+          </NativeSelect>
           <p className="text-xs text-muted-foreground">How quickly the wheel slows down</p>
         </div>
       </CardContent>

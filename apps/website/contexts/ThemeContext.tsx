@@ -87,8 +87,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         
         // If timestamp changed, fetch full settings
         if (timestamp && timestamp !== lastTimestamp) {
+          console.log('Theme timestamp changed, fetching new theme:', {
+            oldTimestamp: lastTimestamp,
+            newTimestamp: timestamp,
+          });
           const settings = await getUserSettings(userId);
           if (settings) {
+            console.log('New theme fetched from Firebase:', settings.theme.spinnerStyle);
             setTheme(settings.theme);
             setLastTimestamp(timestamp);
           }

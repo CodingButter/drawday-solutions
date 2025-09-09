@@ -12,7 +12,7 @@ import { Label } from '@raffle-spinner/ui';
 import { Button } from '@raffle-spinner/ui';
 import { Input } from '@raffle-spinner/ui';
 import { Slider } from '@raffle-spinner/ui';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@raffle-spinner/ui';
+import { NativeSelect, NativeSelectOption } from '@raffle-spinner/ui';
 import { Popover, PopoverContent, PopoverTrigger } from '@raffle-spinner/ui';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@raffle-spinner/ui';
 import { useTheme } from '@/contexts';
@@ -144,34 +144,14 @@ export function SpinnerCustomization() {
                 <Label>Spinner Type</Label>
                 <InfoTooltip {...helpContent.spinnerType} iconSize="sm" />
               </div>
-              <Select
+              <NativeSelect
                 value={theme.spinnerStyle.type}
-                onValueChange={(value) => handleTypeChange(value as SpinnerType)}
+                onChange={(e) => handleTypeChange(e.target.value as SpinnerType)}
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="slotMachine">
-                    <div className="flex items-center gap-2">
-                      <Square className="h-4 w-4" />
-                      Slot Machine
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="wheel" disabled>
-                    <div className="flex items-center gap-2">
-                      <RefreshCw className="h-4 w-4" />
-                      Spinning Wheel (Coming Soon)
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="cards" disabled>
-                    <div className="flex items-center gap-2">
-                      <Square className="h-4 w-4" />
-                      Card Shuffle (Coming Soon)
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+                <NativeSelectOption value="slotMachine">Slot Machine</NativeSelectOption>
+                <NativeSelectOption value="wheel" disabled>Spinning Wheel (Coming Soon)</NativeSelectOption>
+                <NativeSelectOption value="cards" disabled>Card Shuffle (Coming Soon)</NativeSelectOption>
+              </NativeSelect>
             </div>
 
             {/* Text Size Controls */}
@@ -185,38 +165,28 @@ export function SpinnerCustomization() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-sm">Name Size</Label>
-                  <Select
+                  <NativeSelect
                     value={theme.spinnerStyle.nameSize}
-                    onValueChange={(value) => handleSizeChange('nameSize', value)}
+                    onChange={(e) => handleSizeChange('nameSize', e.target.value)}
                   >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="small">Small</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="large">Large</SelectItem>
-                      <SelectItem value="extra-large">Extra Large</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <NativeSelectOption value="small">Small</NativeSelectOption>
+                    <NativeSelectOption value="medium">Medium</NativeSelectOption>
+                    <NativeSelectOption value="large">Large</NativeSelectOption>
+                    <NativeSelectOption value="extra-large">Extra Large</NativeSelectOption>
+                  </NativeSelect>
                 </div>
 
                 <div className="space-y-2">
                   <Label className="text-sm">Ticket Size</Label>
-                  <Select
+                  <NativeSelect
                     value={theme.spinnerStyle.ticketSize}
-                    onValueChange={(value) => handleSizeChange('ticketSize', value)}
+                    onChange={(e) => handleSizeChange('ticketSize', e.target.value)}
                   >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="small">Small</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="large">Large</SelectItem>
-                      <SelectItem value="extra-large">Extra Large</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <NativeSelectOption value="small">Small</NativeSelectOption>
+                    <NativeSelectOption value="medium">Medium</NativeSelectOption>
+                    <NativeSelectOption value="large">Large</NativeSelectOption>
+                    <NativeSelectOption value="extra-large">Extra Large</NativeSelectOption>
+                  </NativeSelect>
                 </div>
               </div>
             </div>
@@ -421,23 +391,18 @@ export function SpinnerCustomization() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Font Family</Label>
-                <Select
+                <NativeSelect
                   value={theme.spinnerStyle.fontFamily || 'system-ui'}
-                  onValueChange={handleFontChange}
+                  onChange={(e) => handleFontChange(e.target.value)}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="system-ui">System Default</SelectItem>
-                    <SelectItem value="'Arial', sans-serif">Arial</SelectItem>
-                    <SelectItem value="'Times New Roman', serif">Times New Roman</SelectItem>
-                    <SelectItem value="'Courier New', monospace">Courier New</SelectItem>
-                    <SelectItem value="'Georgia', serif">Georgia</SelectItem>
-                    <SelectItem value="'Verdana', sans-serif">Verdana</SelectItem>
-                    <SelectItem value="'Comic Sans MS', cursive">Comic Sans MS</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <NativeSelectOption value="system-ui">System Default</NativeSelectOption>
+                  <NativeSelectOption value="'Arial', sans-serif">Arial</NativeSelectOption>
+                  <NativeSelectOption value="'Times New Roman', serif">Times New Roman</NativeSelectOption>
+                  <NativeSelectOption value="'Courier New', monospace">Courier New</NativeSelectOption>
+                  <NativeSelectOption value="'Georgia', serif">Georgia</NativeSelectOption>
+                  <NativeSelectOption value="'Verdana', sans-serif">Verdana</NativeSelectOption>
+                  <NativeSelectOption value="'Comic Sans MS', cursive">Comic Sans MS</NativeSelectOption>
+                </NativeSelect>
               </div>
 
               <div className="pt-4 border-t">

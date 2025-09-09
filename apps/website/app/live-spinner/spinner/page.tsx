@@ -14,6 +14,7 @@ import { Button } from '@raffle-spinner/ui';
 import { Input } from '@raffle-spinner/ui';
 import { Card, CardContent } from '@raffle-spinner/ui';
 import { Label } from '@raffle-spinner/ui';
+import { ThemeApplier } from '@raffle-spinner/ui';
 import { normalizeTicketNumber } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@raffle-spinner/ui';
 import { Alert, AlertDescription } from '@raffle-spinner/ui';
@@ -37,16 +38,17 @@ function SidePanelContent() {
   const [error, setError] = useState<string | null>(null);
   const [bannerImage, setBannerImage] = useState<string | null>(null);
 
-  // Debug logging for branding
+  // Debug logging for theme changes
   useEffect(() => {
-    console.log('Theme loaded:', !!theme);
-    console.log('Theme branding:', theme?.branding);
-    console.log('Logo image:', theme?.branding?.logoImage);
-    console.log('Banner image:', theme?.branding?.bannerImage);
-    console.log('Company name:', theme?.branding?.companyName);
-    console.log('Show company name:', theme?.branding?.showCompanyName);
-    console.log('Current banner image state:', bannerImage);
-  }, [theme, bannerImage]);
+    console.log('Theme updated in spinner panel:', {
+      timestamp: Date.now(),
+      nameColor: theme?.spinnerStyle?.nameColor,
+      ticketColor: theme?.spinnerStyle?.ticketColor,
+      backgroundColor: theme?.spinnerStyle?.backgroundColor,
+      canvasBackground: theme?.spinnerStyle?.canvasBackground,
+      highlightColor: theme?.spinnerStyle?.highlightColor,
+    });
+  }, [theme?.spinnerStyle]);
 
   // Poll localStorage for live updates
   useLocalStoragePolling({
@@ -209,7 +211,9 @@ function SidePanelContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <>
+      <ThemeApplier colors={theme?.colors} />
+      <div className="min-h-screen bg-background">
       {/* Branding Header - Show when there's a banner or logo */}
       {(bannerImage || (theme?.branding?.logoImage && theme?.branding?.logoImage.trim())) && (
         <div className="relative">
@@ -360,6 +364,7 @@ function SidePanelContent() {
         )}
       </div>
     </div>
+    </>
   );
 }
 

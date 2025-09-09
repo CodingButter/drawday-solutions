@@ -7,7 +7,7 @@
 
 import { useCallback, useRef, useEffect } from "react";
 import { Participant, SpinnerSettings } from "@raffle-spinner/storage";
-import { normalizeTicketNumber, logger } from "@raffle-spinner/utils";
+import { normalizeTicketNumber } from "@raffle-spinner/utils";
 
 interface AnimationOptions {
   participants: Participant[];
@@ -88,171 +88,168 @@ export function useSlotMachineAnimation({
       return;
     }
 
-    // Get current participants
+    // Get current participants (initial subset)
     const currentParticipants = getParticipants
       ? getParticipants()
       : initialParticipants;
 
-    console.log('useSlotMachineAnimation: Participants count:', currentParticipants.length);
+    console.log('useSlotMachineAnimation: Initial participants count:', currentParticipants.length);
 
     if (currentParticipants.length === 0) {
       console.error('useSlotMachineAnimation: No participants available');
       onError?.("No participants available");
       return;
     }
-
-    // Try to find winner in current subset first
-    const foundWinner = findWinner(currentParticipants);
-
-    // Store the actual target ticket for later reference
-    const targetTicket = targetTicketNumber;
-
-    // If not found in subset, it might be in the full list (will be swapped in at max velocity)
-    // For now, use a placeholder from the middle of the current subset
-    let winner: Participant;
-    if (!foundWinner) {
-      // The actual winner will be found after subset swap at max velocity
-      // For now, just start spinning to the middle position
-      const middleIndex = Math.floor(currentParticipants.length / 2);
-      winner = currentParticipants[middleIndex];
-
-      // Don't error here - the subset will be swapped during animation
-      logger.debug(
-        `Ticket ${targetTicket} not in initial subset, will swap at max velocity`,
-        {
-          component: "useSlotMachineAnimation",
-          metadata: { targetTicket },
-        },
+    
+    // Trigger subset swap immediately to get winner subset
+    // This ensures we know the exact winner position before calculating physics
+    let winnerSubset = currentParticipants;
+    let actualWinnerIndex = -1;
+    
+    if (onMaxVelocity) {
+      // Swap to winner subset right away
+      const swapResult = onMaxVelocity();
+      console.log('Pre-spin subset swap, winner index:', swapResult);
+      
+      if (getParticipants) {
+        winnerSubset = getParticipants();
+        actualWinnerIndex = winnerSubset.findIndex(
+          p => normalizeTicketNumber(p.ticketNumber) === normalizeTicketNumber(targetTicketNumber)
+        );
+        console.log('Winner found at index:', actualWinnerIndex, 'in subset of', winnerSubset.length);
+      }
+    }
+    
+    // Find the winner
+    const winner = findWinner(winnerSubset);
+    if (!winner) {
+      console.error('Winner not found in subset!');
+      onError?.(`Ticket ${targetTicketNumber} not found`);
+      return;
+    }
+    
+    // If we couldn't find the winner index, try again
+    if (actualWinnerIndex === -1) {
+      actualWinnerIndex = winnerSubset.findIndex(
+        p => normalizeTicketNumber(p.ticketNumber) === normalizeTicketNumber(targetTicketNumber)
       );
-    } else {
-      winner = foundWinner;
+    }
+    
+    if (actualWinnerIndex === -1) {
+      console.error('Could not find winner index in subset');
+      onError?.('Could not position winner correctly');
+      return;
     }
 
-    // Calculate winner's position in the current subset
-    let winnerIndex = currentParticipants.findIndex(
-      (p) =>
-        normalizeTicketNumber(p.ticketNumber) ===
-        normalizeTicketNumber(targetTicketNumber),
-    );
-
-    // If winner not in current subset, spin to middle (will be corrected after swap)
-    if (winnerIndex === -1) {
-      winnerIndex = Math.floor(currentParticipants.length / 2);
-    }
-
-    // Calculate physics for the spin
-    const wheelCircumference = currentParticipants.length * itemHeight;
-    const targetPosition = winnerIndex * itemHeight;
-
-    // Calculate spin duration and distance
-    const duration = (settings?.minSpinDuration || 3) * 1000; // Convert to ms with fallback
-    const minRotations = 5;
-    const maxRotations = 8;
-    const rotations =
-      minRotations + Math.random() * (maxRotations - minRotations);
-    const totalDistance = rotations * wheelCircumference + targetPosition;
+    // Physics constants based on actual winner position
+    const MAX_ROTATION_SPEED = 3; // Max rotations per second
+    const wheelCircumference = winnerSubset.length * itemHeight;
+    
+    // Calculate the exact final resting position based on actual winner index
+    // The center position is at index 2 (0-based, with 5 visible items)
+    const viewportCenter = 2 * itemHeight; // Index 2 is the center
+    const finalRestingPosition = actualWinnerIndex * itemHeight - viewportCenter;
+    
+    console.log('Animation physics:', {
+      targetTicket: targetTicketNumber,
+      actualWinnerIndex,
+      wheelCircumference,
+      itemHeight,
+      viewportCenter,
+      finalRestingPosition
+    });
+    
+    // Get user settings
+    const duration = (settings?.minSpinDuration || 3) * 1000; // Convert to ms
+    
+    // Deceleration divisor - lower values = faster deceleration
+    const decelerationDivisor = settings?.decelerationRate === 'slow' ? 15 : 
+                                settings?.decelerationRate === 'fast' ? 5 : 10;
+    
+    // Calculate total rotations based on duration and max speed
+    // Start with base rotations at max speed
+    const baseRotations = MAX_ROTATION_SPEED * (duration / 1000);
+    
+    // Add some extra rotations for natural feel (minimum 3 full rotations)
+    const totalRotations = Math.max(3, Math.floor(baseRotations * 0.8)) + Math.random() * 0.5;
+    
+    // Calculate exact target position (in total pixels traveled)
+    // This ensures we land exactly on index 50
+    const targetPosition = totalRotations * wheelCircumference + finalRestingPosition;
 
     const physics = {
       duration,
-      totalDistance,
-      startPosition: 0,
-      finalPosition: targetPosition,
+      targetPosition,
+      currentPosition: 0,
+      finalRestingPosition,
+      rotationSpeed: MAX_ROTATION_SPEED * wheelCircumference, // pixels per second
+      decelerationDivisor,
+      wheelCircumference,
     };
 
     // Track animation state
     isSpinningRef.current = true;
     startTimeRef.current = performance.now();
-    let hasTriggeredMaxVelocity = false;
-    let recalculatedPhysics = physics;
-    let recalculatedTarget = false;
+    let currentPosition = 0;
+    let lastTimestamp = performance.now();
     
     console.log('useSlotMachineAnimation: Starting animation with physics:', physics);
 
-    // Animation loop
+    // Animation loop using division-based easing
     const animate = (currentTime: number) => {
       if (!isSpinningRef.current) {
         console.log('useSlotMachineAnimation: Animation cancelled');
         return;
       }
 
-      const elapsed = currentTime - startTimeRef.current;
-      const progress = Math.min(elapsed / recalculatedPhysics.duration, 1);
+      const deltaTime = currentTime - lastTimestamp;
+      lastTimestamp = currentTime;
 
-      // Trigger onMaxVelocity callback at 20% progress
-      if (
-        !hasTriggeredMaxVelocity &&
-        progress >= 0.2 &&
-        progress < 0.4 &&
-        onMaxVelocity
-      ) {
-        hasTriggeredMaxVelocity = true;
-        const newWinnerIndex = onMaxVelocity();
-
-        // If subset changed and we got a new winner index, recalculate physics
-        if (
-          typeof newWinnerIndex === "number" &&
-          newWinnerIndex >= 0 &&
-          !recalculatedTarget
-        ) {
-          recalculatedTarget = true;
-
-          // Get updated participants after subset swap
-          const updatedParticipants = getParticipants
-            ? getParticipants()
-            : currentParticipants;
-
-          // Update the winner reference to the actual winner in the new subset
-          const actualWinner = findWinner(updatedParticipants);
-          if (actualWinner) {
-            winner = actualWinner;
-          }
-
-          // Recalculate physics for new winner position
-          const updatedCircumference = updatedParticipants.length * itemHeight;
-          const newTargetPosition = newWinnerIndex * itemHeight;
-          const remainingDuration = physics.duration * 0.8; // Slightly shorter for second part
-          const remainingRotations = 3 + Math.random() * 2;
-          const remainingDistance =
-            remainingRotations * updatedCircumference + newTargetPosition;
-
-          recalculatedPhysics = {
-            duration: remainingDuration,
-            totalDistance: remainingDistance,
-            startPosition: 0,
-            finalPosition: newTargetPosition,
-          };
-
-          // Adjust the start time to account for progress already made
-          startTimeRef.current = currentTime - elapsed * 0.2; // Keep 20% of progress
-        }
-      }
-
-      // Calculate position based on easing
-      let position: number;
-      if (progress < 1) {
-        // Use cubic ease-out for smooth deceleration
-        const easeOutCubic = 1 - Math.pow(1 - progress, 3);
-        position =
-          recalculatedPhysics.startPosition +
-          recalculatedPhysics.totalDistance * easeOutCubic;
-      } else {
-        // Snap to final position
-        position = recalculatedPhysics.finalPosition;
-      }
-
-      // Update position
-      onPositionUpdateRef.current(position);
-
-      // Continue or complete animation
-      if (progress < 1) {
-        animationRef.current = requestAnimationFrame(animate);
-      } else {
+      // Calculate position using division-based easing
+      // This gradually pulls current position closer to target position
+      const remainingDistance = physics.targetPosition - currentPosition;
+      
+      // Check if we're close enough to stop
+      if (Math.abs(remainingDistance) < 0.5) {
+        // Animation complete - we're at the target
+        currentPosition = physics.targetPosition;
+        
+        // Calculate final display position
+        const displayPosition = currentPosition % physics.wheelCircumference;
+        onPositionUpdateRef.current(displayPosition);
+        
         // Animation complete
-        console.log('useSlotMachineAnimation: Animation complete, winner:', winner);
+        console.log('Animation complete:', {
+          finalPosition: displayPosition,
+          targetPosition: physics.targetPosition,
+          winner: winner?.ticketNumber,
+          targetTicket: targetTicketNumber
+        });
+        
         isSpinningRef.current = false;
         animationRef.current = null;
         onSpinCompleteRef.current(winner);
+        return;
       }
+      
+      // Apply division-based easing to gradually approach target
+      // The divisor controls deceleration rate (smaller = faster deceleration)
+      const velocity = remainingDistance / physics.decelerationDivisor;
+      
+      // Ensure minimum velocity for smooth animation until very close to target
+      const minVelocity = Math.abs(remainingDistance) > 100 ? 10 : 1;
+      const actualVelocity = Math.abs(velocity) < minVelocity ? 
+        (velocity > 0 ? minVelocity : -minVelocity) : velocity;
+      
+      // Update position based on velocity and frame time
+      currentPosition += actualVelocity * (deltaTime / 16); // Normalize to 60fps
+      
+      // Calculate display position (wrap to current rotation)
+      const displayPosition = currentPosition % physics.wheelCircumference;
+      onPositionUpdateRef.current(displayPosition);
+
+      // Continue animation
+      animationRef.current = requestAnimationFrame(animate);
     };
 
     // Start animation

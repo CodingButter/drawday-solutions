@@ -87,7 +87,30 @@ export const getUserSettings = async (userId: string): Promise<UserSettings> => 
     const settingsSnap = await getDoc(settingsRef);
     
     if (settingsSnap.exists()) {
-      return settingsSnap.data() as UserSettings;
+      const data = settingsSnap.data();
+      console.log('Retrieved user settings from Firebase:', data);
+      
+      // Merge with defaults to ensure all fields are present
+      return {
+        userId,
+        ...defaultSettings,
+        ...data,
+        // Ensure spinner settings exist
+        spinner: data.spinner || defaultSettings.spinner,
+        // Ensure theme exists with all required fields
+        theme: {
+          ...defaultSettings.theme,
+          ...(data.theme || {}),
+          spinnerStyle: {
+            ...defaultSettings.theme.spinnerStyle,
+            ...(data.theme?.spinnerStyle || {}),
+          },
+          branding: {
+            ...defaultSettings.theme.branding,
+            ...(data.theme?.branding || {}),
+          },
+        },
+      } as UserSettings;
     }
     
     // Return default settings if none exist

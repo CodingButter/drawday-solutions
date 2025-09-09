@@ -7,8 +7,9 @@ import { auth } from '@/lib/firebase';
 import { clearLargeStorageItems } from '@/lib/clear-storage';
 import { CompetitionProvider, useCompetitions } from '@/contexts';
 import { SettingsProvider, useSettings } from '@/contexts';
-import { ThemeProvider } from '@/contexts';
+import { ThemeProvider, useTheme } from '@/contexts';
 import { CollapsibleStateProvider, useCollapsibleState } from '@/contexts';
+import { ThemeApplier } from '@raffle-spinner/ui';
 import { useCSVImport } from '@raffle-spinner/hooks';
 import { CompetitionManagementContent } from '@/components/options/CompetitionManagementContent';
 import { CSVUploadModal } from '@/components/options/CSVUploadModal';
@@ -35,6 +36,7 @@ function OptionsContent() {
     useCompetitions();
   const { settings, columnMapping, updateSettings, updateColumnMapping } = useSettings();
   const { collapsedSections, toggleSection } = useCollapsibleState();
+  const { theme } = useTheme();
 
   const [competitionToDelete, setCompetitionToDelete] = useState<Competition | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -174,8 +176,10 @@ function OptionsContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <>
+      <ThemeApplier colors={theme?.colors} />
+      <div className="min-h-screen bg-background p-8">
+        <div className="max-w-4xl mx-auto space-y-8">
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold">Raffle Spinner Configuration</h1>
@@ -434,6 +438,7 @@ function OptionsContent() {
         />
       </div>
     </div>
+    </>
   );
 }
 

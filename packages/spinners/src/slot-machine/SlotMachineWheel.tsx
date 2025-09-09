@@ -207,13 +207,24 @@ export function SlotMachineWheel({
         const firstHalf = sortedParticipants.slice(0, SUBSET_HALF);
         const lastHalf = sortedParticipants.slice(-SUBSET_HALF);
         initialSubset = [...firstHalf, ...lastHalf];
+        
+        console.log('Initial subset created:', {
+          totalParticipants: sortedParticipants.length,
+          firstTicket: firstHalf[0]?.ticketNumber,
+          lastOfFirst50: firstHalf[firstHalf.length - 1]?.ticketNumber,
+          firstOfLast50: lastHalf[0]?.ticketNumber,
+          lastTicket: lastHalf[lastHalf.length - 1]?.ticketNumber,
+          subsetLength: initialSubset.length
+        });
       }
 
       setDisplaySubset(initialSubset);
 
-      // Start with the first ticket centered in view
-      // The center position is at index 2 (VISIBLE_ITEMS / 2, rounded down)
-      // To center the first ticket, we need to move up by 2 positions
+      // Start at the boundary between last and first tickets
+      // This creates the wrap-around effect where scrolling up from the first ticket
+      // shows the last tickets, making it appear as a continuous loop
+      // Position 0 would show the first ticket at the top
+      // We want the first ticket at position 2 (center), so we offset by -2 items
       const startPosition = -2 * ITEM_HEIGHT;
       setPosition(startPosition);
     }
@@ -419,16 +430,27 @@ export function SlotMachineWheel({
       return [...sortedParticipants];
     }
 
-    // Create subset with winner approximately in the middle
+    // Create subset with winner positioned exactly in the middle (at index 50)
     const subset: Participant[] = [];
     const halfSize = Math.floor(SUBSET_SIZE / 2);
 
-    // Calculate start index to center the winner
+    // Calculate start index to center the winner at position 50
     const startIdx = winnerIndex - halfSize;
+    
+    console.log('Creating winner subset:', {
+      targetTicket: targetTicketNumber,
+      normalizedTarget,
+      winnerIndex,
+      winnerTicket: sortedParticipants[winnerIndex]?.ticketNumber,
+      totalParticipants: sortedParticipants.length,
+      startIdx,
+      halfSize,
+      expectedWinnerPosition: 50
+    });
 
     if (startIdx < 0) {
-      // Winner is in the first half, need to wrap around
-      const fromEnd = sortedParticipants.slice(startIdx); // Get from end
+      // Winner is in the first half, need to wrap around from the end
+      const fromEnd = sortedParticipants.slice(sortedParticipants.length + startIdx);
       const fromStart = sortedParticipants.slice(0, winnerIndex + halfSize);
       subset.push(...fromEnd, ...fromStart);
     } else if (startIdx + SUBSET_SIZE > sortedParticipants.length) {
@@ -445,6 +467,30 @@ export function SlotMachineWheel({
         ...sortedParticipants.slice(startIdx, startIdx + SUBSET_SIZE),
       );
     }
+    
+    // Verify the winner is at index 50
+    const winnerIndexInSubset = subset.findIndex(
+      (p) => normalizeTicketNumber(p.ticketNumber) === normalizedTarget
+    );
+    console.log('Winner position in subset:', winnerIndexInSubset, 'out of', subset.length, 'Expected: 50');
+    
+    if (winnerIndexInSubset !== 50) {
+      console.error('ERROR: Winner not at expected position 50!');
+      console.log('Tickets around position 50:', [
+        { idx: 48, ticket: subset[48]?.ticketNumber },
+        { idx: 49, ticket: subset[49]?.ticketNumber }, 
+        { idx: 50, ticket: subset[50]?.ticketNumber, expected: targetTicketNumber },
+        { idx: 51, ticket: subset[51]?.ticketNumber },
+        { idx: 52, ticket: subset[52]?.ticketNumber },
+      ]);
+      if (winnerIndexInSubset >= 0) {
+        console.log('Winner actually at position', winnerIndexInSubset, ':', [
+          { idx: winnerIndexInSubset - 1, ticket: subset[winnerIndexInSubset - 1]?.ticketNumber },
+          { idx: winnerIndexInSubset, ticket: subset[winnerIndexInSubset]?.ticketNumber },
+          { idx: winnerIndexInSubset + 1, ticket: subset[winnerIndexInSubset + 1]?.ticketNumber },
+        ]);
+      }
+    }
 
     return subset;
   }, [sortedParticipants, targetTicketNumber]);
@@ -456,23 +502,23 @@ export function SlotMachineWheel({
    * @returns New index of the winner in the swapped subset, or -1 if already swapped
    */
   const handleMaxVelocity = useCallback(() => {
-    if (!hasSwappedRef.current) {
-      hasSwappedRef.current = true;
-      const winnerSubset = createWinnerSubset();
-      // Swap to winner subset at max velocity
+    // Always swap to the winner subset when called
+    const winnerSubset = createWinnerSubset();
+    
+    // Find winner's new index in the subset
+    const normalizedTarget = normalizeTicketNumber(targetTicketNumber);
+    const newWinnerIndex = winnerSubset.findIndex(
+      (p) => normalizeTicketNumber(p.ticketNumber) === normalizedTarget,
+    );
 
-      // Find winner's new index in the subset
-      const normalizedTarget = normalizeTicketNumber(targetTicketNumber);
-      const newWinnerIndex = winnerSubset.findIndex(
-        (p) => normalizeTicketNumber(p.ticketNumber) === normalizedTarget,
-      );
+    setDisplaySubset(winnerSubset);
+    hasSwappedRef.current = true;
 
-      setDisplaySubset(winnerSubset);
-
-      // Return the new index so animation can adjust
-      return newWinnerIndex;
-    }
-    return -1;
+    console.log('handleMaxVelocity: Subset swapped, winner at index:', newWinnerIndex);
+    console.log('handleMaxVelocity: Winner ticket:', winnerSubset[newWinnerIndex]?.ticketNumber, 'Target:', targetTicketNumber);
+    
+    // Return the actual winner index
+    return newWinnerIndex;
   }, [createWinnerSubset, targetTicketNumber]);
 
   // Store current subset in a ref for animation to access
@@ -545,7 +591,7 @@ export function SlotMachineWheel({
     if (displaySubset.length > 0) {
       drawWheel(position, displaySubset);
     }
-  }, [position, displaySubset, drawWheel]);
+  }, [position, displaySubset, drawWheel, theme]); // Add theme as dependency to trigger redraw
 
   return (
     <div

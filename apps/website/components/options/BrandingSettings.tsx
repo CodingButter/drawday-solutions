@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@raff
 import { Label } from '@raffle-spinner/ui';
 import { Input } from '@raffle-spinner/ui';
 import { Switch } from '@raffle-spinner/ui';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@raffle-spinner/ui';
+import { NativeSelect, NativeSelectOption } from '@raffle-spinner/ui';
 import { Alert, AlertDescription } from '@raffle-spinner/ui';
 import { useTheme } from '@/contexts';
 import { InfoTooltip } from '@raffle-spinner/ui';
@@ -114,21 +114,16 @@ export function BrandingSettings() {
             />
 
             <div className="flex-1">
-              <Select
+              <NativeSelect
                 value={theme.branding.logoPosition}
-                onValueChange={(value) =>
-                  updateBranding({ logoPosition: value as 'left' | 'center' | 'right' })
+                onChange={(e) =>
+                  updateBranding({ logoPosition: e.target.value as 'left' | 'center' | 'right' })
                 }
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="left">Position: Left</SelectItem>
-                  <SelectItem value="center">Position: Center</SelectItem>
-                  <SelectItem value="right">Position: Right</SelectItem>
-                </SelectContent>
-              </Select>
+                <NativeSelectOption value="left">Position: Left</NativeSelectOption>
+                <NativeSelectOption value="center">Position: Center</NativeSelectOption>
+                <NativeSelectOption value="right">Position: Right</NativeSelectOption>
+              </NativeSelect>
             </div>
           </div>
         </div>
