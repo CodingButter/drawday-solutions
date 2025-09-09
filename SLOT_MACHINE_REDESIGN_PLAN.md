@@ -28,7 +28,7 @@ This document outlines the comprehensive plan to redesign the slot machine wheel
 1. **Fixed Display**: Always show exactly 100 ticket numbers
 2. **Circular Mathematics**: Use circumference = 2πr where r = 50 units
 3. **User Controls**:
-   - Rotation Speed: slow/medium/fast (controls total rotations)
+   - Spin Duration: short/medium/long (controls total rotations at constant max speed)
    - Deceleration Speed: slow/medium/fast (controls easing)
 4. **Dual Array System**:
    - Array 1: First 50 tickets
@@ -40,11 +40,52 @@ This document outlines the comprehensive plan to redesign the slot machine wheel
    - Handle winners at boundary positions
    - Handle very small participant lists
 
+## Code Organization Principles
+
+### File Size Limit
+
+**CRITICAL**: No single file should exceed 200 lines of code. This ensures:
+
+- Better readability and maintainability
+- Easier testing and debugging
+- Clear separation of concerns
+- Faster code reviews
+
+### Proposed File Structure
+
+```
+packages/spinners/src/slot-machine/
+├── SlotMachineWheel.tsx              (< 150 lines - Main component)
+├── constants/
+│   ├── physics.ts                    (< 50 lines - Physics constants)
+│   └── visual.ts                     (< 50 lines - Visual constants)
+├── hooks/
+│   ├── useSlotMachineAnimation.ts    (< 150 lines - Animation hook)
+│   ├── useArrayManagement.ts         (< 100 lines - Array swap logic)
+│   └── useWheelPhysics.ts           (< 100 lines - Physics calculations)
+├── utils/
+│   ├── array-helpers.ts              (< 100 lines - Array manipulation)
+│   ├── position-calculator.ts        (< 100 lines - Position math)
+│   └── winner-positioning.ts         (< 100 lines - Winner placement)
+├── components/
+│   ├── SlotMachineFrame.tsx         (existing, already < 200 lines)
+│   ├── SlotMachineSegment.tsx       (existing, already < 200 lines)
+│   └── WheelCanvas.tsx              (< 150 lines - Canvas rendering)
+└── types/
+    └── slot-machine.ts              (< 100 lines - Type definitions)
+```
+
 ## Implementation Strategy
 
-### Phase 1: Mathematical Foundation
+### Phase 1: Mathematical Foundation (Breaking Down Large Files)
 
-#### Position Calculation System
+#### Current Problem
+
+The current `SlotMachineWheel.tsx` is 717 lines - way too large! We need to break it down.
+
+#### Refactored Structure
+
+##### File: `constants/physics.ts` (< 50 lines)
 
 ```javascript
 // Constants
@@ -53,116 +94,201 @@ const TICKETS_COUNT = 100; // always 100 visible
 const CIRCUMFERENCE = 2 * Math.PI * WHEEL_RADIUS; // ~314.159 units
 const UNIT_ANGLE = (2 * Math.PI) / TICKETS_COUNT; // radians per ticket
 const ITEM_HEIGHT = CIRCUMFERENCE / TICKETS_COUNT; // ~3.14159 units per ticket
+const MAX_ROTATION_SPEED = 5; // Constant max rotations per second
 
-// Position mapping
-function getTicketPosition(index: number, rotation: number): {x: number, y: number} {
+export const SPIN_DURATIONS = {
+  short: 2, // 2 seconds (10 rotations at max speed)
+  medium: 3, // 3 seconds (15 rotations at max speed)
+  long: 5, // 5 seconds (25 rotations at max speed)
+};
+
+export const DECELERATION_RATES = {
+  slow: 0.95, // Gradual slowdown
+  medium: 0.9, // Moderate slowdown
+  fast: 0.85, // Quick stop
+};
+```
+
+##### File: `utils/position-calculator.ts` (< 100 lines)
+
+```javascript
+import { UNIT_ANGLE, WHEEL_RADIUS, ITEM_HEIGHT } from '../constants/physics';
+
+export function getTicketPosition(index: number, rotation: number) {
   const angle = (index * UNIT_ANGLE) + rotation;
   return {
     x: WHEEL_RADIUS * Math.cos(angle),
     y: WHEEL_RADIUS * Math.sin(angle)
   };
 }
-```
 
-#### Rotation Physics
+export function calculateWheelPosition(
+  topIndex: number,
+  pixelOffset: number,
+  subsetLength: number
+) {
+  const normalizedPos = (topIndex * ITEM_HEIGHT) + pixelOffset;
+  return normalizedPos % (subsetLength * ITEM_HEIGHT);
+}
 
-```javascript
-// User settings mapping
-const ROTATION_SPEEDS = {
-  slow: 3,    // 3 full rotations
-  medium: 5,  // 5 full rotations
-  fast: 8     // 8 full rotations
-};
-
-const DECELERATION_RATES = {
-  slow: 0.95,   // Gradual slowdown
-  medium: 0.90, // Moderate slowdown
-  fast: 0.85    // Quick stop
-};
-
-// Animation physics
-interface AnimationPhysics {
-  totalRotations: number;      // From ROTATION_SPEEDS
-  currentRotation: number;      // 0 to totalRotations
-  targetRotation: number;       // Final position
-  velocity: number;             // Current speed
-  maxVelocity: number;          // Speed limit
-  decelerationFactor: number;   // From DECELERATION_RATES
+export function getCenterParticipantIndex(
+  topIndex: number,
+  subsetLength: number
+): number {
+  return (topIndex + 2) % subsetLength; // Center is 2 items down
 }
 ```
 
-### Phase 2: Dual Array Management
-
-#### Array Structure
+##### File: `hooks/useWheelPhysics.ts` (< 100 lines)
 
 ```javascript
-interface WheelArrays {
-  topArray: Participant[];    // 50 tickets currently in top half
+import {
+  MAX_ROTATION_SPEED,
+  SPIN_DURATIONS,
+  DECELERATION_RATES,
+  ITEM_HEIGHT
+} from '../constants/physics';
+
+interface PhysicsState {
+  totalRotations: number;
+  spinDuration: number;
+  currentRotation: number;
+  targetRotation: number;
+  velocity: number;
+  maxVelocity: number;
+  decelerationFactor: number;
+}
+
+export function useWheelPhysics(
+  spinDuration: keyof typeof SPIN_DURATIONS,
+  decelerationSpeed: keyof typeof DECELERATION_RATES
+) {
+  const duration = SPIN_DURATIONS[spinDuration];
+  const totalRotations = duration * MAX_ROTATION_SPEED;
+  const decelerationFactor = DECELERATION_RATES[decelerationSpeed];
+
+  const calculateVelocity = (distance: number): number => {
+    const velocity = distance * decelerationFactor;
+    const minVelocity = Math.abs(distance) > 500 ? 20 :
+                       Math.abs(distance) > 100 ? 5 :
+                       Math.abs(distance) > 10 ? 0.5 : 0.05;
+
+    return Math.abs(velocity) < minVelocity ?
+      (velocity > 0 ? minVelocity : -minVelocity) : velocity;
+  };
+
+  return {
+    duration,
+    totalRotations,
+    decelerationFactor,
+    calculateVelocity
+  };
+}
+```
+
+### Phase 2: Dual Array Management (Separated into Small Files)
+
+##### File: `types/slot-machine.ts` (< 100 lines)
+
+```typescript
+export interface WheelArrays {
+  topArray: Participant[]; // 50 tickets currently in top half
   bottomArray: Participant[]; // 50 tickets currently in bottom half
   hasSwapped: boolean;
-  swapPoint: number;          // 50% of totalRotations
+  swapPoint: number; // 50% of totalRotations
 }
 
-// Initial state (before spin)
-function initializeArrays(participants: Participant[]): WheelArrays {
-  const sorted = sortByTicketNumber(participants);
+export interface AnimationState {
+  isSpinning: boolean;
+  currentPosition: number;
+  targetPosition: number;
+  startTime: number;
+}
+```
 
-  if (sorted.length <= 100) {
-    // Repeat to fill if needed
-    const filled = fillToHundred(sorted);
+##### File: `utils/array-helpers.ts` (< 100 lines)
+
+```javascript
+import { Participant } from '@raffle-spinner/storage';
+
+export function sortByTicketNumber(participants: Participant[]): Participant[] {
+  return [...participants].sort((a, b) => {
+    const aNum = parseInt(a.ticketNumber.replace(/\D/g, "")) || 0;
+    const bNum = parseInt(b.ticketNumber.replace(/\D/g, "")) || 0;
+    return aNum - bNum;
+  });
+}
+
+export function fillToHundred(participants: Participant[]): Participant[] {
+  const result = [...participants];
+  while (result.length < 100) {
+    const toAdd = Math.min(participants.length, 100 - result.length);
+    result.push(...participants.slice(0, toAdd));
+  }
+  return result;
+}
+
+export function findWinnerIndex(
+  participants: Participant[],
+  targetTicket: string
+): number {
+  return participants.findIndex(p =>
+    p.ticketNumber === targetTicket
+  );
+}
+```
+
+##### File: `hooks/useArrayManagement.ts` (< 100 lines)
+
+```javascript
+import { useState, useCallback } from 'react';
+import { Participant } from '@raffle-spinner/storage';
+import { WheelArrays } from '../types/slot-machine';
+import {
+  sortByTicketNumber,
+  fillToHundred,
+  findWinnerIndex
+} from '../utils/array-helpers';
+
+export function useArrayManagement(participants: Participant[]) {
+  const [arrays, setArrays] = useState<WheelArrays>(() =>
+    initializeArrays(participants)
+  );
+
+  const initializeArrays = (participants: Participant[]): WheelArrays => {
+    const sorted = sortByTicketNumber(participants);
+
+    if (sorted.length <= 100) {
+      const filled = fillToHundred(sorted);
+      return {
+        topArray: filled.slice(0, 50),
+        bottomArray: filled.slice(50, 100),
+        hasSwapped: false,
+        swapPoint: 0.5
+      };
+    }
+
     return {
-      topArray: filled.slice(0, 50),
-      bottomArray: filled.slice(50, 100),
+      topArray: sorted.slice(0, 50),
+      bottomArray: sorted.slice(-50),
       hasSwapped: false,
       swapPoint: 0.5
     };
-  }
-
-  // Take first 50 and last 50 for wrap-around effect
-  return {
-    topArray: sorted.slice(0, 50),
-    bottomArray: sorted.slice(-50),
-    hasSwapped: false,
-    swapPoint: 0.5
   };
-}
 
-// Swap arrays to position winner
-function swapArraysForWinner(
-  arrays: WheelArrays,
-  winnerTicket: string,
-  allParticipants: Participant[]
-): WheelArrays {
-  const winnerIndex = findWinnerIndex(allParticipants, winnerTicket);
+  const swapForWinner = useCallback((targetTicket: string) => {
+    const sorted = sortByTicketNumber(participants);
+    const winnerIndex = findWinnerIndex(sorted, targetTicket);
 
-  // Create new arrays with winner at index 0
-  const beforeWinner = allParticipants.slice(
-    Math.max(0, winnerIndex - 50),
-    winnerIndex
-  );
-  const afterWinner = allParticipants.slice(
-    winnerIndex,
-    Math.min(allParticipants.length, winnerIndex + 50)
-  );
+    if (winnerIndex === -1) return arrays;
 
-  // Fill arrays if needed
-  const topArray = [allParticipants[winnerIndex], ...afterWinner];
-  const bottomArray = beforeWinner;
+    // Position winner at index 0
+    const newArrays = createWinnerArrays(sorted, winnerIndex);
+    setArrays(newArrays);
+    return newArrays;
+  }, [participants, arrays]);
 
-  // Ensure exactly 50 in each
-  while (topArray.length < 50) {
-    topArray.push(...repeatParticipants);
-  }
-  while (bottomArray.length < 50) {
-    bottomArray.unshift(...repeatParticipants);
-  }
-
-  return {
-    topArray: topArray.slice(0, 50),
-    bottomArray: bottomArray.slice(-50),
-    hasSwapped: true,
-    swapPoint: 0.5
-  };
+  return { arrays, swapForWinner, initializeArrays };
 }
 ```
 
@@ -174,13 +300,14 @@ function swapArraysForWinner(
 function useSlotMachineAnimationV2({
   participants,
   targetTicketNumber,
-  rotationSpeed,    // NEW: replaces minSpinDuration
+  spinDuration,      // NEW: replaces minSpinDuration (short/medium/long)
   decelerationSpeed, // RENAMED: was decelerationRate
   onSpinComplete,
   onError
 }) {
   // Calculate physics
-  const totalRotations = ROTATION_SPEEDS[rotationSpeed];
+  const duration = SPIN_DURATIONS[spinDuration]; // seconds
+  const totalRotations = duration * MAX_ROTATION_SPEED;
   const decelerationFactor = DECELERATION_RATES[decelerationSpeed];
   const wheelCircumference = TICKETS_COUNT * ITEM_HEIGHT;
 
@@ -222,8 +349,8 @@ function useSlotMachineAnimationV2({
 
 ```typescript
 interface SpinnerSettingsV2 {
-  rotationSpeed: "slow" | "medium" | "fast"; // NEW
-  decelerationSpeed: "slow" | "medium" | "fast"; // RENAMED
+  spinDuration: "short" | "medium" | "long"; // NEW: replaces minSpinDuration
+  decelerationSpeed: "slow" | "medium" | "fast"; // RENAMED from decelerationRate
 }
 ```
 
@@ -235,24 +362,21 @@ interface SpinnerSettingsV2 {
     <CardTitle>Spinner Physics Settings</CardTitle>
   </CardHeader>
   <CardContent>
-    {/* Rotation Speed Control */}
+    {/* Spin Duration Control */}
     <div className="space-y-2">
-      <Label>Rotation Speed</Label>
-      <Select
-        value={settings.rotationSpeed}
-        onValueChange={updateRotationSpeed}
-      >
+      <Label>Spin Duration</Label>
+      <Select value={settings.spinDuration} onValueChange={updateSpinDuration}>
         <SelectTrigger>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="slow">Slow (3 rotations)</SelectItem>
-          <SelectItem value="medium">Medium (5 rotations)</SelectItem>
-          <SelectItem value="fast">Fast (8 rotations)</SelectItem>
+          <SelectItem value="short">Short (2 seconds)</SelectItem>
+          <SelectItem value="medium">Medium (3 seconds)</SelectItem>
+          <SelectItem value="long">Long (5 seconds)</SelectItem>
         </SelectContent>
       </Select>
       <p className="text-xs text-muted-foreground">
-        Controls the total number of wheel rotations
+        Controls how long the wheel spins at maximum speed
       </p>
     </div>
 
@@ -288,9 +412,9 @@ interface SpinnerSettingsV2 {
 // Migration function for existing settings
 function migrateSettings(oldSettings: OldSpinnerSettings): SpinnerSettingsV2 {
   return {
-    // Map minSpinDuration to rotationSpeed
-    rotationSpeed: oldSettings.minSpinDuration <= 2 ? 'slow' :
-                   oldSettings.minSpinDuration <= 4 ? 'medium' : 'fast',
+    // Map minSpinDuration to spinDuration
+    spinDuration: oldSettings.minSpinDuration <= 2 ? 'short' :
+                  oldSettings.minSpinDuration <= 4 ? 'medium' : 'long',
 
     // Keep decelerationRate as decelerationSpeed
     decelerationSpeed: oldSettings.decelerationRate
