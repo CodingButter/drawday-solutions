@@ -15,7 +15,7 @@ function getTokenFromRequest(request: NextRequest): string | null {
   if (authHeader?.startsWith('Bearer ')) {
     return authHeader.substring(7);
   }
-  
+
   const cookie = request.cookies.get('directus_auth_token');
   return cookie?.value || null;
 }
@@ -25,24 +25,18 @@ export async function GET(request: NextRequest) {
   try {
     const token = getTokenFromRequest(request);
     if (!token) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
     // Get user info from token
     const userResponse = await fetch(`${DIRECTUS_URL}/users/me`, {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
     });
 
     if (!userResponse.ok) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
     const { data: user } = await userResponse.json();
@@ -55,7 +49,7 @@ export async function GET(request: NextRequest) {
       `${DIRECTUS_URL}/items/competitions?filter[user_id][_eq]=${user.id}`,
       {
         headers: {
-          'Authorization': `Bearer ${adminToken}`,
+          Authorization: `Bearer ${adminToken}`,
         },
       }
     );
@@ -65,7 +59,17 @@ export async function GET(request: NextRequest) {
     }
 
     const { data: competitions } = await competitionsResponse.json();
-    
+
+    // Debug: log the raw competitions data
+    if (competitions.length > 0) {
+      console.log('Raw competition data (first item):', {
+        id: competitions[0].id,
+        banner_image_id: competitions[0].banner_image_id,
+        created_at: competitions[0].created_at,
+        date_created: competitions[0].date_created,
+      });
+    }
+
     // Parse JSON fields for each competition
     const parsedCompetitions = competitions.map((comp: any) => {
       let participants = [];
@@ -76,10 +80,11 @@ export async function GET(request: NextRequest) {
         try {
           if (typeof comp.participants_data === 'string') {
             // More robust base64 detection
-            const isBase64 = /^[A-Za-z0-9+/]+=*$/.test(comp.participants_data) &&
-                             comp.participants_data.length % 4 === 0 &&
-                             !comp.participants_data.startsWith('[') &&
-                             !comp.participants_data.startsWith('{');
+            const isBase64 =
+              /^[A-Za-z0-9+/]+=*$/.test(comp.participants_data) &&
+              comp.participants_data.length % 4 === 0 &&
+              !comp.participants_data.startsWith('[') &&
+              !comp.participants_data.startsWith('{');
 
             if (isBase64) {
               try {
@@ -98,7 +103,11 @@ export async function GET(request: NextRequest) {
             participants = comp.participants_data;
           }
         } catch (error) {
-          console.error('Failed to parse participants_data:', error, comp.participants_data?.substring(0, 50));
+          console.error(
+            'Failed to parse participants_data:',
+            error,
+            comp.participants_data?.substring(0, 50)
+          );
           participants = [];
         }
       }
@@ -108,10 +117,11 @@ export async function GET(request: NextRequest) {
         try {
           if (typeof comp.winners_data === 'string') {
             // More robust base64 detection
-            const isBase64 = /^[A-Za-z0-9+/]+=*$/.test(comp.winners_data) &&
-                             comp.winners_data.length % 4 === 0 &&
-                             !comp.winners_data.startsWith('[') &&
-                             !comp.winners_data.startsWith('{');
+            const isBase64 =
+              /^[A-Za-z0-9+/]+=*$/.test(comp.winners_data) &&
+              comp.winners_data.length % 4 === 0 &&
+              !comp.winners_data.startsWith('[') &&
+              !comp.winners_data.startsWith('{');
 
             if (isBase64) {
               try {
@@ -128,7 +138,11 @@ export async function GET(request: NextRequest) {
             winners = comp.winners_data;
           }
         } catch (error) {
-          console.error('Failed to parse winners_data:', error, comp.winners_data?.substring(0, 50));
+          console.error(
+            'Failed to parse winners_data:',
+            error,
+            comp.winners_data?.substring(0, 50)
+          );
           winners = [];
         }
       }
@@ -137,10 +151,11 @@ export async function GET(request: NextRequest) {
         ...comp,
         participants,
         winners,
-        bannerImageId: comp.banner_image, // Map Directus field to frontend field
+        bannerImageId: comp.banner_image_id, // Map Directus field to frontend field
+        createdAt: comp.created_at || comp.date_created, // Map Directus timestamp fields
       };
     });
-    
+
     return NextResponse.json({ competitions: parsedCompetitions });
   } catch (error: any) {
     console.error('Error fetching competitions:', error);
@@ -156,29 +171,23 @@ export async function POST(request: NextRequest) {
   try {
     const token = getTokenFromRequest(request);
     if (!token) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
     // Get user info from token
     const userResponse = await fetch(`${DIRECTUS_URL}/users/me`, {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
     });
 
     if (!userResponse.ok) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
     const { data: user } = await userResponse.json();
     const body = await request.json();
-    
+
     // Get admin token to create competition
     const adminToken = await getAdminToken();
 
@@ -197,7 +206,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${adminToken}`,
+        Authorization: `Bearer ${adminToken}`,
       },
       body: JSON.stringify(competitionData),
     });

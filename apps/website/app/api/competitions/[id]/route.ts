@@ -27,73 +27,55 @@ function getTokenFromRequest(request: NextRequest): string | null {
   if (authHeader?.startsWith('Bearer ')) {
     return authHeader.substring(7);
   }
-  
+
   const cookie = request.cookies.get('directus_auth_token');
   return cookie?.value || null;
 }
 
 // GET - Fetch a specific competition
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const token = getTokenFromRequest(request);
     if (!token) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
     // Get admin token to fetch competition
     const adminToken = await getAdminToken();
 
     // Fetch the competition
-    const competitionResponse = await fetch(
-      `${DIRECTUS_URL}/items/competitions/${params.id}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${adminToken}`,
-        },
-      }
-    );
+    const competitionResponse = await fetch(`${DIRECTUS_URL}/items/competitions/${params.id}`, {
+      headers: {
+        Authorization: `Bearer ${adminToken}`,
+      },
+    });
 
     if (!competitionResponse.ok) {
       if (competitionResponse.status === 404) {
-        return NextResponse.json(
-          { error: 'Competition not found' },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: 'Competition not found' }, { status: 404 });
       }
       throw new Error('Failed to fetch competition');
     }
 
     const { data: competition } = await competitionResponse.json();
-    
+
     // Verify the user owns this competition
     const userResponse = await fetch(`${DIRECTUS_URL}/users/me`, {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
     });
 
     if (!userResponse.ok) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
     const { data: user } = await userResponse.json();
-    
+
     if (competition.user_id !== user.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
-    
+
     return NextResponse.json({ competition });
   } catch (error: any) {
     console.error('Error fetching competition:', error);
@@ -105,84 +87,66 @@ export async function GET(
 }
 
 // PATCH - Update a competition
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const token = getTokenFromRequest(request);
     if (!token) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
     // Get user info from token
     const userResponse = await fetch(`${DIRECTUS_URL}/users/me`, {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
     });
 
     if (!userResponse.ok) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
     const { data: user } = await userResponse.json();
-    
+
     // Get admin token
     const adminToken = await getAdminToken();
 
     // First check if the competition exists and belongs to the user
-    const checkResponse = await fetch(
-      `${DIRECTUS_URL}/items/competitions/${params.id}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${adminToken}`,
-        },
-      }
-    );
+    const checkResponse = await fetch(`${DIRECTUS_URL}/items/competitions/${params.id}`, {
+      headers: {
+        Authorization: `Bearer ${adminToken}`,
+      },
+    });
 
     if (!checkResponse.ok) {
       if (checkResponse.status === 404) {
-        return NextResponse.json(
-          { error: 'Competition not found' },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: 'Competition not found' }, { status: 404 });
       }
       throw new Error('Failed to fetch competition');
     }
 
     const { data: existingCompetition } = await checkResponse.json();
-    
+
     if (existingCompetition.user_id !== user.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     const body = await request.json();
-    
+
+    // Log what we're updating
+    console.log('Updating competition:', params.id, 'with:', body);
+
     // Update the competition
-    const updateResponse = await fetch(
-      `${DIRECTUS_URL}/items/competitions/${params.id}`,
-      {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminToken}`,
-        },
-        body: JSON.stringify({
-          ...body,
-          updated_at: new Date().toISOString(),
-        }),
-      }
-    );
+    const updateResponse = await fetch(`${DIRECTUS_URL}/items/competitions/${params.id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({
+        ...body,
+        updated_at: new Date().toISOString(),
+      }),
+    });
 
     if (!updateResponse.ok) {
       const error = await updateResponse.json();
@@ -190,7 +154,7 @@ export async function PATCH(
     }
 
     const { data: competition } = await updateResponse.json();
-    
+
     return NextResponse.json({ competition });
   } catch (error: any) {
     console.error('Error updating competition:', error);
@@ -202,77 +166,56 @@ export async function PATCH(
 }
 
 // DELETE - Delete a competition
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const token = getTokenFromRequest(request);
     if (!token) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
     // Get user info from token
     const userResponse = await fetch(`${DIRECTUS_URL}/users/me`, {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
     });
 
     if (!userResponse.ok) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
     const { data: user } = await userResponse.json();
-    
+
     // Get admin token
     const adminToken = await getAdminToken();
 
     // First check if the competition exists and belongs to the user
-    const checkResponse = await fetch(
-      `${DIRECTUS_URL}/items/competitions/${params.id}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${adminToken}`,
-        },
-      }
-    );
+    const checkResponse = await fetch(`${DIRECTUS_URL}/items/competitions/${params.id}`, {
+      headers: {
+        Authorization: `Bearer ${adminToken}`,
+      },
+    });
 
     if (!checkResponse.ok) {
       if (checkResponse.status === 404) {
-        return NextResponse.json(
-          { error: 'Competition not found' },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: 'Competition not found' }, { status: 404 });
       }
       throw new Error('Failed to fetch competition');
     }
 
     const { data: existingCompetition } = await checkResponse.json();
-    
+
     if (existingCompetition.user_id !== user.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     // Delete the competition
-    const deleteResponse = await fetch(
-      `${DIRECTUS_URL}/items/competitions/${params.id}`,
-      {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${adminToken}`,
-        },
-      }
-    );
+    const deleteResponse = await fetch(`${DIRECTUS_URL}/items/competitions/${params.id}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${adminToken}`,
+      },
+    });
 
     if (!deleteResponse.ok) {
       const error = await deleteResponse.json();

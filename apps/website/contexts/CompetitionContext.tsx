@@ -46,7 +46,6 @@ const CompetitionContext = createContext<CompetitionContextType | null>(null);
 // Helper functions for Directus operations
 const fetchCompetitionsFromDirectus = async (): Promise<Competition[]> => {
   try {
-
     const response = await authenticatedFetch('/api/v1/competitions', {
       credentials: 'include', // Include cookies for auth
     });
@@ -72,7 +71,6 @@ const fetchCompetitionsFromDirectus = async (): Promise<Competition[]> => {
 
 const saveCompetitionToDirectus = async (competition: Competition): Promise<Competition | null> => {
   try {
-
     const response = await authenticatedFetch('/api/v1/competitions', {
       method: 'POST',
       headers: {
@@ -95,23 +93,41 @@ const saveCompetitionToDirectus = async (competition: Competition): Promise<Comp
   }
 };
 
-const updateCompetitionInDirectus = async (id: string, updates: Partial<Competition>): Promise<boolean> => {
+const updateCompetitionInDirectus = async (
+  id: string,
+  updates: Partial<Competition>
+): Promise<boolean> => {
   try {
+    // Convert bannerImageId to banner_image_id for Directus
+    const directusUpdates: any = {};
+    if (updates.name !== undefined) directusUpdates.name = updates.name;
+    if (updates.participants !== undefined)
+      directusUpdates.participants_data = JSON.stringify(updates.participants);
+    if (updates.winners !== undefined)
+      directusUpdates.winners_data = JSON.stringify(updates.winners);
+    if (updates.status !== undefined) directusUpdates.status = updates.status;
+    if (updates.bannerImageId !== undefined)
+      directusUpdates.banner_image_id = updates.bannerImageId;
+    if (updates.updatedAt !== undefined)
+      directusUpdates.updated_at = new Date(updates.updatedAt).toISOString();
+
     const response = await authenticatedFetch(`/api/competitions/${id}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
       },
       credentials: 'include', // Include cookies for auth
-      body: JSON.stringify(updates),
+      body: JSON.stringify(directusUpdates),
     });
 
     if (!response.ok) {
+      console.error('Failed to update competition:', await response.text());
       throw new Error('Failed to update competition');
     }
 
     return true;
   } catch (error) {
+    console.error('Error updating competition in Directus:', error);
     return false;
   }
 };
@@ -147,7 +163,7 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({ c
         const comps = await fetchCompetitionsFromDirectus();
         setCompetitions(comps);
         hasLoadedInitialRef.current = true;
-        
+
         // Load selected competition from localStorage (temporary storage)
         if (typeof window !== 'undefined' && window.localStorage) {
           const stored = localStorage.getItem('selectedCompetition');
@@ -155,8 +171,7 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({ c
             try {
               const selected = JSON.parse(stored);
               setSelectedCompetition(selected);
-            } catch (e) {
-            }
+            } catch (e) {}
           }
         }
       } catch (error) {
@@ -168,7 +183,7 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     loadCompetitions();
   }, []); // Keep empty to only run once
-  
+
   // Listen for changes from other tabs/windows (for selected competition only)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
@@ -176,8 +191,7 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({ c
         try {
           const newSelected = JSON.parse(e.newValue);
           setSelectedCompetition(newSelected);
-        } catch (error) {
-        }
+        } catch (error) {}
       }
     };
 
@@ -199,58 +213,75 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const refreshCompetitions = useCallback(async () => {
     try {
       const comps = await fetchCompetitionsFromDirectus();
+      console.log('Refreshed competitions:', comps);
       if (comps) {
         setCompetitions(comps);
         hasLoadedInitialRef.current = true;
+        // Also update selected competition if it exists
+        if (selectedCompetition) {
+          const updated = comps.find((c: Competition) => c.id === selectedCompetition.id);
+          if (updated) {
+            setSelectedCompetition(updated);
+          }
+        }
       }
     } catch (error) {
+      console.error('Failed to refresh competitions:', error);
     }
-  }, []);
+  }, [selectedCompetition]);
 
   const addCompetition = useCallback(async (competition: Competition) => {
     // Save to Directus
     const saved = await saveCompetitionToDirectus(competition);
     if (saved) {
-      setCompetitions(prev => [...prev, saved]);
+      setCompetitions((prev) => [...prev, saved]);
     } else {
       // If save failed, still add locally for now
-      setCompetitions(prev => [...prev, competition]);
+      setCompetitions((prev) => [...prev, competition]);
     }
   }, []);
 
-  const updateCompetition = useCallback(async (id: string, updates: Partial<Competition>) => {
-    // Update locally immediately
-    setCompetitions(prev => 
-      prev.map(comp => comp.id === id ? { ...comp, ...updates, updatedAt: Date.now() } : comp)
-    );
-    
-    // Update selected if it's the one being updated
-    if (selectedCompetition?.id === id) {
-      setSelectedCompetition(prev => prev ? { ...prev, ...updates, updatedAt: Date.now() } : null);
-    }
-    
-    // Save to Directus
-    await updateCompetitionInDirectus(id, updates);
-  }, [selectedCompetition]);
+  const updateCompetition = useCallback(
+    async (id: string, updates: Partial<Competition>) => {
+      // Update locally immediately
+      setCompetitions((prev) =>
+        prev.map((comp) => (comp.id === id ? { ...comp, ...updates, updatedAt: Date.now() } : comp))
+      );
 
-  const deleteCompetition = useCallback(async (id: string) => {
-    // Remove locally immediately
-    setCompetitions(prev => prev.filter(comp => comp.id !== id));
-    
-    // Clear selection if it's the one being deleted
-    if (selectedCompetition?.id === id) {
-      setSelectedCompetition(null);
-    }
-    
-    // Delete from Directus
-    await deleteCompetitionFromDirectus(id);
-  }, [selectedCompetition]);
+      // Update selected if it's the one being updated
+      if (selectedCompetition?.id === id) {
+        setSelectedCompetition((prev) =>
+          prev ? { ...prev, ...updates, updatedAt: Date.now() } : null
+        );
+      }
+
+      // Save to Directus
+      await updateCompetitionInDirectus(id, updates);
+    },
+    [selectedCompetition]
+  );
+
+  const deleteCompetition = useCallback(
+    async (id: string) => {
+      // Remove locally immediately
+      setCompetitions((prev) => prev.filter((comp) => comp.id !== id));
+
+      // Clear selection if it's the one being deleted
+      if (selectedCompetition?.id === id) {
+        setSelectedCompetition(null);
+      }
+
+      // Delete from Directus
+      await deleteCompetitionFromDirectus(id);
+    },
+    [selectedCompetition]
+  );
 
   const clearAllCompetitions = useCallback(async () => {
     // Clear all competitions from Directus one by one
-    const deletePromises = competitions.map(comp => deleteCompetitionFromDirectus(comp.id));
+    const deletePromises = competitions.map((comp) => deleteCompetitionFromDirectus(comp.id));
     await Promise.all(deletePromises);
-    
+
     setCompetitions([]);
     setSelectedCompetition(null);
   }, [competitions]);
@@ -259,18 +290,32 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setSelectedCompetition(competition);
   }, []);
 
-  const updateCompetitionBanner = useCallback(async (id: string, bannerImage: string) => {
-    // Store the image and get its ID
-    const imageId = await imageStore.storeImage(bannerImage);
-    
-    // Update the competition with the new banner image ID
-    await updateCompetition(id, { bannerImageId: imageId });
-  }, [updateCompetition]);
+  const updateCompetitionBanner = useCallback(
+    async (id: string, bannerImage: string) => {
+      console.log('updateCompetitionBanner called:', { id, hasImage: !!bannerImage });
 
-  const getBannerImage = useCallback(async (imageId: string | undefined): Promise<string | null> => {
-    if (!imageId) return null;
-    return await imageStore.getImageUrl(imageId);
-  }, []);
+      if (bannerImage) {
+        // Store the image and get its ID
+        const imageId = await imageStore.storeImage(bannerImage);
+        console.log('Stored image with ID:', imageId);
+
+        // Update the competition with the new banner image ID
+        await updateCompetition(id, { bannerImageId: imageId });
+      } else {
+        // Clear the banner
+        await updateCompetition(id, { bannerImageId: undefined });
+      }
+    },
+    [updateCompetition]
+  );
+
+  const getBannerImage = useCallback(
+    async (imageId: string | undefined): Promise<string | null> => {
+      if (!imageId) return null;
+      return await imageStore.getImageUrl(imageId);
+    },
+    []
+  );
 
   const value = {
     competitions,
@@ -289,11 +334,7 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return <div>Loading...</div>;
   }
 
-  return (
-    <CompetitionContext.Provider value={value}>
-      {children}
-    </CompetitionContext.Provider>
-  );
+  return <CompetitionContext.Provider value={value}>{children}</CompetitionContext.Provider>;
 };
 
 export const useCompetitions = () => {

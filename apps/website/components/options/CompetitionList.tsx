@@ -23,11 +23,11 @@ interface CompetitionListProps {
 }
 
 // Component to handle loading banner from IndexedDB
-function CompetitionBanner({ 
-  competition, 
-  onUpdateBanner 
-}: { 
-  competition: Competition; 
+function CompetitionBanner({
+  competition,
+  onUpdateBanner,
+}: {
+  competition: Competition;
   onUpdateBanner?: (id: string, banner: string | undefined) => void;
 }) {
   const [bannerUrl, setBannerUrl] = useState<string | undefined>(undefined);
@@ -42,18 +42,35 @@ function CompetitionBanner({
           setBannerUrl(image || undefined);
         } catch (error) {
           console.error('Error loading banner:', error);
+          setBannerUrl(undefined);
         } finally {
           setLoading(false);
         }
+      } else {
+        // Clear banner if no bannerImageId
+        setBannerUrl(undefined);
       }
     };
     loadBanner();
-  }, [competition.bannerImageId]);
+  }, [competition.bannerImageId, competition.id]); // Add competition.id to dependencies to force refresh
+
+  const handleBannerChange = async (value: string | undefined) => {
+    // Set loading state while updating
+    setLoading(true);
+
+    // Update the banner
+    await onUpdateBanner?.(competition.id, value);
+
+    // The parent component will update the competition state,
+    // which will trigger the useEffect to reload the banner
+    setLoading(false);
+  };
 
   return (
     <ImageUpload
+      key={`${competition.id}-${competition.bannerImageId || 'no-banner'}`} // Add key to force re-render
       value={bannerUrl}
-      onChange={(value) => onUpdateBanner?.(competition.id, value)}
+      onChange={handleBannerChange}
       onError={(error) => console.error('Upload error:', error)}
       height="h-24"
       compact
@@ -116,13 +133,13 @@ export function CompetitionList({ competitions, onDelete, onUpdateBanner }: Comp
           <CardContent>
             <div className="space-y-3">
               {/* Competition Banner */}
-              <CompetitionBanner
-                competition={competition}
-                onUpdateBanner={onUpdateBanner}
-              />
+              <CompetitionBanner competition={competition} onUpdateBanner={onUpdateBanner} />
 
               <div className="text-xs text-muted-foreground">
-                Created: {new Date(competition.createdAt).toLocaleDateString()}
+                Created:{' '}
+                {competition.createdAt
+                  ? new Date(competition.createdAt).toLocaleDateString()
+                  : 'Unknown date'}
               </div>
             </div>
           </CardContent>
