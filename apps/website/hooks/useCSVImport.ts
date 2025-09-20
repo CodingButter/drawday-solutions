@@ -8,7 +8,7 @@
 import { useState, useRef, useEffect } from "react";
 import type { Competition } from "@/contexts";
 import type { ColumnMapping, SavedMapping } from "@raffle-spinner/types";
-import { createCompetition } from '@/lib/firebase-service';
+// createCompetition removed - using Directus instead
 
 // Simple CSV parsing for the website
 function parseCSV(text: string): string[][] {
@@ -106,7 +106,6 @@ export function useCSVImport({
           setSavedMappings(JSON.parse(stored));
         }
       } catch (error) {
-        console.error('Error loading saved mappings:', error);
       }
     };
 
@@ -118,7 +117,6 @@ export function useCSVImport({
         try {
           setSavedMappings(JSON.parse(e.newValue));
         } catch (error) {
-          console.error('Error parsing saved mappings:', error);
         }
       }
     };
@@ -173,7 +171,6 @@ export function useCSVImport({
 
       setShowNameModal(true);
     } catch (error) {
-      console.error('Error detecting columns:', error);
       setImportSummary({
         success: false,
         message: 'Failed to read CSV file',
@@ -250,7 +247,6 @@ export function useCSVImport({
       // No duplicates, proceed to create competition
       await createAndSaveCompetition(participants);
     } catch (error) {
-      console.error('Error processing CSV:', error);
       setImportSummary({
         success: false,
         message: 'Failed to process CSV file',
@@ -300,7 +296,6 @@ export function useCSVImport({
       await createAndSaveCompetition(participants);
       setShowDuplicateModal(false);
     } catch (error) {
-      console.error('Error processing CSV with duplicates:', error);
       setImportSummary({
         success: false,
         message: 'Failed to process CSV file',
@@ -345,7 +340,6 @@ export function useCSVImport({
         fileInputRef.current.value = '';
       }
     } catch (error) {
-      console.error('Error creating competition:', error);
       setImportSummary({
         success: false,
         message: 'Failed to create competition',

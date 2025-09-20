@@ -18,7 +18,7 @@ import { InfoTooltip } from '@raffle-spinner/ui';
 import { Palette, RefreshCw } from 'lucide-react';
 
 export function ThemeColors() {
-  const { theme, updateColors, resetTheme, isLoading } = useTheme();
+  const { theme, updateColors, isLoading } = useTheme();
   const [activeColorPicker, setActiveColorPicker] = useState<string | null>(null);
   
   if (isLoading || !theme?.colors) {
@@ -217,41 +217,11 @@ export function ThemeColors() {
             field="background"
             description="Main background color"
           />
-          <ColorButton
-            label="Foreground"
-            color={theme.colors.foreground}
-            field="foreground"
-            description="Main text color"
-          />
-          <ColorButton
-            label="Card"
-            color={theme.colors.card}
-            field="card"
-            description="Card background color"
-          />
-          <ColorButton
-            label="Card Text"
-            color={theme.colors.cardForeground}
-            field="cardForeground"
-            description="Text color on cards"
-          />
-          <ColorButton
-            label="Winner"
-            color={theme.colors.winner}
-            field="winner"
-            description="Winner highlight color"
-          />
-          <ColorButton
-            label="Winner Glow"
-            color={theme.colors.winnerGlow}
-            field="winnerGlow"
-            description="Winner glow effect color"
-          />
         </div>
 
         {/* Reset Button */}
         <div className="pt-4 border-t">
-          <Button variant="outline" onClick={resetTheme} className="w-full">
+          <Button variant="outline" onClick={() => {}} className="w-full" disabled>
             <RefreshCw className="h-4 w-4 mr-2" />
             Reset All Theme Settings
           </Button>

@@ -16,6 +16,7 @@ import {
   SpinnerSettings,
   ColumnMapping,
   SavedMapping,
+  ThemeSettings,
 } from "./types";
 
 export interface StorageAdapter {
@@ -28,7 +29,7 @@ export interface StorageAdapter {
   saveSettings(settings: SpinnerSettings): Promise<void>;
 
   getColumnMapping(): Promise<ColumnMapping | null>;
-  saveColumnMapping(mapping: ColumnMapping): Promise<void>;
+  saveColumnMapping(mapping: ColumnMapping | null): Promise<void>;
 
   // Saved mappings methods
   getSavedMappings(): Promise<SavedMapping[]>;
@@ -37,6 +38,15 @@ export interface StorageAdapter {
   deleteSavedMapping(id: string): Promise<void>;
   getDefaultMapping(): Promise<SavedMapping | null>;
   setDefaultMapping(id: string | null): Promise<void>;
+
+  // New methods for complete settings sync
+  saveSavedMappings(mappings: SavedMapping[]): Promise<void>;
+  getDefaultMappingId(): Promise<string | undefined>;
+  saveDefaultMappingId(id: string | undefined): Promise<void>;
+
+  // Theme settings
+  getTheme(): Promise<ThemeSettings | undefined>;
+  saveTheme(theme: ThemeSettings): Promise<void>;
 
   clear(): Promise<void>;
 }

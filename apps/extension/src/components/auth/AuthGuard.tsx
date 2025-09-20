@@ -1,22 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import {
-  auth,
-  getStoredAuthState,
-  saveAuthState,
-  clearAuthState,
-} from '@/services/firebase-config';
-import { syncSettingsOnLogin } from '@/services/settings-sync';
 import { getStorageEnvironment } from '@raffle-spinner/storage';
 import ExtensionAuth from './ExtensionAuth';
 
 interface AuthGuardProps {
   children: React.ReactNode;
-  requireAuth?: boolean; // Allow disabling auth for development
+  requireAuth?: boolean;
+}
+
+interface DirectusUser {
+  id: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
 }
 
 export default function AuthGuard({ children, requireAuth = true }: AuthGuardProps) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<DirectusUser | null>(null);
   const [loading, setLoading] = useState(true);
   const isWebMode = getStorageEnvironment() === 'web';
 
@@ -27,30 +26,29 @@ export default function AuthGuard({ children, requireAuth = true }: AuthGuardPro
       return;
     }
 
-    // Check stored auth state first for faster load
-    getStoredAuthState().then((storedUser) => {
-      if (storedUser) {
-        setUser(storedUser as User);
-      }
-    });
+    // Check stored Directus auth state
+    const checkAuth = () => {
+      const storedUser = localStorage.getItem('directus_user');
+      const storedToken = localStorage.getItem('directus_token');
+      const storedExpires = localStorage.getItem('directus_expires');
 
-    // Subscribe to auth state changes
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
+      if (storedUser && storedToken && storedExpires) {
+        const expires = parseInt(storedExpires);
+        if (Date.now() < expires) {
+          try {
+            setUser(JSON.parse(storedUser));
+          } catch {
+            // Invalid stored data
+            localStorage.removeItem('directus_user');
+            localStorage.removeItem('directus_token');
+            localStorage.removeItem('directus_expires');
+          }
+        }
+      }
       setLoading(false);
+    };
 
-      if (user) {
-        // Save to storage for persistence
-        await saveAuthState(user);
-        // Sync settings from Firebase
-        await syncSettingsOnLogin(user);
-      } else {
-        // Clear from storage
-        await clearAuthState();
-      }
-    });
-
-    return () => unsubscribe();
+    checkAuth();
   }, [requireAuth, isWebMode]);
 
   // In development mode with auth disabled, show the app directly
@@ -70,7 +68,7 @@ export default function AuthGuard({ children, requireAuth = true }: AuthGuardPro
   }
 
   if (!user) {
-    return <ExtensionAuth onSuccess={() => {}} />;
+    return <ExtensionAuth onSuccess={() => setUser} />;
   }
 
   return <>{children}</>;

@@ -14,6 +14,7 @@ export * from "./components/card";
 // Form components
 export * from "./components/input";
 export * from "./components/label";
+export * from "./components/textarea";
 
 // Dialog components
 export * from "./components/dialog";

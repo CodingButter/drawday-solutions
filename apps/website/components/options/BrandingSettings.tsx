@@ -5,7 +5,7 @@
  * logos, banners, and company name display.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@raffle-spinner/ui';
 import { Label } from '@raffle-spinner/ui';
 import { Input } from '@raffle-spinner/ui';
@@ -20,13 +20,36 @@ import { Building2, AlertCircle } from 'lucide-react';
 export function BrandingSettings() {
   const { theme, updateBranding, isLoading } = useTheme();
   const [uploadError, setUploadError] = useState<string | null>(null);
-  
-  // Debug logging
+  const [companyName, setCompanyName] = useState(theme?.branding?.companyName || '');
+  const [showCompanyName, setShowCompanyName] = useState<boolean>(!!theme?.branding?.showCompanyName);
+  const updateTimeoutRef = useRef<NodeJS.Timeout>();
+
   useEffect(() => {
-    console.log('BrandingSettings - showCompanyName value:', theme?.branding?.showCompanyName);
-    console.log('BrandingSettings - showCompanyName type:', typeof theme?.branding?.showCompanyName);
-    console.log('BrandingSettings - full branding:', theme?.branding);
-  }, [theme?.branding?.showCompanyName]);
+    setCompanyName(theme?.branding?.companyName || '');
+    setShowCompanyName(!!theme?.branding?.showCompanyName);
+  }, [theme?.branding?.companyName, theme?.branding?.showCompanyName]);
+
+  const handleCompanyNameChange = useCallback((value: string) => {
+    setCompanyName(value);
+
+    // Clear existing timeout
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current);
+    }
+
+    // Debounce the actual update
+    updateTimeoutRef.current = setTimeout(() => {
+      updateBranding({ companyName: value });
+    }, 500);
+  }, [updateBranding]);
+
+  useEffect(() => {
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+    };
+  }, []);
   
   if (isLoading || !theme?.branding) {
     return (
@@ -106,6 +129,7 @@ export function BrandingSettings() {
               height="h-20"
               compact={true}
               compress={true}
+              loading={isLoading}
               compressionOptions={{
                 quality: 85,
                 maxWidth: 400,
@@ -141,6 +165,7 @@ export function BrandingSettings() {
             onError={setUploadError}
             height="h-32"
             compress={true}
+            loading={isLoading}
             compressionOptions={{
               quality: 80,
               maxWidth: 1200,
@@ -158,18 +183,18 @@ export function BrandingSettings() {
 
           <div className="space-y-3">
             <Input
-              value={theme.branding.companyName || ''}
-              onChange={(e) => updateBranding({ companyName: e.target.value })}
+              value={companyName}
+              onChange={(e) => handleCompanyNameChange(e.target.value)}
               placeholder="Enter your company name"
             />
 
             <div className="flex items-center space-x-2">
               <Switch
                 id="show-company-name"
-                checked={theme.branding.showCompanyName === true}
-                onCheckedChange={(checked) => {
-                  console.log('Switch toggled:', checked, 'type:', typeof checked);
-                  updateBranding({ showCompanyName: Boolean(checked) });
+                checked={showCompanyName}
+                onCheckedChange={(checked: boolean) => {
+                  setShowCompanyName(checked);
+                  updateBranding({ showCompanyName: checked });
                 }}
               />
               <Label htmlFor="show-company-name" className="cursor-pointer">Display company name with logo</Label>

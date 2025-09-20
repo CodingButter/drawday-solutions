@@ -25,7 +25,7 @@ const nextConfig = {
       ...config.resolve.alias,
       '@raffle-spinner/assets': resolve(__dirname, '../../packages/assets/src'),
     };
-    
+
     return config;
   },
 };

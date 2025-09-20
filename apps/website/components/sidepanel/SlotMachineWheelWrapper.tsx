@@ -47,8 +47,8 @@ export function SlotMachineWheelWrapper({
     shadowColor: theme.spinnerStyle.shadowColor,
   };
 
-  // Show debug info in development mode
-  const showDebug = process.env.NODE_ENV === 'development';
+  // Disable debug info
+  const showDebug = false;
 
   return (
     <SlotMachineWheel

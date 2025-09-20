@@ -7,7 +7,7 @@
 // Storage types are now in contexts;
 import { logger } from '@raffle-spinner/utils';
 import { Button } from '@raffle-spinner/ui';
-import { Upload, Settings, Play } from 'lucide-react';
+import { Upload, Settings, Play, Trash2 } from 'lucide-react';
 import { CompetitionList } from './CompetitionList';
 import { openSpinnerPanel } from '@/lib/sidepanel-handler';
 import type { Competition, ColumnMapping } from '@/contexts';
@@ -18,6 +18,7 @@ interface CompetitionManagementContentProps {
   fileInputRef: React.RefObject<HTMLInputElement>;
   onFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onDeleteCompetition: (id: string) => void;
+  onClearAll?: () => void;
   onOpenMapper: () => void;
   onUpdateBanner?: (id: string, banner: string | undefined) => void;
 }
@@ -28,6 +29,7 @@ export function CompetitionManagementContent({
   fileInputRef,
   onFileSelect,
   onDeleteCompetition,
+  onClearAll,
   onOpenMapper,
   onUpdateBanner,
 }: CompetitionManagementContentProps) {
@@ -57,6 +59,16 @@ export function CompetitionManagementContent({
           <Play className="w-4 h-4 mr-2" />
           Open Spinner
         </Button>
+        {competitions.length > 0 && onClearAll && (
+          <Button
+            variant="destructive"
+            onClick={onClearAll}
+            title="Delete all competitions"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Clear All
+          </Button>
+        )}
       </div>
 
       {columnMapping && (

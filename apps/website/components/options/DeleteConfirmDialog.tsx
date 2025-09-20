@@ -26,6 +26,7 @@ interface DeleteConfirmDialogProps {
   competition: Competition | null;
   onConfirm: () => void;
   onCancel: () => void;
+  isClearAll?: boolean;
 }
 
 export function DeleteConfirmDialog({
@@ -33,12 +34,11 @@ export function DeleteConfirmDialog({
   competition,
   onConfirm,
   onCancel,
+  isClearAll = false,
 }: DeleteConfirmDialogProps) {
-  console.log('DeleteConfirmDialog rendered - open:', open, 'competition:', competition?.name);
   
   // Use effect to debug state changes and cleanup
   useEffect(() => {
-    console.log('DeleteConfirmDialog effect - open:', open, 'competition:', competition?.name);
     
     // Cleanup on unmount or when dialog closes
     return () => {
@@ -188,26 +188,35 @@ export function DeleteConfirmDialog({
   return (
     <>
       <AlertDialog open={open} onOpenChange={(isOpen) => {
-        console.log('AlertDialog onOpenChange called with:', isOpen);
         if (!isOpen) {
           onCancel();
         }
       }}>
         <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Competition?</AlertDialogTitle>
+          <AlertDialogTitle>{isClearAll ? 'Clear All Competitions?' : 'Delete Competition?'}</AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="space-y-2">
               <div>
-                Are you sure you want to delete{' '}
-                <strong>{competition ? competition.name : 'this competition'}</strong>?
+                {isClearAll ? (
+                  <>Are you sure you want to delete <strong>all competitions</strong>?</>
+                ) : (
+                  <>
+                    Are you sure you want to delete{' '}
+                    <strong>{competition ? competition.name : 'this competition'}</strong>?
+                  </>
+                )}
               </div>
               <div className="text-sm">
-                {competition && (
-                  <>
-                    This will permanently remove {competition.participants?.length || 0} participants from this
-                    competition. This action cannot be undone.
-                  </>
+                {isClearAll ? (
+                  <>This will permanently remove all competitions and their participants. This action cannot be undone.</>
+                ) : (
+                  competition && (
+                    <>
+                      This will permanently remove {competition.participants?.length || 0} participants from this
+                      competition. This action cannot be undone.
+                    </>
+                  )
                 )}
               </div>
             </div>
@@ -217,13 +226,12 @@ export function DeleteConfirmDialog({
           <AlertDialogCancel onClick={onCancel}>Cancel</AlertDialogCancel>
           <AlertDialogAction
             onClick={(e) => {
-              console.log('Delete confirm button clicked');
               e.preventDefault();
               onConfirm();
             }}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            Delete Competition
+            {isClearAll ? 'Clear All' : 'Delete Competition'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

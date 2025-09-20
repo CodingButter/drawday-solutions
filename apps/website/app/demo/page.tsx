@@ -54,8 +54,8 @@ function generateSampleParticipants(count: number): Participant[] {
 
 // Default spinner settings
 const DEFAULT_SETTINGS: SpinnerSettings = {
-  minSpinDuration: 3,
-  decelerationRate: 'medium',
+  spinDuration: 'medium',
+  decelerationSpeed: 'medium',
 };
 
 export default function DemoPage() {

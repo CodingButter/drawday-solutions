@@ -1,208 +1,282 @@
-import { User } from 'firebase/auth';
-import { db } from './firebase-config';
-import { 
-  doc, 
-  getDoc, 
-  setDoc,
-  serverTimestamp,
-} from 'firebase/firestore';
-import { storage } from '@raffle-spinner/storage';
-import type { SpinnerSettings, ColumnMapping, SavedMapping } from '@raffle-spinner/types';
+/**
+ * Settings Sync Service
+ *
+ * Synchronizes settings between the Chrome Extension and Directus backend
+ * through the website's iframe communication.
+ */
 
-interface FirebaseUserSettings {
-  userId: string;
-  spinner: SpinnerSettings;
-  theme: {
-    spinnerStyle: {
-      nameColor: string;
-      ticketColor: string;
-      backgroundColor: string;
-      canvasBackground: string;
-      borderColor: string;
-      highlightColor: string;
-      nameSize: string;
-      ticketSize: string;
-      fontFamily: string;
-      topShadowOpacity: number;
-      bottomShadowOpacity: number;
-      shadowSize: number;
-      shadowColor: string;
-    };
-    branding: {
-      logoImage?: string;
-      logoPosition: 'left' | 'center' | 'right';
-      bannerImage?: string;
-      companyName?: string;
-      showCompanyName: boolean;
-    };
+import { storage } from '@raffle-spinner/storage';
+import type { SpinnerSettings, ColumnMapping, SavedMapping, ThemeSettings } from '@raffle-spinner/types';
+
+interface DirectusSettingsMessage {
+  type: 'SETTINGS_UPDATE' | 'SETTINGS_REQUEST' | 'SETTINGS_RESPONSE';
+  payload?: {
+    spinner?: SpinnerSettings;
+    theme?: ThemeSettings;
+    columnMapping?: ColumnMapping | null;
+    savedMappings?: SavedMapping[];
+    defaultMappingId?: string;
   };
-  columnMapping?: ColumnMapping;
-  savedMappings?: SavedMapping[];
-  updatedAt?: unknown;
 }
 
-/**
- * Sync local settings with Firebase when user logs in
- */
-export const syncSettingsOnLogin = async (user: User): Promise<void> => {
-  try {
-    console.log('Syncing settings for user:', user.uid);
-    
-    // Get settings from Firebase
-    const settingsRef = doc(db, 'userSettings', user.uid);
-    const settingsSnap = await getDoc(settingsRef);
-    
-    if (settingsSnap.exists()) {
-      const firebaseSettings = settingsSnap.data() as FirebaseUserSettings;
-      
-      // Sync spinner settings to local storage
-      if (firebaseSettings.spinner) {
-        await storage.saveSettings(firebaseSettings.spinner);
-      }
-      
-      // Sync theme/branding to local storage
-      if (firebaseSettings.theme) {
-        const theme = {
-          colors: {
-            primary: '#007BFF',
-            secondary: '#FF1493',
-            accent: '#FFD700',
-            background: '#09090b',
-            foreground: '#fafafa',
-            card: '#09090b',
-            cardForeground: '#fafafa',
-            winner: '#FFD700',
-            winnerGlow: '#FFD700',
-          },
-          spinnerStyle: firebaseSettings.theme.spinnerStyle,
-          branding: firebaseSettings.theme.branding,
-        };
-        
-        // Store theme in localStorage for compatibility with ThemeContext
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('theme', JSON.stringify(theme));
-        }
-      }
-      
-      // Sync column mapping
-      if (firebaseSettings.columnMapping) {
-        await storage.saveColumnMapping(firebaseSettings.columnMapping);
-      }
-      
-      // Sync saved mappings
-      if (firebaseSettings.savedMappings) {
-        // Store saved mappings in localStorage for now
-        // TODO: Add proper saved mappings support to storage adapter
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('savedMappings', JSON.stringify(firebaseSettings.savedMappings));
-        }
-      }
-      
-      console.log('Settings synced successfully from Firebase');
-    } else {
-      console.log('No settings found in Firebase for user, using local settings');
-      
-      // Optionally, upload local settings to Firebase if they don't exist
-      const localSettings = await storage.getSettings();
-      const localMapping = await storage.getColumnMapping();
-      const localMappings: SavedMapping[] = [];
-      
-      const newSettings: FirebaseUserSettings = {
-        userId: user.uid,
-        spinner: localSettings,
-        theme: {
-          spinnerStyle: {
-            nameColor: '#ffffff',
-            ticketColor: '#a0a0a0',
-            backgroundColor: '#1a1a1a',
-            canvasBackground: '#0a0a0a',
-            borderColor: '#333333',
-            highlightColor: '#ffd700',
-            nameSize: 'large',
-            ticketSize: 'medium',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-            topShadowOpacity: 0.8,
-            bottomShadowOpacity: 0.8,
-            shadowSize: 60,
-            shadowColor: '#000000',
-          },
-          branding: {
-            logoPosition: 'center',
-            showCompanyName: true,
-          },
-        },
-        columnMapping: localMapping || undefined,
-        savedMappings: localMappings.length > 0 ? localMappings : undefined,
-        updatedAt: serverTimestamp(),
-      };
-      
-      await setDoc(settingsRef, newSettings);
-      console.log('Local settings uploaded to Firebase');
-    }
-  } catch (error) {
-    console.error('Error syncing settings:', error);
-    // Don't throw - continue with local settings if sync fails
-  }
-};
+class SettingsSyncService {
+  private iframe: HTMLIFrameElement | null = null;
+  private syncEnabled: boolean = false;
+  private pendingRequests: Map<string, (data: any) => void> = new Map();
 
-/**
- * Upload local settings changes to Firebase
- */
-export const uploadSettingsToFirebase = async (user: User): Promise<void> => {
-  try {
-    const localSettings = await storage.getSettings();
-    const localMapping = await storage.getColumnMapping();
-    const localMappings: SavedMapping[] = [];
-    
-    const settingsRef = doc(db, 'userSettings', user.uid);
-    
-    // Get existing theme from localStorage
-    const theme = {
-      spinnerStyle: {
-        nameColor: '#ffffff',
-        ticketColor: '#a0a0a0',
-        backgroundColor: '#1a1a1a',
-        canvasBackground: '#0a0a0a',
-        borderColor: '#333333',
-        highlightColor: '#ffd700',
-        nameSize: 'large',
-        ticketSize: 'medium',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
-        topShadowOpacity: 0.8,
-        bottomShadowOpacity: 0.8,
-        shadowSize: 60,
-        shadowColor: '#000000',
-      },
-      branding: {
-        logoPosition: 'center' as const,
-        showCompanyName: true,
-      },
-    };
-    
-    if (typeof window !== 'undefined') {
-      const storedTheme = localStorage.getItem('theme');
-      if (storedTheme) {
-        try {
-          const parsed = JSON.parse(storedTheme);
-          if (parsed.spinnerStyle) theme.spinnerStyle = parsed.spinnerStyle;
-          if (parsed.branding) theme.branding = parsed.branding;
-        } catch (e) {
-          console.error('Failed to parse theme from localStorage:', e);
-        }
-      }
-    }
-    
-    await setDoc(settingsRef, {
-      userId: user.uid,
-      spinner: localSettings,
-      theme,
-      columnMapping: localMapping || undefined,
-      savedMappings: localMappings.length > 0 ? localMappings : undefined,
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
-    
-    console.log('Settings uploaded to Firebase');
-  } catch (error) {
-    console.error('Error uploading settings to Firebase:', error);
+  /**
+   * Initialize the sync service with the iframe reference
+   */
+  initialize(iframe: HTMLIFrameElement) {
+    this.iframe = iframe;
+    this.setupMessageListener();
+    this.syncEnabled = true;
+
+    // Request initial settings from website
+    this.requestSettings();
   }
-};
+
+  /**
+   * Disable sync (when user logs out)
+   */
+  disable() {
+    this.syncEnabled = false;
+    this.iframe = null;
+    this.pendingRequests.clear();
+  }
+
+  /**
+   * Setup message listener for iframe communication
+   */
+  private setupMessageListener() {
+    window.addEventListener('message', this.handleMessage);
+  }
+
+  /**
+   * Handle messages from iframe
+   */
+  private handleMessage = async (event: MessageEvent) => {
+    // Only accept messages from our website
+    if (event.origin !== 'http://localhost:3000' && event.origin !== 'https://drawday.app') {
+      return;
+    }
+
+    const message = event.data as DirectusSettingsMessage;
+
+    switch (message.type) {
+      case 'SETTINGS_UPDATE':
+        // Website is notifying us of settings changes
+        await this.handleSettingsUpdate(message.payload);
+        break;
+
+      case 'SETTINGS_RESPONSE':
+        // Website is responding to our settings request
+        await this.handleSettingsResponse(message.payload);
+        break;
+    }
+  };
+
+  /**
+   * Request current settings from website
+   */
+  private requestSettings() {
+    if (!this.iframe || !this.syncEnabled) return;
+
+    const message: DirectusSettingsMessage = {
+      type: 'SETTINGS_REQUEST',
+    };
+
+    this.iframe.contentWindow?.postMessage(message, '*');
+  }
+
+  /**
+   * Handle settings update from website
+   */
+  private async handleSettingsUpdate(payload?: DirectusSettingsMessage['payload']) {
+    if (!payload || !this.syncEnabled) return;
+
+    // Update local storage with new settings
+    const promises: Promise<void>[] = [];
+
+    if (payload.spinner) {
+      promises.push(storage.saveSettings(payload.spinner));
+    }
+
+    if (payload.theme && 'saveTheme' in storage) {
+      promises.push((storage as any).saveTheme(payload.theme));
+    }
+
+    if (payload.columnMapping !== undefined && payload.columnMapping !== null) {
+      promises.push(storage.saveColumnMapping(payload.columnMapping));
+    }
+
+    if (payload.savedMappings !== undefined && 'saveSavedMappings' in storage) {
+      promises.push((storage as any).saveSavedMappings(payload.savedMappings));
+    }
+
+    if (payload.defaultMappingId !== undefined && 'saveDefaultMappingId' in storage) {
+      promises.push((storage as any).saveDefaultMappingId(payload.defaultMappingId));
+    }
+
+    await Promise.all(promises);
+  }
+
+  /**
+   * Handle settings response from website
+   */
+  private async handleSettingsResponse(payload?: DirectusSettingsMessage['payload']) {
+    if (!payload) return;
+
+    // Process the response
+    await this.handleSettingsUpdate(payload);
+
+    // Resolve any pending requests
+    const requestId = 'initial-settings';
+    const resolver = this.pendingRequests.get(requestId);
+    if (resolver) {
+      resolver(payload);
+      this.pendingRequests.delete(requestId);
+    }
+  }
+
+  /**
+   * Send settings update to website
+   */
+  async updateSettings(updates: Partial<{
+    spinner: SpinnerSettings;
+    theme: ThemeSettings;
+    columnMapping: ColumnMapping | null;
+    savedMappings: SavedMapping[];
+    defaultMappingId: string;
+  }>) {
+    if (!this.iframe || !this.syncEnabled) {
+      // If sync is disabled, just save locally
+      const promises: Promise<void>[] = [];
+
+      if (updates.spinner) {
+        promises.push(storage.saveSettings(updates.spinner));
+      }
+
+      if (updates.theme && 'saveTheme' in storage) {
+        promises.push((storage as any).saveTheme(updates.theme));
+      }
+
+      if (updates.columnMapping !== undefined && updates.columnMapping !== null) {
+        promises.push(storage.saveColumnMapping(updates.columnMapping));
+      }
+
+      if (updates.savedMappings !== undefined && 'saveSavedMappings' in storage) {
+        promises.push((storage as any).saveSavedMappings(updates.savedMappings));
+      }
+
+      if (updates.defaultMappingId !== undefined && 'saveDefaultMappingId' in storage) {
+        promises.push((storage as any).saveDefaultMappingId(updates.defaultMappingId));
+      }
+
+      await Promise.all(promises);
+      return;
+    }
+
+    // Save locally first
+    await this.saveLocally(updates);
+
+    // Then sync to Directus through website
+    const message: DirectusSettingsMessage = {
+      type: 'SETTINGS_UPDATE',
+      payload: updates,
+    };
+
+    this.iframe.contentWindow?.postMessage(message, '*');
+  }
+
+  /**
+   * Save settings locally
+   */
+  private async saveLocally(updates: Partial<{
+    spinner: SpinnerSettings;
+    theme: ThemeSettings;
+    columnMapping: ColumnMapping | null;
+    savedMappings: SavedMapping[];
+    defaultMappingId: string;
+  }>) {
+    const promises: Promise<void>[] = [];
+
+    if (updates.spinner) {
+      promises.push(storage.saveSettings(updates.spinner));
+    }
+
+    if (updates.theme && 'saveTheme' in storage) {
+      promises.push((storage as any).saveTheme(updates.theme));
+    }
+
+    if (updates.columnMapping !== undefined && updates.columnMapping !== null) {
+      promises.push(storage.saveColumnMapping(updates.columnMapping));
+    }
+
+    if (updates.savedMappings !== undefined && 'saveSavedMappings' in storage) {
+      promises.push((storage as any).saveSavedMappings(updates.savedMappings));
+    }
+
+    if (updates.defaultMappingId !== undefined && 'saveDefaultMappingId' in storage) {
+      promises.push((storage as any).saveDefaultMappingId(updates.defaultMappingId));
+    }
+
+    await Promise.all(promises);
+  }
+
+  /**
+   * Sync all current local settings to Directus
+   */
+  async syncAllToDirectus() {
+    if (!this.syncEnabled) return;
+
+    const [spinner, theme, columnMapping, savedMappings, defaultMappingId] = await Promise.all([
+      storage.getSettings(),
+      'getTheme' in storage ? (storage as any).getTheme() : undefined,
+      storage.getColumnMapping(),
+      storage.getSavedMappings(),
+      'getDefaultMappingId' in storage ? (storage as any).getDefaultMappingId() : undefined,
+    ]);
+
+    await this.updateSettings({
+      spinner,
+      theme,
+      columnMapping,
+      savedMappings,
+      defaultMappingId,
+    });
+  }
+
+  /**
+   * Pull latest settings from Directus
+   */
+  async pullFromDirectus(): Promise<void> {
+    if (!this.syncEnabled) return;
+
+    return new Promise((resolve) => {
+      // Store resolver for when response comes back
+      this.pendingRequests.set('initial-settings', resolve);
+
+      // Request settings
+      this.requestSettings();
+
+      // Timeout after 5 seconds
+      setTimeout(() => {
+        if (this.pendingRequests.has('initial-settings')) {
+          this.pendingRequests.delete('initial-settings');
+          resolve(undefined);
+        }
+      }, 5000);
+    });
+  }
+
+  /**
+   * Check if sync is enabled
+   */
+  isSyncEnabled(): boolean {
+    return this.syncEnabled;
+  }
+}
+
+// Export singleton instance
+export const settingsSync = new SettingsSyncService();

@@ -50,7 +50,6 @@ export function CompetitionProvider({ children }: { children: ReactNode }) {
       setCompetitions(comps);
     } catch (err) {
       setError("Failed to load competitions");
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -68,15 +67,12 @@ export function CompetitionProvider({ children }: { children: ReactNode }) {
 
   const deleteCompetition = async (id: string) => {
     try {
-      console.log('Deleting competition with ID:', id);
       await storage.deleteCompetition(id);
       if (selectedCompetition?.id === id) {
         setSelectedCompetition(null);
       }
       await loadCompetitions();
-      console.log('Competition deleted successfully');
     } catch (error) {
-      console.error('Error deleting competition:', error);
       throw error;
     }
   };

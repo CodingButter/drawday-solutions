@@ -1,61 +1,35 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@raffle-spinner/ui';
-import { RegisterForm } from '@/components/auth/RegisterForm';
+import Link from 'next/link';
+import RegisterForm from '@/components/auth/RegisterForm';
 
-function RegisterPageContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [isInIframe, setIsInIframe] = useState(false);
-  
-  // Check if we're in an iframe (extension)
-  useEffect(() => {
-    setIsInIframe(window.parent !== window);
-  }, []);
-  
-  // Get redirect from URL params, defaulting to /live-spinner/options for iframe (extension)
-  const fromParam = searchParams?.get('from');
-  const redirectParam = searchParams?.get('redirect');
-  const defaultRedirect = isInIframe ? '/live-spinner/options' : '/dashboard';
-  const redirectTo = redirectParam || fromParam || defaultRedirect;
-
+export default function RegisterPage() {
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
-            Create Your Account
-          </CardTitle>
-          <CardDescription className="text-center">
-            Join DrawDay Spinner and start managing your raffles
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <RegisterForm 
-            onSuccess={() => router.push(redirectTo)}
-            onLoginClick={() => router.push(`/auth/login?redirect=${encodeURIComponent(redirectTo)}`)}
-            redirectTo={redirectTo}
-          />
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+      <div className="w-full max-w-md space-y-6">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            DrawDay Spinner
+          </h1>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">
+            Create your account and start managing raffles
+          </p>
+        </div>
 
-export default function ExtensionRegisterPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-center">Loading...</CardTitle>
-          </CardHeader>
-        </Card>
+        <RegisterForm />
+
+        <div className="text-center">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Already have an account?{' '}
+            <Link
+              href="/auth/login"
+              className="font-medium text-purple-600 hover:text-purple-500 dark:text-purple-400"
+            >
+              Sign in
+            </Link>
+          </p>
+        </div>
       </div>
-    }>
-      <RegisterPageContent />
-    </Suspense>
+    </div>
   );
 }

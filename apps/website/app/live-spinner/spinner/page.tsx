@@ -2,12 +2,11 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 import { CompetitionProvider, useCompetitions } from '@/contexts';
 import { SettingsProvider, useSettings } from '@/contexts';
 import { ThemeProvider, useTheme } from '@/contexts';
-import { useLocalStoragePolling } from '@raffle-spinner/hooks';
+import { useExtensionBridge } from '@/hooks/useExtensionBridge';
+import { getStoredUser, isAuthenticated } from '@/lib/directus-auth';
 import { SlotMachineWheel } from '@raffle-spinner/spinners';
 import { SessionWinners, Winner } from '@/components/sidepanel/SessionWinners';
 import { Button } from '@raffle-spinner/ui';
@@ -28,8 +27,12 @@ function SidePanelContent() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const { competitions, selectedCompetition, selectCompetition, refreshCompetitions, getBannerImage } = useCompetitions();
-  const { settings, refreshSettings } = useSettings();
+  const { isInIframe, authToken, notifySpinnerComplete } = useExtensionBridge();
+  const { competitions, selectedCompetition, selectCompetition, refreshCompetitions } = useCompetitions();
+  const [settings, setSettings] = useState<any>({
+    spinDuration: 'medium',
+    decelerationSpeed: 'medium',
+  });
   const { theme } = useTheme();
   const [ticketNumber, setTicketNumber] = useState('');
   const [isSpinning, setIsSpinning] = useState(false);
@@ -50,61 +53,43 @@ function SidePanelContent() {
     });
   }, [theme?.spinnerStyle]);
 
-  // Poll localStorage for live updates
-  useLocalStoragePolling({
-    key: 'competitions',
-    interval: 500,
-    onUpdate: async (value) => {
-      if (value) {
-        // Refresh from database to get latest data
-        await refreshCompetitions();
-      }
-    }
-  });
-
-  // Theme updates are handled by ThemeContext's own polling mechanism
-  // No need to poll for theme updates here
-
-  useLocalStoragePolling({
-    key: 'settings',
-    interval: 500,
-    onUpdate: async () => {
-      // Refresh settings from database
-      if (refreshSettings) {
-        await refreshSettings();
-      }
-    }
-  });
-
-  useLocalStoragePolling({
-    key: 'selectedCompetition',
-    interval: 500,
-    onUpdate: (value) => {
-      if (value && value.id !== selectedCompetition?.id) {
-        selectCompetition(value);
-      }
-    }
-  });
-
-  // Auth check - require proper Firebase authentication
+  // Poll Directus for live updates when authenticated
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
+    if (!user) return;
+
+    // Poll competitions every 3 seconds
+    const competitionsInterval = setInterval(() => {
+      refreshCompetitions();
+    }, 3000);
+
+    return () => {
+      clearInterval(competitionsInterval);
+    };
+  }, [user, refreshCompetitions]);
+
+  // Auth check - require proper Directus authentication
+  useEffect(() => {
+    const checkAuth = async () => {
+      const directusUser = getStoredUser();
+      if (directusUser && isAuthenticated()) {
         setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
+          uid: directusUser.id,
+          email: directusUser.email,
+          displayName: directusUser.first_name || directusUser.email,
         });
         setLoading(false);
-      } else {
-        // Not authenticated, redirect to login with proper redirect parameter
+
+        // Initial refresh of competitions from context
+        refreshCompetitions();
+      } else if (!isInIframe) {
+        // Not authenticated and not in iframe, redirect to login
         setLoading(false);
         router.push('/auth/login?redirect=/live-spinner/spinner');
       }
-    });
+    };
 
-    return () => unsubscribe();
-  }, [router]);
+    checkAuth();
+  }, [router, refreshCompetitions]);
 
   const handleSpin = () => {
     setError(null);
@@ -121,24 +106,16 @@ function SidePanelContent() {
 
     // Use shared utility for ticket normalization
     const normalizedInput = normalizeTicketNumber(ticketNumber);
-    
-    console.log('Searching for ticket:', ticketNumber, 'normalized:', normalizedInput);
-    console.log('Available participants:', selectedCompetition.participants.map(p => ({
-      ticket: p.ticketNumber,
-      normalized: normalizeTicketNumber(p.ticketNumber)
-    })));
 
-    const participant = selectedCompetition.participants.find(
-      (p) => normalizeTicketNumber(p.ticketNumber) === normalizedInput
+    const participant = selectedCompetition.participants?.find(
+      (p: any) => normalizeTicketNumber(p.ticketNumber) === normalizedInput
     );
 
     if (!participant) {
       setError('Ticket number not found in this competition');
-      console.error('Ticket not found:', normalizedInput, 'in competition:', selectedCompetition.name);
       return;
     }
 
-    console.log('Starting spin for participant:', participant);
     setIsSpinning(true);
     setCurrentWinner(null);
   };
@@ -160,6 +137,9 @@ function SidePanelContent() {
       },
       ...prev,
     ]);
+    
+    // Notify extension if in iframe
+    notifySpinnerComplete(winner);
 
     // Trigger confetti animation with guard against double-firing
     if (!confettiRef.current) {
@@ -185,20 +165,16 @@ function SidePanelContent() {
 
   // Load banner image - show company banner by default, competition banner when selected
   useEffect(() => {
-    const loadBanner = async () => {
-      if (selectedCompetition?.bannerImageId) {
-        const image = await getBannerImage(selectedCompetition.bannerImageId);
-        setBannerImage(image || theme?.branding?.bannerImage || null);
-      } else {
-        // No competition selected - show company branding banner
-        setBannerImage(theme?.branding?.bannerImage || null);
-      }
-    };
-    
-    if (theme?.branding) {
-      loadBanner();
+    if (selectedCompetition?.bannerImageId) {
+      // Competition has its own banner (base64)
+      setBannerImage(selectedCompetition.bannerImageId);
+    } else if (theme?.branding?.bannerImage) {
+      // Use company branding banner
+      setBannerImage(theme.branding.bannerImage);
+    } else {
+      setBannerImage(null);
     }
-  }, [selectedCompetition, theme?.branding, getBannerImage]);
+  }, [selectedCompetition?.bannerImageId, theme?.branding?.bannerImage]);
 
   if (loading || !user) {
     return (
@@ -252,7 +228,7 @@ function SidePanelContent() {
           <Select
             value={selectedCompetition?.id || ''}
             onValueChange={(value) => {
-              const competition = competitions.find((c) => c.id === value);
+              const competition = competitions.find((c: any) => c.id === value);
               if (competition) selectCompetition(competition);
             }}
           >
@@ -260,9 +236,9 @@ function SidePanelContent() {
               <SelectValue placeholder="Select a competition" />
             </SelectTrigger>
             <SelectContent>
-              {competitions.map((competition) => (
+              {competitions.map((competition: any) => (
                 <SelectItem key={competition.id} value={competition.id}>
-                  {competition.name} ({competition.participants.length} participants)
+                  {competition.name} ({competition.participants?.length || 0} participants)
                 </SelectItem>
               ))}
             </SelectContent>
@@ -277,12 +253,12 @@ function SidePanelContent() {
               <CardContent className="p-6">
                 <div className="aspect-square max-w-md mx-auto mb-6">
                   <SlotMachineWheel
-                    participants={selectedCompetition.participants}
+                    participants={selectedCompetition.participants || []}
                     targetTicketNumber={ticketNumber}
                     isSpinning={isSpinning}
                     onSpinComplete={handleSpinComplete}
                     settings={settings}
-                    theme={{
+                    theme={theme?.spinnerStyle ? {
                       nameColor: theme.spinnerStyle.nameColor,
                       ticketColor: theme.spinnerStyle.ticketColor,
                       backgroundColor: theme.spinnerStyle.backgroundColor,
@@ -296,7 +272,7 @@ function SidePanelContent() {
                       bottomShadowOpacity: theme.spinnerStyle.bottomShadowOpacity,
                       shadowSize: theme.spinnerStyle.shadowSize,
                       shadowColor: theme.spinnerStyle.shadowColor,
-                    }}
+                    } : undefined}
                   />
                 </div>
 

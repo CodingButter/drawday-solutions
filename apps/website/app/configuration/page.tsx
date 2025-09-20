@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { getStoredUser, isAuthenticated } from '@/lib/directus-auth';
 import { 
   getUserSettings, 
   updateSpinnerSettings, 
@@ -12,12 +11,7 @@ import {
   type UserSettings,
   defaultSettings
 } from '@/lib/settings-service';
-import { 
-  getUserCompetitions, 
-  updateCompetition,
-  deleteCompetition as deleteCompetitionFromDb,
-  type Competition 
-} from '@/lib/firebase-service';
+import { getUserCompetitions, updateCompetition, deleteCompetition as deleteCompetitionFromDb, type Competition } from '@/lib/directus-competitions';
 import { CSVParser, IntelligentColumnMapper } from '@raffle-spinner/csv-parser';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@raffle-spinner/ui';
 import { Button } from '@raffle-spinner/ui';
@@ -70,19 +64,20 @@ function ConfigurationContent() {
 
   // Load user data
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
+    const checkAuth = async () => {
+      const directusUser = getStoredUser();
+      if (directusUser && isAuthenticated()) {
         setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
+          uid: directusUser.id,
+          email: directusUser.email,
+          displayName: directusUser.first_name || directusUser.email,
         });
         
         // Load settings and competitions
         try {
           const [userSettings, userCompetitions] = await Promise.all([
-            getUserSettings(firebaseUser.uid),
-            getUserCompetitions(firebaseUser.uid)
+            getUserSettings(directusUser.id),
+            getUserCompetitions()
           ]);
           
           setSettings(userSettings);
@@ -95,9 +90,9 @@ function ConfigurationContent() {
       } else {
         router.push('/login?from=/configuration');
       }
-    });
-
-    return () => unsubscribe();
+    };
+    
+    checkAuth();
   }, [router]);
 
   const toggleSection = (section: string) => {
@@ -192,14 +187,18 @@ function ConfigurationContent() {
         reader.readAsDataURL(file);
       });
       
-      // Compress image using API route
-      const { compressImage } = await import('@/lib/image-utils');
-      const compressed = await compressImage(base64, type);
-      
+      // Upload image to Directus
+      const { uploadImageToDirectus } = await import('@/lib/image-utils');
+      const result = await uploadImageToDirectus(
+        base64,
+        `${type}_${Date.now()}.${file.name.split('.').pop()}`,
+        type === 'logo' ? 'Company Logo' : 'Company Banner'
+      );
+
       if (type === 'logo') {
-        await handleBrandingChange('logoImage', compressed);
+        await handleBrandingChange('logoImage', result.url);
       } else {
-        await handleBrandingChange('bannerImage', compressed);
+        await handleBrandingChange('bannerImage', result.url);
       }
     } catch (err) {
       console.error('Error compressing image:', err);
@@ -220,27 +219,24 @@ function ConfigurationContent() {
         reader.readAsDataURL(file);
       });
       
-      // Compress image using API route
-      const { compressImage } = await import('@/lib/image-utils');
-      console.log('Compressing image...');
-      const compressed = await compressImage(base64, 'banner');
-      console.log('Image compressed successfully');
-      
-      // Store image in IndexedDB
-      const { imageStore } = await import('@/lib/image-utils');
-      const imageId = `banner-${competitionId}-${Date.now()}`;
-      console.log('Saving to IndexedDB with ID:', imageId);
-      await imageStore.saveImage(imageId, compressed);
-      console.log('Saved to IndexedDB');
-      
-      // Update competition with image reference
-      console.log('Updating competition in Firebase...');
-      await updateCompetition(competitionId, { bannerImageId: imageId });
+      // Upload image to Directus
+      const { uploadImageToDirectus } = await import('@/lib/image-utils');
+      console.log('Uploading image to Directus...');
+      const result = await uploadImageToDirectus(
+        base64,
+        `banner_${competitionId}_${Date.now()}.${file.name.split('.').pop()}`,
+        'Competition Banner'
+      );
+      console.log('Image uploaded successfully to Directus');
+
+      // Update competition with Directus file ID
+      console.log('Updating competition with banner image...');
+      await updateCompetition(competitionId, { bannerImageId: result.id });
       console.log('Competition updated');
       
       // Update local state
-      setCompetitions(prev => prev.map(c => 
-        c.id === competitionId ? { ...c, bannerImageId: imageId } : c
+      setCompetitions(prev => prev.map(c =>
+        c.id === competitionId ? { ...c, bannerImageId: result.id } : c
       ));
       console.log('Local state updated');
     } catch (err) {
@@ -351,8 +347,8 @@ function ConfigurationContent() {
                           <div className="flex-1">
                             <h3 className="font-semibold text-lg">{competition.name}</h3>
                             <p className="text-gray-400 text-sm">
-                              {competition.participantCount} participants • 
-                              {competition.winnersCount || 0} winners selected
+                              {competition.participants.length} participants •
+                              {competition.winners?.length || 0} winners selected
                             </p>
                             
                             {/* Competition Banner */}
@@ -428,10 +424,10 @@ function ConfigurationContent() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
-                  <Label>Minimum Spin Duration: {settings.spinner.minSpinDuration}s</Label>
+                  <Label>Spin Duration: {settings.spinner.spinDuration}s</Label>
                   <Slider
-                    value={[settings.spinner.minSpinDuration]}
-                    onValueChange={(value) => handleSpinnerSettingChange('minSpinDuration', value[0])}
+                    value={[Number(settings.spinner.spinDuration) || 3]}
+                    onValueChange={(value) => handleSpinnerSettingChange('spinDuration', value[0])}
                     min={1}
                     max={10}
                     step={0.5}
@@ -440,10 +436,10 @@ function ConfigurationContent() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Deceleration Rate</Label>
+                  <Label>Deceleration Speed</Label>
                   <Select
-                    value={settings.spinner.decelerationRate}
-                    onValueChange={(value) => handleSpinnerSettingChange('decelerationRate', value)}
+                    value={settings.spinner.decelerationSpeed}
+                    onValueChange={(value) => handleSpinnerSettingChange('decelerationSpeed', value)}
                   >
                     <SelectTrigger className="bg-night border-gray-700">
                       <SelectValue />
@@ -454,15 +450,6 @@ function ConfigurationContent() {
                       <SelectItem value="fast">Fast (Quick stop)</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="sound"
-                    checked={settings.spinner.soundEnabled}
-                    onCheckedChange={(checked) => handleSpinnerSettingChange('soundEnabled', checked)}
-                  />
-                  <Label htmlFor="sound">Enable sound effects</Label>
                 </div>
               </CardContent>
             </Card>

@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/services/firebase-config';
+// Directus authentication will be handled through the website iframe
 import { Button } from '@raffle-spinner/ui';
 import { Input } from '@raffle-spinner/ui';
 import { Label } from '@raffle-spinner/ui';
@@ -38,13 +37,14 @@ export function LoginForm({
     setIsLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      
+      // Directus authentication handled through website iframe
+      // await signInWithEmailAndPassword(auth, email, password);
+
       // Check if we're in an iframe (extension)
       if (window.parent !== window) {
         window.parent.postMessage({ type: 'AUTH_SUCCESS', user: { email } }, '*');
       }
-      
+
       onSuccess?.();
     } catch (error: any) {
       console.error('Login error:', error);

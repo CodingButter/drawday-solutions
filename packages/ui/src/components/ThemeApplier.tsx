@@ -3,15 +3,15 @@
 import { useEffect } from 'react';
 
 interface ThemeColors {
-  primary: string;
-  secondary: string;
-  accent: string;
-  background: string;
-  foreground: string;
-  card: string;
-  cardForeground: string;
-  winner: string;
-  winnerGlow: string;
+  primary?: string;
+  secondary?: string;
+  accent?: string;
+  background?: string;
+  foreground?: string;
+  card?: string;
+  cardForeground?: string;
+  winner?: string;
+  winnerGlow?: string;
 }
 
 interface ThemeApplierProps {
@@ -28,7 +28,8 @@ export function ThemeApplier({ colors }: ThemeApplierProps) {
     if (!colors) return;
 
     // Convert hex to RGB for better CSS variable support
-    const hexToRgb = (hex: string) => {
+    const hexToRgb = (hex: string | undefined) => {
+      if (!hex) return '0 0 0'; // Return black as default
       // Remove the # if present
       hex = hex.replace('#', '');
       const r = parseInt(hex.substring(0, 2), 16);
@@ -54,27 +55,27 @@ export function ThemeApplier({ colors }: ThemeApplierProps) {
     root.style.setProperty('--accent', hexToRgb(colors.accent));
     
     // Set raw hex values for direct use
-    root.style.setProperty('--color-primary', colors.primary);
-    root.style.setProperty('--color-secondary', colors.secondary);
-    root.style.setProperty('--color-accent', colors.accent);
-    root.style.setProperty('--color-background', colors.background);
-    root.style.setProperty('--color-foreground', colors.foreground);
-    root.style.setProperty('--color-card', colors.card);
-    root.style.setProperty('--color-card-foreground', colors.cardForeground);
-    root.style.setProperty('--color-winner', colors.winner);
-    root.style.setProperty('--color-winner-glow', colors.winnerGlow);
+    if (colors.primary) root.style.setProperty('--color-primary', colors.primary);
+    if (colors.secondary) root.style.setProperty('--color-secondary', colors.secondary);
+    if (colors.accent) root.style.setProperty('--color-accent', colors.accent);
+    if (colors.background) root.style.setProperty('--color-background', colors.background);
+    if (colors.foreground) root.style.setProperty('--color-foreground', colors.foreground);
+    if (colors.card) root.style.setProperty('--color-card', colors.card);
+    if (colors.cardForeground) root.style.setProperty('--color-card-foreground', colors.cardForeground);
+    if (colors.winner) root.style.setProperty('--color-winner', colors.winner);
+    if (colors.winnerGlow) root.style.setProperty('--color-winner-glow', colors.winnerGlow);
     
-    console.log('Applied theme colors to CSS variables:', colors);
   }, [colors]);
 
   return null;
 }
 
 // Helper function to convert hex to HSL (for shadcn/ui)
-function hexToHsl(hex: string): string {
+function hexToHsl(hex: string | undefined): string {
+  if (!hex) return '0 0% 0%'; // Return black as default
   // Remove the # if present
   hex = hex.replace('#', '');
-  
+
   // Convert hex to RGB
   const r = parseInt(hex.substring(0, 2), 16) / 255;
   const g = parseInt(hex.substring(2, 4), 16) / 255;

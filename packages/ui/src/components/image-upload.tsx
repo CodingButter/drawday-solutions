@@ -56,29 +56,60 @@ export function ImageUpload({
   const [isProcessing, setIsProcessing] = useState(false);
 
   const compressImage = async (file: File): Promise<string> => {
-    // Check if we're in a browser environment and have access to the API
+    // Client-side compression using canvas
     if (typeof window !== 'undefined' && compress) {
-      try {
-        const formData = new FormData();
-        formData.append('image', file);
-        formData.append('quality', compressionOptions.quality?.toString() || '80');
-        formData.append('maxWidth', compressionOptions.maxWidth?.toString() || '1200');
-        formData.append('maxHeight', compressionOptions.maxHeight?.toString() || '800');
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              reject(new Error('Canvas context not available'));
+              return;
+            }
 
-        const response = await fetch('/api/compress-image', {
-          method: 'POST',
-          body: formData,
-        });
+            // Calculate new dimensions
+            let { width, height } = img;
+            const maxW = compressionOptions.maxWidth || 1200;
+            const maxH = compressionOptions.maxHeight || 800;
 
-        if (response.ok) {
-          const data = await response.json();
-          return data.compressed;
-        }
-      } catch (error) {
-        console.warn('Image compression failed, using original:', error);
-      }
+            if (width > maxW || height > maxH) {
+              const ratio = Math.min(maxW / width, maxH / height);
+              width = Math.round(width * ratio);
+              height = Math.round(height * ratio);
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Convert to base64 with compression
+            const quality = (compressionOptions.quality || 80) / 100;
+            canvas.toBlob(
+              (blob) => {
+                if (blob) {
+                  const reader = new FileReader();
+                  reader.onload = (e) => resolve(e.target?.result as string);
+                  reader.onerror = reject;
+                  reader.readAsDataURL(blob);
+                } else {
+                  reject(new Error('Failed to compress image'));
+                }
+              },
+              'image/jpeg',
+              quality
+            );
+          };
+          img.onerror = reject;
+          img.src = e.target?.result as string;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
     }
-    
+
     // Fallback to uncompressed base64
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -109,7 +140,6 @@ export function ImageUpload({
       onChange(result);
     } catch (error) {
       onError?.("Failed to process image");
-      console.error('Image processing error:', error);
     } finally {
       setIsProcessing(false);
     }

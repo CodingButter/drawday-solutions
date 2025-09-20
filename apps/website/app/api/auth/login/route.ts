@@ -1,75 +1,104 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth, adminDb } from '@/lib/firebase-admin';
+
+const DIRECTUS_URL = process.env.DIRECTUS_URL || 'https://db.drawday.app';
 
 export async function POST(request: NextRequest) {
+  let body;
   try {
-    let body;
-    try {
-      body = await request.json();
-    } catch (parseError) {
-      console.error('Failed to parse request body:', parseError);
-      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-    }
-    
+    body = await request.json();
+  } catch (parseError: any) {
+    console.error('Error parsing request body:', parseError);
+    return NextResponse.json(
+      { error: 'Invalid JSON in request body', details: parseError.message },
+      { status: 400 }
+    );
+  }
+
+  try {
     const { email, password } = body;
 
-    // Validate input
-    if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+    console.log('Login attempt for:', email);
+
+    // Authenticate with Directus
+    const loginResponse = await fetch(`${DIRECTUS_URL}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        password,
+      }),
+    });
+
+    if (!loginResponse.ok) {
+      const error = await loginResponse.json();
+      return NextResponse.json(
+        { error: error.errors?.[0]?.message || 'Login failed' },
+        { status: loginResponse.status }
+      );
     }
 
-    // Check if admin SDK is initialized
-    if (!adminAuth || !adminDb) {
-      // For development without admin SDK, return mock success
-      console.warn('Firebase Admin not configured - returning mock response');
+    const loginData = await loginResponse.json();
+    const { access_token, expires, refresh_token } = loginData.data;
+
+    // Get user details with all fields - first get the user ID from the token
+    const meResponse = await fetch(`${DIRECTUS_URL}/users/me`, {
+      headers: {
+        'Authorization': `Bearer ${access_token}`,
+      },
+    });
+
+    if (!meResponse.ok) {
+      return NextResponse.json(
+        { error: 'Failed to fetch user details' },
+        { status: meResponse.status }
+      );
+    }
+
+    const meData = await meResponse.json();
+    const userId = meData.data.id;
+
+    // Use the admin token directly to fetch full user data
+    const adminToken = process.env.DIRECTUS_ADMIN_TOKEN || 'mNjKgq86jnVokcdwBRKkXgrHEoROvR04';
+
+    // Fetch full user data with admin token
+    const userResponse = await fetch(`${DIRECTUS_URL}/users/${userId}`, {
+      headers: {
+        'Authorization': `Bearer ${adminToken}`,
+      },
+    });
+
+    if (!userResponse.ok) {
+      // Fall back to limited user data
       return NextResponse.json({
         success: true,
-        token: 'mock-token',
-        user: {
-          uid: 'mock-user-id',
-          email: email,
-          displayName: 'Mock User',
-          firstName: 'Mock',
-          lastName: 'User',
-          extensionEnabled: true,
-          plan: 'free',
+        user: { id: userId, email },
+        tokens: {
+          access_token,
+          expires,
+          refresh_token,
         },
       });
     }
 
-    // Note: Firebase Admin SDK doesn't directly validate passwords
-    // We'll need to use Firebase Client SDK for this or implement a custom solution
-    // For now, we'll create a custom token after verifying the user exists
+    const userData = await userResponse.json();
 
-    // Get user by email
-    let userRecord;
-    try {
-      userRecord = await adminAuth.getUserByEmail(email);
-    } catch (error) {
-      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
-    }
-
-    // Get user data from Firestore
-    const userDoc = await adminDb.collection('users').doc(userRecord.uid).get();
-    const userData = userDoc.data();
-
-    // Create custom token
-    const customToken = await adminAuth.createCustomToken(userRecord.uid);
-
-    // Return token and user info
     return NextResponse.json({
       success: true,
-      token: customToken,
-      user: {
-        uid: userRecord.uid,
-        email: userRecord.email,
-        displayName: userRecord.displayName,
-        ...userData,
+      user: userData.data,
+      tokens: {
+        access_token,
+        expires,
+        refresh_token,
       },
     });
   } catch (error: any) {
     console.error('Login error:', error);
-
-    return NextResponse.json({ error: 'Login failed. Please try again.' }, { status: 500 });
+    console.error('Stack trace:', error.stack);
+    return NextResponse.json(
+      { error: 'Internal server error', details: error.message },
+      { status: 500 }
+    );
   }
 }

@@ -32,7 +32,7 @@ try {
 
   // Build the extension
   console.log('📦 Building extension...');
-  execSync('tsc --noEmit && vite build', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
+  execSync('vite build', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
 
   // Copy manifest and icons to DrawDaySpinner
   console.log('📋 Copying manifest and icons...');

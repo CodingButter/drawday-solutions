@@ -3,19 +3,17 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 import { Button } from '@raffle-spinner/ui';
 import { Input } from '@raffle-spinner/ui';
-import { 
-  ArrowRight, 
-  Eye, 
-  EyeOff, 
-  Mail, 
-  Lock, 
-  Zap, 
-  Shield, 
-  Users, 
+import {
+  ArrowRight,
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  Zap,
+  Shield,
+  Users,
   Trophy,
   Sparkles,
   CheckCircle,
@@ -25,6 +23,8 @@ import {
   BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { login } from '@/lib/directus-auth';
+import { Alert, AlertDescription } from '@raffle-spinner/ui';
 
 export default function LoginClient() {
   const [showPassword, setShowPassword] = useState(false);
@@ -32,6 +32,7 @@ export default function LoginClient() {
   const [isLoading, setIsLoading] = useState(false);
   const [loginMethod, setLoginMethod] = useState<'email' | 'magic'>('email');
   const [mounted, setMounted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -50,13 +51,16 @@ export default function LoginClient() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+    setError(null);
+
     try {
-      await signInWithEmailAndPassword(auth, formData.email, formData.password);
+      console.log('Attempting login with email:', formData.email);
+      const result = await login(formData.email, formData.password);
+      console.log('Login successful, user data:', result.user);
       router.push(redirectTo);
     } catch (error: any) {
       console.error('Login error:', error);
-      alert(error.message || 'Failed to sign in. Please check your credentials.');
+      setError(error.message || 'Failed to sign in. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
@@ -162,6 +166,13 @@ export default function LoginClient() {
           <div className="bg-gray-900/30 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 shadow-2xl">
             {loginMethod === 'email' ? (
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Error Display */}
+                {error && (
+                  <Alert variant="destructive" className="bg-red-900/20 border-red-900">
+                    <AlertDescription className="text-red-400">{error}</AlertDescription>
+                  </Alert>
+                )}
+
                 {/* Email Field */}
                 <div className="space-y-2">
                   <label htmlFor="email" className="text-sm font-medium text-gray-300">
@@ -177,6 +188,8 @@ export default function LoginClient() {
                       onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                       className="pl-10 bg-gray-800/50 border-gray-600/50 text-white placeholder:text-gray-400 focus:border-purple-500/50 focus:ring-purple-500/20"
                       required
+                      autoComplete="email"
+                      name="email"
                     />
                   </div>
                 </div>

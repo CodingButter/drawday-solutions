@@ -7,6 +7,30 @@ export const helpContent = {
     },
   },
   spinnerSettings: {
+    spinDuration: {
+      title: 'Spin Duration',
+      description: 'How long the spinner rotates at maximum speed',
+      details: {
+        content: 'This controls how long the spinner maintains maximum speed before beginning to decelerate. The spinner always rotates at 5 rotations per second during this phase.',
+        tips: [
+          'Short: 2 seconds (10 rotations) - Quick draws',
+          'Medium: 3 seconds (15 rotations) - Standard draws',
+          'Long: 5 seconds (25 rotations) - Maximum suspense',
+        ],
+      },
+    },
+    decelerationSpeed: {
+      title: 'Deceleration Speed',
+      description: 'How quickly the wheel slows down',
+      details: {
+        content: 'This affects how rapidly the spinner decelerates after the spin duration. The deceleration phase uses mathematical easing for smooth, predictable results.',
+        tips: [
+          'Slow: Gradual slowdown for maximum suspense',
+          'Medium: Balanced for most uses',
+          'Fast: Quick resolution for rapid draws',
+        ],
+      },
+    },
     minSpinDuration: {
       title: 'Minimum Spin Duration',
       description: 'Sets the minimum time the spinner will rotate',

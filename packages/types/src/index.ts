@@ -22,15 +22,29 @@ export interface Participant {
 }
 
 /**
+ * Represents a winner in a competition
+ */
+export interface Winner {
+  participant: Participant;
+  timestamp: number;
+}
+
+/**
  * Represents a competition with participants
  */
 export interface Competition {
   id: string;
   name: string;
   participants: Participant[];
+  winners?: Winner[]; // List of winners for completed competitions
   bannerImage?: string; // Base64 encoded image for this specific competition
+  bannerImageId?: string; // Directus file ID for banner image
+  logoImageId?: string; // Directus file ID for logo image
   createdAt: number;
   updatedAt: number;
+  userId?: string; // User ID (Firebase or other auth provider)
+  participantCount?: number; // Total number of participants
+  useSubcollection?: boolean; // Legacy: Whether participants are stored in subcollection
 }
 
 // ============================================================================
@@ -38,11 +52,11 @@ export interface Competition {
 // ============================================================================
 
 /**
- * Spinner animation physics settings
+ * Spinner settings with precise physics controls
  */
 export interface SpinnerSettings {
-  minSpinDuration: number; // in seconds
-  decelerationRate: "slow" | "medium" | "fast";
+  spinDuration: "short" | "medium" | "long"; // Duration presets (2s, 3s, 5s)
+  decelerationSpeed: "slow" | "medium" | "fast"; // How quickly wheel slows down
 }
 
 /**
@@ -153,10 +167,10 @@ export interface ThemeSettings {
 export interface StorageData {
   competitions: Competition[];
   settings: SpinnerSettings;
-  columnMapping: ColumnMapping | null; // Keep for backwards compatibility
-  savedMappings?: SavedMapping[]; // Array of saved mappings
-  defaultMappingId?: string; // ID of the default mapping
-  theme?: ThemeSettings; // Theme customization
+  columnMapping: ColumnMapping | null;
+  savedMappings?: SavedMapping[];
+  defaultMappingId?: string;
+  theme?: ThemeSettings;
 }
 
 // ============================================================================

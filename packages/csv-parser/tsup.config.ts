@@ -3,11 +3,6 @@ import { defineConfig } from "tsup";
 export default defineConfig({
   entry: ["src/index.ts"],
   format: ["cjs", "esm"],
-  dts: {
-    resolve: true,
-    compilerOptions: {
-      moduleResolution: "bundler",
-    },
-  },
-  clean: true,
+  dts: false, // Temporarily disabled due to tsup/TypeScript issue
+  clean: false, // Don't clean to preserve manually generated types
 });

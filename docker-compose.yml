@@ -1,0 +1,71 @@
+services:
+  database:
+    container_name: database
+    image: postgis/postgis:15-master
+    # Required when running on platform other than amd64, like Apple M1/M2:
+    # platform: linux/amd64
+    volumes:
+      - ./data:/var/lib/postgresql/data
+    networks:
+      - directus
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "Speed4Dayz1!"
+      POSTGRES_DB: "drawday"
+
+  cache:
+    container_name: cache
+    image: redis:6
+    networks:
+      - directus
+
+  directus:
+    container_name: directus
+    image: directus/directus:latest
+    ports:
+      - 8055:8055
+    volumes:
+      # By default, uploads are stored in /directus/uploads
+      # Always make sure your volumes matches the storage root when using
+      # local driver
+      - ./uploads:/directus/uploads
+      # Make sure to also mount the volume when using SQLite
+      # - ./database:/directus/database
+      # If you want to load extensions from the host
+      - ./extensions:/directus/extensions
+    networks:
+      - directus
+    depends_on:
+      - cache
+      - database
+    environment:
+      KEY: "random-key-u302f-4k3j-93j2-3k4j5l6k7j8l"
+      SECRET: "@#$@#$@# $RADFWR Q@$WRQWER#@#$"
+      DB_CLIENT: "pg"
+      DB_HOST: "database"
+      DB_PORT: "5432"
+      DB_DATABASE: "drawday"
+      DB_USER: "postgres"
+      DB_PASSWORD: "Speed4Dayz1!"
+      CACHE_ENABLED: "true"
+      CACHE_STORE: "redis"
+      CACHE_REDIS: "redis://cache:6379"
+      ADMIN_EMAIL: "admin@drawday.app"
+      ADMIN_PASSWORD: "Speed4Dayz1!"
+      # Enable CORS
+      CORS_ENABLED: "true"
+      # Specify allowed origins (replace with your frontend URL(s))
+      CORS_ORIGIN: "*"
+      # Allow credentials (e.g., cookies, authorization headers)
+      CORS_CREDENTIALS: "true"
+      # Specify allowed HTTP methods
+      CORS_METHODS: "GET,POST,PATCH,DELETE,OPTIONS"
+      # Specify allowed headers
+      CORS_ALLOWED_HEADERS: "Content-Type,Authorization"      # Make sure to set this in production
+      # (see https://docs.directus.io/self-hosted/config-options#general)
+      PUBLIC_URL: "https://db.drawday.app"
+
+networks:
+  directus:

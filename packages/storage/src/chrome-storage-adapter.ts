@@ -18,11 +18,12 @@ import {
   ColumnMapping,
   SavedMapping,
   StorageData,
+  ThemeSettings,
 } from "./types";
 
 const DEFAULT_SETTINGS: SpinnerSettings = {
-  minSpinDuration: 3,
-  decelerationRate: "medium",
+  spinDuration: "medium",
+  decelerationSpeed: "medium",
 };
 
 export class ChromeStorageAdapter implements StorageAdapter {
@@ -35,7 +36,7 @@ export class ChromeStorageAdapter implements StorageAdapter {
         columnMapping: null,
         savedMappings: [],
         defaultMappingId: undefined,
-        theme: undefined, // Include theme in default structure
+        theme: undefined,
       }
     );
   }
@@ -94,7 +95,7 @@ export class ChromeStorageAdapter implements StorageAdapter {
     return data.columnMapping;
   }
 
-  async saveColumnMapping(mapping: ColumnMapping): Promise<void> {
+  async saveColumnMapping(mapping: ColumnMapping | null): Promise<void> {
     await this.setData({ columnMapping: mapping });
   }
 
@@ -150,6 +151,30 @@ export class ChromeStorageAdapter implements StorageAdapter {
 
   async setDefaultMapping(id: string | null): Promise<void> {
     await this.setData({ defaultMappingId: id || undefined });
+  }
+
+  // New methods for complete settings sync
+  async saveSavedMappings(mappings: SavedMapping[]): Promise<void> {
+    await this.setData({ savedMappings: mappings });
+  }
+
+  async getDefaultMappingId(): Promise<string | undefined> {
+    const data = await this.getData();
+    return data.defaultMappingId;
+  }
+
+  async saveDefaultMappingId(id: string | undefined): Promise<void> {
+    await this.setData({ defaultMappingId: id });
+  }
+
+  // Theme settings
+  async getTheme(): Promise<ThemeSettings | undefined> {
+    const data = await this.getData();
+    return data.theme;
+  }
+
+  async saveTheme(theme: ThemeSettings): Promise<void> {
+    await this.setData({ theme });
   }
 
   async clear(): Promise<void> {

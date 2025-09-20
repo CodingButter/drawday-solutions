@@ -1,16 +1,19 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { imageStore } from '@/lib/image-utils';
-import { 
-  createCompetition as createCompetitionInDb,
-  deleteCompetition as deleteCompetitionFromDb,
-  type Participant,
-  type Winner,
-  type Competition as FirebaseCompetition
-} from '@/lib/firebase-service';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { authenticatedFetch } from '@/lib/directus-auth';
+// Firebase imports removed - using Directus instead
+type Participant = {
+  firstName: string;
+  lastName: string;
+  ticketNumber: string;
+};
+
+type Winner = {
+  participant: Participant;
+  timestamp: number;
+};
 
 export interface Competition {
   id: string;
@@ -20,7 +23,7 @@ export interface Competition {
   bannerImageId?: string; // Store ID reference instead of actual image
   createdAt: number;
   updatedAt: number;
-  userId?: string; // Firebase user ID for ownership
+  userId?: string; // User ID for ownership
 }
 
 export type { Participant, Winner };
@@ -31,6 +34,7 @@ interface CompetitionContextType {
   addCompetition: (competition: Competition) => Promise<void>;
   updateCompetition: (id: string, updates: Partial<Competition>) => Promise<void>;
   deleteCompetition: (id: string) => Promise<void>;
+  clearAllCompetitions: () => Promise<void>;
   selectCompetition: (competition: Competition) => void;
   updateCompetitionBanner: (id: string, bannerImage: string) => Promise<void>;
   getBannerImage: (imageId: string | undefined) => Promise<string | null>;
@@ -39,76 +43,140 @@ interface CompetitionContextType {
 
 const CompetitionContext = createContext<CompetitionContextType | null>(null);
 
-// Helper functions for localStorage operations
-const loadCompetitionsFromStorage = (): Competition[] => {
+// Helper functions for Directus operations
+const fetchCompetitionsFromDirectus = async (): Promise<Competition[]> => {
   try {
-    // Check if we're on the client side
-    if (typeof window === 'undefined' || !window.localStorage) {
-      return [];
+
+    const response = await authenticatedFetch('/api/v1/competitions', {
+      credentials: 'include', // Include cookies for auth
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+
+      // If unauthorized, just return empty array instead of throwing
+      if (response.status === 401) {
+        return [];
+      }
+
+      throw new Error('Failed to fetch competitions');
     }
-    const stored = localStorage.getItem('competitions');
-    return stored ? JSON.parse(stored) : [];
+
+    const data = await response.json();
+    const competitions = data.competitions || [];
+    return competitions;
   } catch (error) {
-    console.error('Error loading competitions from localStorage:', error);
     return [];
   }
 };
 
-const saveCompetitionsToStorage = (competitions: Competition[]) => {
+const saveCompetitionToDirectus = async (competition: Competition): Promise<Competition | null> => {
   try {
-    // Check if we're on the client side
-    if (typeof window === 'undefined' || !window.localStorage) {
-      return;
+
+    const response = await authenticatedFetch('/api/v1/competitions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include', // Include cookies for auth
+      body: JSON.stringify(competition),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error('Failed to save competition');
     }
-    localStorage.setItem('competitions', JSON.stringify(competitions));
-    // Dispatch a custom event to notify other tabs/windows
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: 'competitions',
-      newValue: JSON.stringify(competitions),
-      storageArea: localStorage
-    }));
+
+    const data = await response.json();
+    const savedCompetition = data.competition || data;
+    return savedCompetition;
   } catch (error) {
-    console.error('Error saving competitions to localStorage:', error);
+    return null;
   }
 };
 
-export function CompetitionProvider({ children }: { children: React.ReactNode }) {
+const updateCompetitionInDirectus = async (id: string, updates: Partial<Competition>): Promise<boolean> => {
+  try {
+    const response = await authenticatedFetch(`/api/competitions/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include', // Include cookies for auth
+      body: JSON.stringify(updates),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update competition');
+    }
+
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
+
+const deleteCompetitionFromDirectus = async (id: string): Promise<boolean> => {
+  try {
+    const response = await authenticatedFetch(`/api/competitions/${id}`, {
+      method: 'DELETE',
+      credentials: 'include', // Include cookies for auth
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete competition');
+    }
+
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
+
+export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [selectedCompetition, setSelectedCompetition] = useState<Competition | null>(null);
-  
-  // Load from localStorage after component mounts (client-side only)
-  useEffect(() => {
-    const loadedCompetitions = loadCompetitionsFromStorage();
-    setCompetitions(loadedCompetitions);
-    
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const stored = localStorage.getItem('selectedCompetition');
-        if (stored) {
-          setSelectedCompetition(JSON.parse(stored));
-        }
-      }
-    } catch (error) {
-      console.error('Error loading selected competition:', error);
-    }
-  }, []);
+  const [loading, setLoading] = useState(true);
+  const hasLoadedInitialRef = useRef(false);
 
-  // Listen for changes from other tabs/windows
+  // Check for Directus auth and load competitions
+  useEffect(() => {
+    const loadCompetitions = async () => {
+      try {
+        // Check if user is authenticated by trying to fetch competitions
+        const comps = await fetchCompetitionsFromDirectus();
+        setCompetitions(comps);
+        hasLoadedInitialRef.current = true;
+        
+        // Load selected competition from localStorage (temporary storage)
+        if (typeof window !== 'undefined' && window.localStorage) {
+          const stored = localStorage.getItem('selectedCompetition');
+          if (stored) {
+            try {
+              const selected = JSON.parse(stored);
+              setSelectedCompetition(selected);
+            } catch (e) {
+            }
+          }
+        }
+      } catch (error) {
+        setCompetitions([]);
+        setSelectedCompetition(null);
+      }
+      setLoading(false);
+    };
+
+    loadCompetitions();
+  }, []); // Keep empty to only run once
+  
+  // Listen for changes from other tabs/windows (for selected competition only)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'competitions' && e.newValue) {
-        try {
-          const newCompetitions = JSON.parse(e.newValue);
-          setCompetitions(newCompetitions);
-        } catch (error) {
-          console.error('Error parsing competitions from storage event:', error);
-        }
-      } else if (e.key === 'selectedCompetition' && e.newValue) {
+      if (e.key === 'selectedCompetition' && e.newValue) {
         try {
           const newSelected = JSON.parse(e.newValue);
           setSelectedCompetition(newSelected);
         } catch (error) {
-          console.error('Error parsing selected competition from storage event:', error);
         }
       }
     };
@@ -128,191 +196,110 @@ export function CompetitionProvider({ children }: { children: React.ReactNode })
     }
   }, [selectedCompetition]);
 
-  const refreshCompetitions = useCallback(() => {
-    const comps = loadCompetitionsFromStorage();
-    setCompetitions(comps);
+  const refreshCompetitions = useCallback(async () => {
+    try {
+      const comps = await fetchCompetitionsFromDirectus();
+      if (comps) {
+        setCompetitions(comps);
+        hasLoadedInitialRef.current = true;
+      }
+    } catch (error) {
+    }
   }, []);
 
-  const addCompetition = async (competition: Competition) => {
-    try {
-      // Get current user
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-        console.warn('No authenticated user, saving locally only');
-        // Fallback to local storage only
-        const newCompetition: Competition = {
-          ...competition,
-          id: competition.id || `comp-${Date.now()}`,
-          createdAt: competition.createdAt || Date.now(),
-          updatedAt: Date.now()
-        };
-        
-        const updatedCompetitions = [...competitions, newCompetition];
-        setCompetitions(updatedCompetitions);
-        saveCompetitionsToStorage(updatedCompetitions);
-        return;
-      }
-
-      // Save to Firebase with userId
-      const competitionData = {
-        name: competition.name,
-        participants: competition.participants,
-        participantCount: competition.participants.length,
-        status: 'active' as const,
-        userId: currentUser.uid,
-        winners: competition.winners,
-        bannerImageId: competition.bannerImageId
-      };
-
-      const competitionId = await createCompetitionInDb(competitionData);
-      
-      // Create the competition with the Firebase ID
-      const newCompetition: Competition = {
-        ...competition,
-        id: competitionId,
-        userId: currentUser.uid,
-        createdAt: competition.createdAt || Date.now(),
-        updatedAt: Date.now()
-      };
-      
-      const updatedCompetitions = [...competitions, newCompetition];
-      setCompetitions(updatedCompetitions);
-      saveCompetitionsToStorage(updatedCompetitions);
-      
-      console.log('Competition saved to Firebase with ID:', competitionId);
-    } catch (error) {
-      console.error('Error saving competition to Firebase:', error);
-      // Fallback to local storage
-      const newCompetition: Competition = {
-        ...competition,
-        id: competition.id || `comp-${Date.now()}`,
-        createdAt: competition.createdAt || Date.now(),
-        updatedAt: Date.now()
-      };
-      
-      const updatedCompetitions = [...competitions, newCompetition];
-      setCompetitions(updatedCompetitions);
-      saveCompetitionsToStorage(updatedCompetitions);
+  const addCompetition = useCallback(async (competition: Competition) => {
+    // Save to Directus
+    const saved = await saveCompetitionToDirectus(competition);
+    if (saved) {
+      setCompetitions(prev => [...prev, saved]);
+    } else {
+      // If save failed, still add locally for now
+      setCompetitions(prev => [...prev, competition]);
     }
-  };
+  }, []);
 
-  const updateCompetition = async (id: string, updates: Partial<Competition>) => {
-    const updatedCompetitions = competitions.map(comp => 
-      comp.id === id 
-        ? { ...comp, ...updates, updatedAt: Date.now() }
-        : comp
+  const updateCompetition = useCallback(async (id: string, updates: Partial<Competition>) => {
+    // Update locally immediately
+    setCompetitions(prev => 
+      prev.map(comp => comp.id === id ? { ...comp, ...updates, updatedAt: Date.now() } : comp)
     );
     
-    setCompetitions(updatedCompetitions);
-    saveCompetitionsToStorage(updatedCompetitions);
-    
-    // Update selected competition if it's the one being updated
+    // Update selected if it's the one being updated
     if (selectedCompetition?.id === id) {
-      const updated = updatedCompetitions.find(c => c.id === id);
-      if (updated) {
-        setSelectedCompetition(updated);
-      }
-    }
-  };
-
-  const deleteCompetition = async (id: string) => {
-    try {
-      // Try to delete from Firebase first
-      console.log('Attempting to delete competition from Firebase:', id);
-      await deleteCompetitionFromDb(id);
-      console.log('Competition deleted from Firebase successfully');
-    } catch (error: any) {
-      console.error('Error deleting from Firebase:', error);
-      // If it's a permissions error, continue with local deletion
-      // If it's another type of error, still continue but log it
-      if (error?.code === 'permission-denied' || error?.message?.includes('permissions')) {
-        console.log('Firebase permission denied, proceeding with local deletion only');
-      } else {
-        console.log('Firebase deletion failed, proceeding with local deletion');
-      }
+      setSelectedCompetition(prev => prev ? { ...prev, ...updates, updatedAt: Date.now() } : null);
     }
     
-    // Always update local state regardless of Firebase result
-    try {
-      const updatedCompetitions = competitions.filter(comp => comp.id !== id);
-      setCompetitions(updatedCompetitions);
-      saveCompetitionsToStorage(updatedCompetitions);
-      
-      // Clear selection if deleted competition was selected
-      if (selectedCompetition?.id === id) {
-        setSelectedCompetition(null);
-        if (typeof window !== 'undefined' && window.localStorage) {
-          localStorage.removeItem('selectedCompetition');
-        }
-      }
-      
-      console.log('Competition deleted from local storage successfully');
-    } catch (localError) {
-      console.error('Error deleting from local storage:', localError);
-      throw localError; // Only throw if local deletion fails
-    }
-  };
+    // Save to Directus
+    await updateCompetitionInDirectus(id, updates);
+  }, [selectedCompetition]);
 
-  const selectCompetition = (competition: Competition) => {
+  const deleteCompetition = useCallback(async (id: string) => {
+    // Remove locally immediately
+    setCompetitions(prev => prev.filter(comp => comp.id !== id));
+    
+    // Clear selection if it's the one being deleted
+    if (selectedCompetition?.id === id) {
+      setSelectedCompetition(null);
+    }
+    
+    // Delete from Directus
+    await deleteCompetitionFromDirectus(id);
+  }, [selectedCompetition]);
+
+  const clearAllCompetitions = useCallback(async () => {
+    // Clear all competitions from Directus one by one
+    const deletePromises = competitions.map(comp => deleteCompetitionFromDirectus(comp.id));
+    await Promise.all(deletePromises);
+    
+    setCompetitions([]);
+    setSelectedCompetition(null);
+  }, [competitions]);
+
+  const selectCompetition = useCallback((competition: Competition) => {
     setSelectedCompetition(competition);
+  }, []);
+
+  const updateCompetitionBanner = useCallback(async (id: string, bannerImage: string) => {
+    // Store the image and get its ID
+    const imageId = await imageStore.storeImage(bannerImage);
     
-    if (typeof window !== 'undefined' && window.localStorage) {
-      localStorage.setItem('selectedCompetition', JSON.stringify(competition));
-      
-      // Dispatch custom event for immediate updates
-      window.dispatchEvent(new StorageEvent('storage', {
-        key: 'selectedCompetition',
-        newValue: JSON.stringify(competition),
-        storageArea: localStorage
-      }));
-    }
+    // Update the competition with the new banner image ID
+    await updateCompetition(id, { bannerImageId: imageId });
+  }, [updateCompetition]);
+
+  const getBannerImage = useCallback(async (imageId: string | undefined): Promise<string | null> => {
+    if (!imageId) return null;
+    return await imageStore.getImageUrl(imageId);
+  }, []);
+
+  const value = {
+    competitions,
+    selectedCompetition,
+    addCompetition,
+    updateCompetition,
+    deleteCompetition,
+    clearAllCompetitions,
+    selectCompetition,
+    updateCompetitionBanner,
+    getBannerImage,
+    refreshCompetitions,
   };
 
-  const updateCompetitionBanner = async (id: string, bannerImage: string) => {
-    // Store image in IndexedDB instead of localStorage
-    const imageId = `banner-${id}-${Date.now()}`;
-    await imageStore.saveImage(imageId, bannerImage);
-    
-    // Store only the reference in localStorage
-    await updateCompetition(id, { bannerImageId: imageId });
-    
-    // Clean up old images after 24 hours
-    imageStore.cleanOldImages(24).catch(console.error);
-  };
-  
-  const getBannerImage = async (imageId: string | undefined): Promise<string | null> => {
-    if (!imageId) return null;
-    try {
-      return await imageStore.getImage(imageId);
-    } catch (error) {
-      console.error('Error loading banner image:', error);
-      return null;
-    }
-  };
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
-    <CompetitionContext.Provider 
-      value={{ 
-        competitions, 
-        selectedCompetition, 
-        addCompetition, 
-        updateCompetition, 
-        deleteCompetition, 
-        selectCompetition,
-        updateCompetitionBanner,
-        getBannerImage,
-        refreshCompetitions
-      }}
-    >
+    <CompetitionContext.Provider value={value}>
       {children}
     </CompetitionContext.Provider>
   );
-}
+};
 
-export function useCompetitions() {
+export const useCompetitions = () => {
   const context = useContext(CompetitionContext);
   if (!context) {
     throw new Error('useCompetitions must be used within a CompetitionProvider');
   }
   return context;
-}
+};

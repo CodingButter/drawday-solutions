@@ -1,16 +1,15 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
-import { 
-  getUserSettings, 
+import {
+  getUserSettings,
   updateUserSettings,
   updateSpinnerSettings as updateSpinnerSettingsInDb,
   type UserSettings,
   type SpinnerSettings,
-  defaultSettings 
+  defaultSettings
 } from '@/lib/settings-service';
+import { getStoredUser, isAuthenticated } from '@/lib/directus-auth';
 import type { ColumnMapping, SavedMapping } from '@raffle-spinner/types';
 
 interface SettingsContextType {
@@ -43,19 +42,20 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }
   }, [columnMapping]);
 
-  // Load settings from Firestore when user is authenticated
+  // Load settings from Directus when user is authenticated
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setUserId(user.uid);
+    const checkAuth = async () => {
+      const user = getStoredUser();
+      if (user && isAuthenticated()) {
+        setUserId(user.id);
         try {
-          const userSettings = await getUserSettings(user.uid);
+          const userSettings = await getUserSettings(user.id);
           setSettings(userSettings.spinner);
-          
+
           if (userSettings.columnMapping) {
             setColumnMapping(userSettings.columnMapping);
           }
-          
+
           if (userSettings.savedMappings) {
             // Convert legacy saved mappings to new format
             const mappings = userSettings.savedMappings.map((m: any) => ({
@@ -78,9 +78,13 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         setColumnMapping(null);
         setSavedMappings([]);
       }
-    });
+    };
 
-    return () => unsubscribe();
+    checkAuth();
+
+    // Check auth state periodically
+    const interval = setInterval(checkAuth, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const refreshSettings = useCallback(async () => {

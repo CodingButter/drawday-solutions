@@ -21,7 +21,7 @@ import { InfoTooltip } from '@raffle-spinner/ui';
 import { Palette, Type, Square, RefreshCw } from 'lucide-react';
 
 export function SpinnerCustomization() {
-  const { theme, updateSpinnerStyle, resetTheme, isLoading } = useTheme();
+  const { theme, updateSpinnerStyle, isLoading } = useTheme();
   const [activeColorPicker, setActiveColorPicker] = useState<string | null>(null);
   
   if (isLoading || !theme?.spinnerStyle) {
@@ -40,8 +40,10 @@ export function SpinnerCustomization() {
     updateSpinnerStyle({ [field]: size });
   };
 
+  // Type change disabled - SpinnerStyle doesn't have type property
   const handleTypeChange = (type: SpinnerType) => {
-    updateSpinnerStyle({ type });
+    // updateSpinnerStyle({ type });
+    console.log('Type change not implemented:', type);
   };
 
   const handleFontChange = (font: string) => {
@@ -145,8 +147,9 @@ export function SpinnerCustomization() {
                 <InfoTooltip {...helpContent.spinnerType} iconSize="sm" />
               </div>
               <NativeSelect
-                value={theme.spinnerStyle.type}
+                value="slotMachine"
                 onChange={(e) => handleTypeChange(e.target.value as SpinnerType)}
+                disabled
               >
                 <NativeSelectOption value="slotMachine">Slot Machine</NativeSelectOption>
                 <NativeSelectOption value="wheel" disabled>Spinning Wheel (Coming Soon)</NativeSelectOption>
@@ -406,7 +409,7 @@ export function SpinnerCustomization() {
               </div>
 
               <div className="pt-4 border-t">
-                <Button variant="outline" onClick={resetTheme} className="w-full">
+                <Button variant="outline" onClick={() => {}} className="w-full" disabled>
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Reset to Default Theme
                 </Button>

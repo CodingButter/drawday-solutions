@@ -29,8 +29,8 @@ const SettingsContext = createContext<SettingsContextType | undefined>(
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<SpinnerSettings>({
-    minSpinDuration: 3,
-    decelerationRate: "medium",
+    spinDuration: "medium",
+    decelerationSpeed: "medium",
   });
   const [columnMapping, setColumnMapping] = useState<ColumnMapping | null>(
     null,

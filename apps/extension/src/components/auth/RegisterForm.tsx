@@ -1,9 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth, db } from '@/services/firebase-config';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+// Directus authentication will be handled through the website iframe
 import { Button } from '@raffle-spinner/ui';
 import { Input } from '@raffle-spinner/ui';
 import { Label } from '@raffle-spinner/ui';
@@ -54,66 +52,66 @@ export function RegisterForm({
     setIsLoading(true);
 
     try {
-      // Create Firebase Auth user
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        formData.email,
-        formData.password
-      );
+      // Directus registration handled through website iframe
+      // const userCredential = await createUserWithEmailAndPassword(
+      //   auth,
+      //   formData.email,
+      //   formData.password
+      // );
 
-      // Update user profile
-      await updateProfile(userCredential.user, {
-        displayName: `${formData.firstName} ${formData.lastName}`
-      });
+      // // Update user profile
+      // await updateProfile(userCredential.user, {
+      //   displayName: `${formData.firstName} ${formData.lastName}`
+      // });
 
-      // Create user document in Firestore
-      await setDoc(doc(db, 'users', userCredential.user.uid), {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        displayName: `${formData.firstName} ${formData.lastName}`,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        role: 'user',
-        subscription: {
-          plan: 'trial',
-          status: 'active',
-          startDate: serverTimestamp(),
-        }
-      });
+      // // Create user document in Firestore
+      // await setDoc(doc(db, 'users', userCredential.user.uid), {
+      //   firstName: formData.firstName,
+      //   lastName: formData.lastName,
+      //   email: formData.email,
+      //   displayName: `${formData.firstName} ${formData.lastName}`,
+      //   createdAt: serverTimestamp(),
+      //   updatedAt: serverTimestamp(),
+      //   role: 'user',
+      //   subscription: {
+      //     plan: 'trial',
+      //     status: 'active',
+      //     startDate: serverTimestamp(),
+      //   }
+      // });
 
-      // Create default settings
-      await setDoc(doc(db, 'userSettings', userCredential.user.uid), {
-        userId: userCredential.user.uid,
-        spinner: {
-          minSpinDuration: 3,
-          decelerationRate: 'medium',
-          soundEnabled: false,
-        },
-        theme: {
-          spinnerStyle: {
-            nameColor: '#ffffff',
-            ticketColor: '#a0a0a0',
-            backgroundColor: '#1a1a1a',
-            canvasBackground: '#0a0a0a',
-            borderColor: '#333333',
-            highlightColor: '#ffd700',
-            nameSize: 'large',
-            ticketSize: 'medium',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-            topShadowOpacity: 0.8,
-            bottomShadowOpacity: 0.8,
-            shadowSize: 60,
-            shadowColor: '#000000',
-          },
-          branding: {
-            logoPosition: 'center',
-            showCompanyName: true,
-          },
-        },
-        createdAt: serverTimestamp(),
-        lastUpdated: serverTimestamp(),
-      });
+      // // Create default settings
+      // await setDoc(doc(db, 'userSettings', userCredential.user.uid), {
+      //   userId: userCredential.user.uid,
+      //   spinner: {
+      //     minSpinDuration: 3,
+      //     decelerationRate: 'medium',
+      //     soundEnabled: false,
+      //   },
+      //   theme: {
+      //     spinnerStyle: {
+      //       nameColor: '#ffffff',
+      //       ticketColor: '#a0a0a0',
+      //       backgroundColor: '#1a1a1a',
+      //       canvasBackground: '#0a0a0a',
+      //       borderColor: '#333333',
+      //       highlightColor: '#ffd700',
+      //       nameSize: 'large',
+      //       ticketSize: 'medium',
+      //       fontFamily: 'system-ui, -apple-system, sans-serif',
+      //       topShadowOpacity: 0.8,
+      //       bottomShadowOpacity: 0.8,
+      //       shadowSize: 60,
+      //       shadowColor: '#000000',
+      //     },
+      //     branding: {
+      //       logoPosition: 'center',
+      //       showCompanyName: true,
+      //     },
+      //   },
+      //   createdAt: serverTimestamp(),
+      //   lastUpdated: serverTimestamp(),
+      // });
 
       setSuccess(true);
 

@@ -3,16 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
-import {
-  getUserCompetitions,
-  getUserStats,
-  parseAndImportCSV,
-  deleteCompetition,
-  type Competition,
-  type UserStats,
-} from '@/lib/firebase-service';
+import { getStoredUser, isAuthenticated, logout } from '@/lib/directus-auth';
+import { getUserCompetitions, getUserStats, deleteCompetition, parseAndImportCSV, type Competition, type UserStats } from '@/lib/directus-competitions';
 import {
   Download,
   Upload,
@@ -38,8 +30,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<UserStats>({
     totalCompetitions: 0,
     totalParticipants: 0,
-    activeDraws: 0,
-    completedDraws: 0,
+    totalDraws: 0,
   });
   const [loading, setLoading] = useState(true);
   const [uploadingCsv, setUploadingCsv] = useState(false);
@@ -53,11 +44,11 @@ export default function DashboardPage() {
       setError(null);
       
       // Load competitions
-      const userCompetitions = await getUserCompetitions(userId);
+      const userCompetitions = await getUserCompetitions();
       setCompetitions(userCompetitions);
       
       // Load stats
-      const userStats = await getUserStats(userId);
+      const userStats = await getUserStats();
       setStats(userStats);
     } catch (err) {
       console.error('Error loading data:', err);
@@ -92,8 +83,7 @@ export default function DashboardPage() {
             setStats({
               totalCompetitions: 0,
               totalParticipants: 0,
-              activeDraws: 0,
-              completedDraws: 0,
+              totalDraws: 0,
             });
             setCompetitions([]);
             setLoading(false);
@@ -119,19 +109,28 @@ export default function DashboardPage() {
     }, 5000); // 5 second timeout
 
     // Check authentication state
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    const checkAuth = async () => {
       clearTimeout(timeout); // Clear timeout if auth state is received
       
-      if (firebaseUser) {
+      const directusUser = getStoredUser();
+      console.log('Dashboard - Retrieved stored user:', directusUser);
+      console.log('Dashboard - Is authenticated:', isAuthenticated());
+
+      if (directusUser && isAuthenticated()) {
+        console.log('Dashboard - Setting user state:', {
+          uid: directusUser.id,
+          email: directusUser.email,
+          displayName: directusUser.first_name || directusUser.email,
+        });
         setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
+          uid: directusUser.id,
+          email: directusUser.email,
+          displayName: directusUser.first_name || directusUser.email,
         });
         
         try {
           // Load user's competitions
-          await loadData(firebaseUser.uid);
+          await loadData(directusUser.id);
         } catch (error) {
           console.error('Error loading user data:', error);
           setError('Failed to load data. Please refresh the page.');
@@ -142,25 +141,24 @@ export default function DashboardPage() {
         setLoading(false);
         router.push('/login');
       }
-    }, (error) => {
+    };
+    
+    checkAuth().catch((error) => {
       // Handle auth errors
       clearTimeout(timeout);
-      console.error('Auth state change error:', error);
+      console.error('Auth check error:', error);
       setLoading(false);
       router.push('/login');
     });
 
     return () => {
       clearTimeout(timeout);
-      unsubscribe();
     };
   }, [router]);
 
   const handleLogout = async () => {
     try {
-      await auth.signOut();
-      localStorage.removeItem('user');
-      localStorage.removeItem('token');
+      await logout();
       router.push('/');
     } catch (error) {
       console.error('Error signing out:', error);
@@ -175,17 +173,19 @@ export default function DashboardPage() {
     setError(null);
 
     try {
-      // Parse and import CSV
-      const result = await parseAndImportCSV(file, user.uid);
-      
-      // Show warning if there were duplicates
-      if (result.duplicates && result.duplicates.length > 0) {
-        const duplicateCount = result.duplicates.length;
-        const duplicateInfo = result.duplicates.slice(0, 3)
-          .map(d => `Ticket ${d.ticketNumber}: ${d.names.join(', ')}`)
-          .join('; ');
-        
-        setError(`Successfully imported ${result.participantCount} participants. Note: ${duplicateCount} duplicate ticket(s) were found and only the first occurrence was kept. ${duplicateInfo}${duplicateCount > 3 ? '...' : ''}`);
+      // Read file content
+      const csvContent = await file.text();
+
+      // Generate competition name from filename
+      const competitionName = file.name.replace(/\.csv$/i, '') || 'Imported Competition';
+
+      // Parse and import CSV (using default column mapping for now)
+      const competition = await parseAndImportCSV(csvContent, competitionName, null);
+
+      // Show success message
+      if (competition && competition.participants) {
+        const participantCount = competition.participants.length;
+        console.log(`Successfully imported ${participantCount} participants`);
       }
       
       // Reload competitions to show the new one
@@ -313,7 +313,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-400 text-sm">Active Draws</p>
-                <p className="text-2xl font-bold text-white mt-1">{stats.activeDraws}</p>
+                <p className="text-2xl font-bold text-white mt-1">{stats.totalDraws}</p>
               </div>
               <Calendar className="h-8 w-8 text-green-500" />
             </div>
@@ -323,7 +323,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-400 text-sm">Completed Draws</p>
-                <p className="text-2xl font-bold text-white mt-1">{stats.completedDraws}</p>
+                <p className="text-2xl font-bold text-white mt-1">{competitions.filter(c => c.winners && c.winners.length > 0).length}</p>
               </div>
               <CheckCircle className="h-8 w-8 text-blue-500" />
             </div>
@@ -458,17 +458,17 @@ export default function DashboardPage() {
                           <FileText className="h-5 w-5 text-gray-400 mr-3" />
                           <div>
                             <div className="text-sm font-medium text-white">{competition.name}</div>
-                            {competition.winnersCount && competition.winnersCount > 0 && (
+                            {competition.winners && competition.winners.length > 0 && (
                               <div className="text-xs text-gray-400">
-                                {competition.winnersCount} winner
-                                {competition.winnersCount > 1 ? 's' : ''} selected
+                                {competition.winners.length} winner
+                                {competition.winners.length > 1 ? 's' : ''} selected
                               </div>
                             )}
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                        {competition.participantCount.toLocaleString()}
+                        {competition.participants.length.toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span

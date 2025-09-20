@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { getStoredUser, isAuthenticated, logout } from '@/lib/directus-auth';
 import { clearLargeStorageItems } from '@/lib/clear-storage';
+import { useExtensionBridge } from '@/hooks/useExtensionBridge';
 import { CompetitionProvider, useCompetitions } from '@/contexts';
 import { SettingsProvider, useSettings } from '@/contexts';
 import { ThemeProvider, useTheme } from '@/contexts';
@@ -25,14 +25,16 @@ import { SavedMappingsManager } from '@/components/options/SavedMappingsManager'
 import { Alert, AlertDescription } from '@raffle-spinner/ui';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@raffle-spinner/ui';
 import { Button } from '@raffle-spinner/ui';
-import { CheckCircle, ChevronDown, ChevronRight, User, LogOut, Mail } from 'lucide-react';
+import { CheckCircle, ChevronDown, ChevronRight, User, LogOut, Mail, Play } from 'lucide-react';
 import type { Competition } from '@/contexts';
 
 function OptionsContent() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const { competitions, addCompetition, deleteCompetition, updateCompetitionBanner } =
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { isInIframe, isExtension, openSidePanel, saveAuthToken } = useExtensionBridge();
+  const { competitions, addCompetition, deleteCompetition, clearAllCompetitions, updateCompetitionBanner } =
     useCompetitions();
   const { settings, columnMapping, updateSettings, updateColumnMapping } = useSettings();
   const { collapsedSections, toggleSection } = useCollapsibleState();
@@ -40,35 +42,45 @@ function OptionsContent() {
 
   const [competitionToDelete, setCompetitionToDelete] = useState<Competition | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  
+  const [showClearAllDialog, setShowClearAllDialog] = useState(false);
+
   // Debug state changes
   useEffect(() => {
-    console.log('DeleteDialog state changed - showDeleteDialog:', showDeleteDialog, 'competitionToDelete:', competitionToDelete?.name);
   }, [showDeleteDialog, competitionToDelete]);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // Auth check - require proper Firebase authentication
+  // Auth check - require proper Directus authentication
   useEffect(() => {
     // Clear any large localStorage items on load to prevent quota issues
     clearLargeStorageItems();
-    
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
+
+    const checkAuth = async () => {
+      const directusUser = getStoredUser();
+      if (directusUser && isAuthenticated()) {
         setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
+          uid: directusUser.id,
+          email: directusUser.email,
+          displayName: directusUser.first_name || directusUser.email,
         });
+
+        // Get and save auth token for extension
+        const token = localStorage.getItem('directus_token');
+        if (token) {
+          saveAuthToken(token);
+        }
+
         setLoading(false);
       } else {
         // Not authenticated, redirect to login with proper redirect parameter
-        setLoading(false);
-        router.push('/auth/login?redirect=/live-spinner/options');
+        // Only redirect if not in iframe (extension handles auth differently)
+        if (!isInIframe) {
+          setLoading(false);
+          router.push('/auth/login?redirect=/live-spinner/options');
+        }
       }
-    });
+    };
 
-    return () => unsubscribe();
-  }, [router]);
+    checkAuth();
+  }, [router, isInIframe, saveAuthToken]);
 
   const {
     fileInputRef,
@@ -101,30 +113,22 @@ function OptionsContent() {
   });
 
   const handleDeleteClick = (id: string) => {
-    console.log('handleDeleteClick called with id:', id);
     const competition = competitions.find((c) => c.id === id);
-    console.log('Found competition:', competition);
     if (competition) {
-      console.log('Setting competitionToDelete and showDeleteDialog to true');
       // Set both states at the same time
       setCompetitionToDelete(competition);
       setShowDeleteDialog(true);
-      console.log('Both states set, dialog should appear');
     } else {
-      console.error('Competition not found with id:', id);
     }
   };
 
   const handleDeleteConfirm = async () => {
-    console.log('handleDeleteConfirm called, competitionToDelete:', competitionToDelete);
     if (competitionToDelete) {
       try {
         await deleteCompetition(competitionToDelete.id);
-        console.log('Competition deleted successfully');
         setCompetitionToDelete(null);
         setShowDeleteDialog(false);
       } catch (error) {
-        console.error('Failed to delete competition:', error);
         alert('Failed to delete raffle. Please try again.');
       }
     }
@@ -133,6 +137,23 @@ function OptionsContent() {
   const handleDeleteCancel = () => {
     setCompetitionToDelete(null);
     setShowDeleteDialog(false);
+  };
+
+  const handleClearAllClick = () => {
+    setShowClearAllDialog(true);
+  };
+
+  const handleClearAllConfirm = async () => {
+    try {
+      await clearAllCompetitions();
+      setShowClearAllDialog(false);
+    } catch (error) {
+      alert('Failed to clear all raffles. Please try again.');
+    }
+  };
+
+  const handleClearAllCancel = () => {
+    setShowClearAllDialog(false);
   };
 
   const handleUpdateBanner = async (id: string, banner: string | undefined) => {
@@ -154,13 +175,12 @@ function OptionsContent() {
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      await auth.signOut();
+      await logout();
       // Clear any local storage
       localStorage.clear();
       // Redirect to login page
       router.push('/auth/login');
     } catch (error) {
-      console.error('Error signing out:', error);
       setIsLoggingOut(false);
     }
   };
@@ -175,19 +195,30 @@ function OptionsContent() {
     );
   }
 
+
   return (
     <>
       <ThemeApplier colors={theme?.colors} />
       <div className="min-h-screen bg-background p-8">
         <div className="max-w-4xl mx-auto space-y-8">
         <div className="flex justify-between items-start">
-          <div>
+          <div className="flex-1">
             <h1 className="text-3xl font-bold">Raffle Spinner Configuration</h1>
             <p className="text-muted-foreground mt-2">
               Manage competitions and customize spinner settings
             </p>
           </div>
-          
+
+          {/* Open Spinner Button - shows for extension or standalone */}
+          <Button
+            variant="default"
+            className="mr-4"
+            onClick={openSidePanel}
+          >
+            <Play className="h-4 w-4 mr-2" />
+            Open Spinner
+          </Button>
+
           {/* User Account Info */}
           <Card className="w-80">
             <CardHeader className="pb-3">
@@ -261,6 +292,7 @@ function OptionsContent() {
                 fileInputRef={fileInputRef}
                 onFileSelect={handleFileSelect}
                 onDeleteCompetition={handleDeleteClick}
+                onClearAll={handleClearAllClick}
                 onOpenMapper={openMapperModal}
                 onUpdateBanner={handleUpdateBanner}
               />
@@ -400,7 +432,6 @@ function OptionsContent() {
         <ColumnMapper
           open={showMapperModal}
           onClose={() => {
-            console.log('Closing mapper modal');
             setShowMapperModal(false);
           }}
           headers={detectedHeaders}
@@ -435,6 +466,13 @@ function OptionsContent() {
           competition={competitionToDelete}
           onConfirm={handleDeleteConfirm}
           onCancel={handleDeleteCancel}
+        />
+        <DeleteConfirmDialog
+          open={showClearAllDialog}
+          competition={null}
+          onConfirm={handleClearAllConfirm}
+          onCancel={handleClearAllCancel}
+          isClearAll={true}
         />
       </div>
     </div>

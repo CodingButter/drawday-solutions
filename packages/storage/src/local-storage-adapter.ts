@@ -14,6 +14,7 @@ import {
   SpinnerSettings,
   ColumnMapping,
   SavedMapping,
+  ThemeSettings,
 } from "./types";
 import { StorageAdapter } from "./storage-adapter";
 
@@ -23,6 +24,7 @@ const STORAGE_KEYS = {
   COLUMN_MAPPING: "drawday_column_mapping",
   SAVED_MAPPINGS: "drawday_saved_mappings",
   DEFAULT_MAPPING_ID: "drawday_default_mapping_id",
+  THEME: "drawday_theme",
 } as const;
 
 export class LocalStorageAdapter implements StorageAdapter {
@@ -75,8 +77,8 @@ export class LocalStorageAdapter implements StorageAdapter {
     // Return default settings if none exist
     return (
       settings || {
-        minSpinDuration: 3,
-        decelerationRate: "medium",
+        spinDuration: "medium",
+        decelerationSpeed: "medium",
       }
     );
   }
@@ -89,8 +91,12 @@ export class LocalStorageAdapter implements StorageAdapter {
     return this.getItem<ColumnMapping>(STORAGE_KEYS.COLUMN_MAPPING);
   }
 
-  async saveColumnMapping(mapping: ColumnMapping): Promise<void> {
-    this.setItem(STORAGE_KEYS.COLUMN_MAPPING, mapping);
+  async saveColumnMapping(mapping: ColumnMapping | null): Promise<void> {
+    if (mapping === null) {
+      localStorage.removeItem(STORAGE_KEYS.COLUMN_MAPPING);
+    } else {
+      this.setItem(STORAGE_KEYS.COLUMN_MAPPING, mapping);
+    }
   }
 
   async getSavedMappings(): Promise<SavedMapping[]> {
@@ -135,6 +141,34 @@ export class LocalStorageAdapter implements StorageAdapter {
     } else {
       this.setItem(STORAGE_KEYS.DEFAULT_MAPPING_ID, id);
     }
+  }
+
+  // New methods for complete settings sync
+  async saveSavedMappings(mappings: SavedMapping[]): Promise<void> {
+    this.setItem(STORAGE_KEYS.SAVED_MAPPINGS, mappings);
+  }
+
+  async getDefaultMappingId(): Promise<string | undefined> {
+    const id = this.getItem<string>(STORAGE_KEYS.DEFAULT_MAPPING_ID);
+    return id || undefined;
+  }
+
+  async saveDefaultMappingId(id: string | undefined): Promise<void> {
+    if (id === undefined) {
+      localStorage.removeItem(STORAGE_KEYS.DEFAULT_MAPPING_ID);
+    } else {
+      this.setItem(STORAGE_KEYS.DEFAULT_MAPPING_ID, id);
+    }
+  }
+
+  // Theme settings
+  async getTheme(): Promise<ThemeSettings | undefined> {
+    const theme = this.getItem<ThemeSettings>(STORAGE_KEYS.THEME);
+    return theme || undefined;
+  }
+
+  async saveTheme(theme: ThemeSettings): Promise<void> {
+    this.setItem(STORAGE_KEYS.THEME, theme);
   }
 
   async clear(): Promise<void> {

@@ -2,10 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
-import { getUserCompetitions, getCompetition, addWinners, type Competition } from '@/lib/firebase-service';
 import { getUserSettings, type UserSettings } from '@/lib/settings-service';
+import { getStoredUser, isAuthenticated } from '@/lib/directus-auth';
+import { getUserCompetitions, getCompetition, updateCompetition, type Competition } from '@/lib/directus-competitions';
 import { SlotMachineWheel, type SpinnerTheme } from '@raffle-spinner/spinners';
 import { Button } from '@raffle-spinner/ui';
 import { Input } from '@raffle-spinner/ui';
@@ -32,6 +31,7 @@ interface Winner {
 }
 
 
+
 export default function LiveSpinnerPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
@@ -49,19 +49,20 @@ export default function LiveSpinnerPage() {
 
   // Load user and competitions
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
+    const checkAuth = async () => {
+      const directusUser = getStoredUser();
+      if (directusUser && isAuthenticated()) {
         setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
+          uid: directusUser.id,
+          email: directusUser.email,
+          displayName: directusUser.first_name || directusUser.email,
         });
         
         // Load user's competitions and settings
         try {
           const [userCompetitions, settings] = await Promise.all([
-            getUserCompetitions(firebaseUser.uid),
-            getUserSettings(firebaseUser.uid)
+            getUserCompetitions(),
+            getUserSettings(directusUser.id)
           ]);
           
           setCompetitions(userCompetitions);
@@ -85,9 +86,9 @@ export default function LiveSpinnerPage() {
         // Not authenticated, redirect to login
         router.push('/login?from=/live-spinner');
       }
-    });
-
-    return () => unsubscribe();
+    };
+    
+    checkAuth();
   }, [router]);
 
   const normalizeTicketNumber = (ticket: string): string => {
@@ -142,18 +143,19 @@ export default function LiveSpinnerPage() {
     
     setSessionWinners((prev) => [newWinner, ...prev]);
 
-    // Save winner to Firestore if it's a saved competition
+    // Save winner to Directus if it's a saved competition
     if (selectedCompetition?.id && !selectedCompetition.id.startsWith('temp-')) {
       try {
         const existingWinners = selectedCompetition.winners || [];
-        await addWinners(selectedCompetition.id, [
-          ...existingWinners,
-          {
-            participant: winner,
-            timestamp: Date.now(),
-            position: existingWinners.length + 1,
-          },
-        ]);
+        await updateCompetition(selectedCompetition.id, {
+          winners: [
+            ...existingWinners,
+            {
+              participant: winner,
+              timestamp: Date.now(),
+            },
+          ]
+        });
       } catch (err) {
         console.error('Error saving winner:', err);
       }
@@ -213,7 +215,6 @@ export default function LiveSpinnerPage() {
         id: `temp-${Date.now()}`,
         name: file.name.replace(/\.[^/.]+$/, ''),
         participants: parseResult.participants,
-        participantCount: parseResult.participants.length,
         status: 'active',
         userId: user?.uid || '',
       };
@@ -270,9 +271,8 @@ export default function LiveSpinnerPage() {
 
   // Get theme and settings from user settings or use defaults
   const spinnerSettings = userSettings?.spinner || {
-    minSpinDuration: 3,
-    decelerationRate: 'medium' as const,
-    soundEnabled: false,
+    spinDuration: 'medium' as const,
+    decelerationSpeed: 'medium' as const,
   };
   
   const spinnerTheme: SpinnerTheme = userSettings?.theme?.spinnerStyle || {
@@ -294,7 +294,7 @@ export default function LiveSpinnerPage() {
   const branding = userSettings?.theme?.branding;
   
   // Determine which banner to show (competition specific or default)
-  const bannerImage = selectedCompetition?.bannerImage || branding?.bannerImage;
+  const bannerImage = selectedCompetition?.bannerImageId || branding?.bannerImage;
 
   return (
     <div className="min-h-screen bg-night text-white">
@@ -363,7 +363,7 @@ export default function LiveSpinnerPage() {
                   <SelectContent className="bg-night-light border-gray-700">
                     {competitions.map((comp) => (
                       <SelectItem key={comp.id} value={comp.id || ''}>
-                        {comp.name} ({comp.participantCount} participants)
+                        {comp.name} ({comp.participants.length} participants)
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -386,12 +386,12 @@ export default function LiveSpinnerPage() {
                 <div className="flex gap-4 text-sm text-gray-400">
                   <span className="flex items-center gap-1">
                     <Users className="h-4 w-4" />
-                    {selectedCompetition.participantCount} participants
+                    {selectedCompetition.participants.length} participants
                   </span>
-                  {selectedCompetition.winnersCount && selectedCompetition.winnersCount > 0 && (
+                  {selectedCompetition.winners && selectedCompetition.winners.length > 0 && (
                     <span className="flex items-center gap-1">
                       <Trophy className="h-4 w-4" />
-                      {selectedCompetition.winnersCount} winners selected
+                      {selectedCompetition.winners.length} winners selected
                     </span>
                   )}
                 </div>

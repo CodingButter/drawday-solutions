@@ -96,6 +96,42 @@ export const helpContent = {
 
   // Spinner Settings
   spinnerSettings: {
+    spinDuration: {
+      title: 'Spin Duration',
+      description: 'How long the wheel spins at maximum speed',
+      details: {
+        content:
+          'Sets the duration the spinner will rotate at maximum speed (5 rotations per second) before starting to decelerate. This creates consistent, predictable animation timing.',
+        examples: [
+          'Short (2 seconds) - 10 total rotations for quick draws',
+          'Medium (3 seconds) - 15 total rotations for standard raffles',
+          'Long (5 seconds) - 25 total rotations for major prizes',
+        ],
+        tips: [
+          'All durations use the same maximum rotation speed',
+          'Longer durations mean more total rotations',
+          'Duration affects only the maximum speed phase',
+        ],
+      },
+    },
+    decelerationSpeed: {
+      title: 'Deceleration Speed',
+      description: 'How quickly the spinner slows down after maximum speed',
+      details: {
+        content:
+          'Controls how quickly the spinner decelerates from maximum speed to stop. This affects the feel and suspense of the final reveal.',
+        examples: [
+          'Slow - Very gradual slowdown, maximum suspense',
+          'Medium - Balanced deceleration, natural feel',
+          'Fast - Quick deceleration, minimal coasting',
+        ],
+        tips: [
+          'Combine with spin duration for different effects',
+          'Slow deceleration extends the total animation time',
+          'Fast deceleration provides snappier animations',
+        ],
+      },
+    },
     minSpinDuration: {
       title: 'Minimum Spin Duration',
       description: 'How long the wheel spins before stopping',

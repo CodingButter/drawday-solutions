@@ -1,17 +1,14 @@
-import { 
-  doc, 
-  getDoc, 
-  setDoc,
-  serverTimestamp,
-} from 'firebase/firestore';
-import { db } from './firebase';
-import type { ColumnMapping, SavedMapping } from '@raffle-spinner/types';
+import type { 
+  ColumnMapping, 
+  SavedMapping,
+  SpinnerSettings 
+} from '@raffle-spinner/types';
 
-export interface SpinnerSettings {
-  minSpinDuration: number;
-  decelerationRate: 'slow' | 'medium' | 'fast';
-  soundEnabled: boolean;
-}
+// Re-export SpinnerSettings from types package
+export type { SpinnerSettings };
+
+const DIRECTUS_URL = 'https://db.drawday.app';
+const DIRECTUS_PROJECT = 'drawday';
 
 export interface ThemeSettings {
   // Spinner Style
@@ -47,15 +44,14 @@ export interface UserSettings {
   theme: ThemeSettings;
   columnMapping?: ColumnMapping;
   savedMappings?: SavedMapping[];
-  updatedAt?: any;
+  updatedAt?: string;
 }
 
 // Default settings
 export const defaultSettings: Omit<UserSettings, 'userId' | 'updatedAt'> = {
   spinner: {
-    minSpinDuration: 3,
-    decelerationRate: 'medium',
-    soundEnabled: false,
+    spinDuration: 'medium',
+    decelerationSpeed: 'medium',
   },
   theme: {
     spinnerStyle: {
@@ -80,16 +76,42 @@ export const defaultSettings: Omit<UserSettings, 'userId' | 'updatedAt'> = {
   },
 };
 
+// Get auth token from localStorage or session
+const getAuthToken = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('directus_token') || sessionStorage.getItem('directus_token');
+};
+
+// API helper
+const directusApi = async (endpoint: string, options: RequestInit = {}) => {
+  const token = getAuthToken();
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    ...options.headers,
+  };
+
+  const response = await fetch(`${DIRECTUS_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Directus API error: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
 // Get user settings
 export const getUserSettings = async (userId: string): Promise<UserSettings> => {
   try {
-    const settingsRef = doc(db, 'userSettings', userId);
-    const settingsSnap = await getDoc(settingsRef);
-    
-    if (settingsSnap.exists()) {
-      const data = settingsSnap.data();
-      console.log('Retrieved user settings from Firebase:', data);
-      
+    // For now, use localStorage as the primary storage
+    // This will be replaced with Directus once permissions are set up
+    const stored = localStorage.getItem(`user_settings_${userId}`);
+    if (stored) {
+      const data = JSON.parse(stored);
+
       // Merge with defaults to ensure all fields are present
       return {
         userId,
@@ -112,14 +134,65 @@ export const getUserSettings = async (userId: string): Promise<UserSettings> => 
         },
       } as UserSettings;
     }
-    
+
+    // Try Directus as fallback (will work once permissions are set)
+    // Commented out temporarily due to Directus permissions issue (403 error)
+    /*
+    try {
+      // Query user settings by user_id field instead of using the ID directly
+      const { data } = await directusApi(`/items/user_settings?filter[user_id][_eq]=${userId}&limit=1`);
+
+      if (data && data.length > 0) {
+        const settings = data[0];
+
+        // Save to localStorage for future use
+        localStorage.setItem(`user_settings_${userId}`, JSON.stringify(settings));
+
+        // Merge with defaults to ensure all fields are present
+        return {
+          userId,
+          ...defaultSettings,
+          ...settings,
+          // Ensure spinner settings exist and migrate old format
+          spinner: (() => {
+            const spinnerData = settings.spinner || {};
+            // Check if it's the old format
+            if ('minSpinDuration' in spinnerData && typeof spinnerData.minSpinDuration === 'number') {
+              // Migrate from old format to new format
+              const duration = spinnerData.minSpinDuration;
+              return {
+                spinDuration: duration <= 2 ? 'short' : duration <= 3 ? 'medium' : 'long',
+                decelerationSpeed: (spinnerData as any).decelerationRate || 'medium',
+              };
+            }
+            // Return new format or default
+            return spinnerData.spinDuration ? spinnerData : defaultSettings.spinner;
+          })(),
+          // Ensure theme exists with all required fields
+          theme: {
+            ...defaultSettings.theme,
+            ...(data.theme || {}),
+            spinnerStyle: {
+              ...defaultSettings.theme.spinnerStyle,
+              ...(data.theme?.spinnerStyle || {}),
+            },
+            branding: {
+              ...defaultSettings.theme.branding,
+              ...(data.theme?.branding || {}),
+            },
+          },
+        } as UserSettings;
+      }
+    } catch (directusError) {
+    }
+    */
+
     // Return default settings if none exist
     return {
       userId,
       ...defaultSettings,
     };
   } catch (error) {
-    console.error('Error getting user settings:', error);
     return {
       userId,
       ...defaultSettings,
@@ -129,18 +202,41 @@ export const getUserSettings = async (userId: string): Promise<UserSettings> => 
 
 // Update user settings
 export const updateUserSettings = async (
-  userId: string, 
+  userId: string,
   updates: Partial<UserSettings>
 ): Promise<void> => {
   try {
-    const settingsRef = doc(db, 'userSettings', userId);
-    await setDoc(settingsRef, {
+    // Get current settings
+    const current = await getUserSettings(userId);
+
+    // Merge updates
+    const updated = {
+      ...current,
       ...updates,
       userId,
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Save to localStorage
+    localStorage.setItem(`user_settings_${userId}`, JSON.stringify(updated));
+
+    // Try to save to Directus (will work once permissions are set)
+    // Commented out temporarily due to Directus permissions issue (403 error)
+    /*
+    try {
+      await directusApi(`/items/user_settings/${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          ...updates,
+          userId,
+          updatedAt: new Date().toISOString(),
+        }),
+      });
+    } catch (directusError) {
+      // Don't throw, localStorage save was successful
+    }
+    */
   } catch (error) {
-    console.error('Error updating user settings:', error);
     throw error;
   }
 };
