@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const DIRECTUS_URL = process.env.DIRECTUS_URL || 'https://db.drawday.app';
-const DIRECTUS_ADMIN_TOKEN = process.env.DIRECTUS_ADMIN_TOKEN || 'mNjKgq86jnVokcdwBRKkXgrHEoROvR04';
+const DIRECTUS_ADMIN_TOKEN = process.env.DIRECTUS_ADMIN_TOKEN;
 
 export async function POST(request: NextRequest) {
   try {
     const { image, filename, title } = await request.json();
 
     if (!image) {
-      return NextResponse.json(
-        { error: 'Missing image data' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing image data' }, { status: 400 });
     }
 
     // Validate image format
@@ -52,7 +49,7 @@ export async function POST(request: NextRequest) {
     const uploadResponse = await fetch(`${DIRECTUS_URL}/files`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${DIRECTUS_ADMIN_TOKEN}`,
+        Authorization: `Bearer ${DIRECTUS_ADMIN_TOKEN}`,
       },
       body: formData,
     });
@@ -71,7 +68,6 @@ export async function POST(request: NextRequest) {
       file: uploadData.data,
       url: `${DIRECTUS_URL}/assets/${uploadData.data.id}`,
     });
-
   } catch (error) {
     console.error('Image upload error:', error);
 
@@ -80,9 +76,6 @@ export async function POST(request: NextRequest) {
       errorMessage = error.message;
     }
 
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

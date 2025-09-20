@@ -22,6 +22,9 @@ import { SpinnerCustomization } from '@/components/options/SpinnerCustomization'
 import { ThemeColors } from '@/components/options/ThemeColors';
 import { BrandingSettings } from '@/components/options/BrandingSettings';
 import { SavedMappingsManager } from '@/components/options/SavedMappingsManager';
+import { SpinnerTypeSelector } from '@/components/options/SpinnerTypeSelector';
+import { SpinnerConfigManager } from '@/components/options/SpinnerConfigManager';
+import { SavedMappings } from '@/components/csv/SavedMappings';
 import { Alert, AlertDescription } from '@raffle-spinner/ui';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@raffle-spinner/ui';
 import { Button } from '@raffle-spinner/ui';
@@ -44,7 +47,7 @@ function OptionsContent() {
   } = useCompetitions();
   const { settings, columnMapping, updateSettings, updateColumnMapping } = useSettings();
   const { collapsedSections, toggleSection } = useCollapsibleState();
-  const { theme } = useTheme();
+  const { theme, updateColors, updateSpinnerStyle, updateBranding } = useTheme();
 
   const [competitionToDelete, setCompetitionToDelete] = useState<Competition | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -75,12 +78,10 @@ function OptionsContent() {
 
         setLoading(false);
       } else {
-        // Not authenticated, redirect to login with proper redirect parameter
-        // Only redirect if not in iframe (extension handles auth differently)
-        if (!isInIframe) {
-          setLoading(false);
-          router.push('/auth/login?redirect=/live-spinner/options');
-        }
+        // Not authenticated, redirect to extension-specific login
+        setLoading(false);
+        // Use extension-specific auth pages when in extension context
+        router.push('/live-spinner/auth/login?returnTo=/live-spinner/options');
       }
     };
 
@@ -190,8 +191,8 @@ function OptionsContent() {
       await logout();
       // Clear any local storage
       localStorage.clear();
-      // Redirect to login page
-      router.push('/auth/login');
+      // Redirect to extension-specific login page
+      router.push('/live-spinner/auth/login?returnTo=/live-spinner/options');
     } catch (error) {
       setIsLoggingOut(false);
     }
@@ -319,7 +320,7 @@ function OptionsContent() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>Spinner Settings</CardTitle>
-                  <CardDescription>Configure spin duration and physics</CardDescription>
+                  <CardDescription>Configure spinner type and physics</CardDescription>
                 </div>
                 <Button
                   variant="ghost"
@@ -340,7 +341,18 @@ function OptionsContent() {
               </div>
             </CardHeader>
             {!collapsedSections.settings && (
-              <CardContent>
+              <CardContent className="space-y-6">
+                <SpinnerTypeSelector
+                  selectedType={settings.spinnerType || 'slot_machine'}
+                  onTypeChange={(type, defaultSettings) => {
+                    updateSettings({
+                      ...settings,
+                      spinnerType: type,
+                      ...defaultSettings,
+                    });
+                  }}
+                  participantCount={competitions[0]?.participants?.length || 0}
+                />
                 <SpinnerSettings settings={settings} onUpdate={updateSettings} />
               </CardContent>
             )}
@@ -446,6 +458,68 @@ function OptionsContent() {
             {!collapsedSections.help && (
               <CardContent>
                 <SavedMappingsManager />
+              </CardContent>
+            )}
+          </Card>
+
+          <Card className="transition-all duration-200 hover:shadow-md">
+            <CardHeader
+              className="cursor-pointer select-none transition-colors duration-200 hover:bg-muted/50 rounded-t-lg"
+              onClick={() => toggleSection('spinnerConfigs')}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Spinner Configurations</CardTitle>
+                  <CardDescription>Save and load complete spinner settings</CardDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={
+                    collapsedSections.spinnerConfigs
+                      ? 'Expand Spinner Configurations'
+                      : 'Collapse Spinner Configurations'
+                  }
+                  aria-expanded={!collapsedSections.spinnerConfigs}
+                >
+                  {collapsedSections.spinnerConfigs ? (
+                    <ChevronRight className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </CardHeader>
+            {!collapsedSections.spinnerConfigs && (
+              <CardContent>
+                <SpinnerConfigManager
+                  currentSpinnerType={settings.spinnerType}
+                  onLoadConfig={(config) => {
+                    // Apply loaded configuration to settings
+                    if (config.theme_config) {
+                      // Apply theme configuration parts
+                      if (config.theme_config.colors) {
+                        updateColors(config.theme_config.colors);
+                      }
+                      if (config.theme_config.spinnerStyle) {
+                        updateSpinnerStyle(config.theme_config.spinnerStyle);
+                      }
+                      if (config.theme_config.branding) {
+                        updateBranding(config.theme_config.branding);
+                      }
+                    }
+                    if (config.physics_config) {
+                      updateSettings({
+                        spinDuration: config.physics_config.spinDuration || 'medium',
+                        decelerationSpeed: config.physics_config.decelerationSpeed || 'medium',
+                      });
+                    }
+                    // TODO: Handle sound config when sound settings are added to SpinnerSettings type
+                    // if (config.sound_config) {
+                    //   updateSettings({ sounds: config.sound_config });
+                    // }
+                  }}
+                />
               </CardContent>
             )}
           </Card>

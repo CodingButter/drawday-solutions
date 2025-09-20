@@ -28,6 +28,7 @@
     "@raffle-spinner/eslint-config": "workspace:*",
     "@raffle-spinner/typescript-config": "workspace:*",
     "tsup": "^8.2.4",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "@raffle-spinner/tsup-config": "workspace:*"
   }
 }

@@ -12,7 +12,10 @@ export interface AuthResponse {
   refresh_token: string;
 }
 
-export async function login(email: string, password: string): Promise<{ user: DirectusUser; tokens: AuthResponse }> {
+export async function login(
+  email: string,
+  password: string
+): Promise<{ user: DirectusUser; tokens: AuthResponse }> {
   const response = await fetch('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -41,7 +44,12 @@ export async function login(email: string, password: string): Promise<{ user: Di
   return { user: data.user, tokens: data.tokens };
 }
 
-export async function register(email: string, password: string, firstName?: string, lastName?: string) {
+export async function register(
+  email: string,
+  password: string,
+  firstName?: string,
+  lastName?: string
+) {
   const response = await fetch('/api/auth/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -82,7 +90,7 @@ export async function logout() {
     try {
       await fetch('/api/auth/logout', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
     } catch (error) {
       console.error('Logout error:', error);
@@ -174,7 +182,10 @@ export async function refreshToken(): Promise<string | null> {
 }
 
 // Helper function to make authenticated requests with automatic token refresh
-export async function authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+export async function authenticatedFetch(
+  url: string,
+  options: RequestInit = {}
+): Promise<Response> {
   let token = getStoredToken();
 
   // Check if token is expired and try to refresh
@@ -184,7 +195,19 @@ export async function authenticatedFetch(url: string, options: RequestInit = {})
       // Clear auth state and redirect to login
       await logout();
       if (typeof window !== 'undefined') {
-        window.location.href = '/login?returnTo=' + encodeURIComponent(window.location.pathname);
+        // Check if we're in an iframe (extension context)
+        const inIframe = window.self !== window.top;
+        const currentPath = window.location.pathname;
+
+        // Determine the correct login page
+        if (inIframe || currentPath.startsWith('/live-spinner')) {
+          // Extension context or extension pages - use extension login
+          window.location.href =
+            '/live-spinner/auth/login?returnTo=' + encodeURIComponent(currentPath);
+        } else {
+          // Regular website - use main login
+          window.location.href = '/login?returnTo=' + encodeURIComponent(currentPath);
+        }
       }
       throw new Error('Authentication required. Please log in again.');
     }
@@ -195,7 +218,7 @@ export async function authenticatedFetch(url: string, options: RequestInit = {})
     ...options,
     headers: {
       ...options.headers,
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
     },
   };
 
@@ -208,14 +231,26 @@ export async function authenticatedFetch(url: string, options: RequestInit = {})
       // Retry with new token
       requestOptions.headers = {
         ...requestOptions.headers,
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       };
       response = await fetch(url, requestOptions);
     } else {
       // Token refresh failed, logout and redirect
       await logout();
       if (typeof window !== 'undefined') {
-        window.location.href = '/login?returnTo=' + encodeURIComponent(window.location.pathname);
+        // Check if we're in an iframe (extension context)
+        const inIframe = window.self !== window.top;
+        const currentPath = window.location.pathname;
+
+        // Determine the correct login page
+        if (inIframe || currentPath.startsWith('/live-spinner')) {
+          // Extension context or extension pages - use extension login
+          window.location.href =
+            '/live-spinner/auth/login?returnTo=' + encodeURIComponent(currentPath);
+        } else {
+          // Regular website - use main login
+          window.location.href = '/login?returnTo=' + encodeURIComponent(currentPath);
+        }
       }
       throw new Error('Authentication required. Please log in again.');
     }

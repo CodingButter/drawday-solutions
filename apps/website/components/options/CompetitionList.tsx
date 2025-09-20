@@ -38,8 +38,20 @@ function CompetitionBanner({
       if (competition.bannerImageId) {
         setLoading(true);
         try {
-          const image = await imageStore.getImage(competition.bannerImageId);
-          setBannerUrl(image || undefined);
+          // Check if it's a Directus UUID (standard UUID format)
+          const isDirectusUUID =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+              competition.bannerImageId
+            );
+
+          if (isDirectusUUID) {
+            // Use our proxy API to fetch Directus assets with authentication
+            setBannerUrl(`/api/assets/${competition.bannerImageId}`);
+          } else {
+            // Fallback to IndexedDB for legacy data
+            const image = await imageStore.getImage(competition.bannerImageId);
+            setBannerUrl(image || undefined);
+          }
         } catch (error) {
           console.error('Error loading banner:', error);
           setBannerUrl(undefined);

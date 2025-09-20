@@ -76,7 +76,7 @@ class DirectusSettingsService {
       const response = await authenticatedFetch(API_BASE);
 
       if (!response.ok) {
-          return null;
+        return null;
       }
 
       const data = await response.json();
@@ -178,7 +178,9 @@ class DirectusSettingsService {
   }
 
   // Update branding
-  async updateBranding(branding: Partial<UserSettings['theme_settings']['branding']>): Promise<void> {
+  async updateBranding(
+    branding: Partial<NonNullable<UserSettings['theme_settings']>['branding']>
+  ): Promise<void> {
     const current = this.cache?.theme_settings || {};
     await this.saveSettings({
       theme_settings: {
@@ -192,7 +194,9 @@ class DirectusSettingsService {
   }
 
   // Update spinner settings
-  async updateSpinnerSettings(spinnerSettings: Partial<UserSettings['spinner_settings']>): Promise<void> {
+  async updateSpinnerSettings(
+    spinnerSettings: Partial<UserSettings['spinner_settings']>
+  ): Promise<void> {
     const current = this.cache?.spinner_settings || {};
     await this.saveSettings({
       spinner_settings: {
@@ -203,7 +207,9 @@ class DirectusSettingsService {
   }
 
   // Update spinner style
-  async updateSpinnerStyle(style: Partial<UserSettings['theme_settings']['spinnerStyle']>): Promise<void> {
+  async updateSpinnerStyle(
+    style: Partial<NonNullable<UserSettings['theme_settings']>['spinnerStyle']>
+  ): Promise<void> {
     const current = this.cache?.theme_settings || {};
     await this.saveSettings({
       theme_settings: {
@@ -236,7 +242,7 @@ class DirectusSettingsService {
   // Delete a saved mapping
   async deleteSavedMapping(mappingId: string): Promise<void> {
     const current = this.cache?.saved_mappings || [];
-    const updated = current.filter(m => m.id !== mappingId);
+    const updated = current.filter((m) => m.id !== mappingId);
     await this.saveSettings({ saved_mappings: updated });
   }
 

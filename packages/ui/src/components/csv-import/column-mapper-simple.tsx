@@ -5,7 +5,7 @@
  * using standard HTML select elements for better compatibility and clarity.
  */
 
-import React from 'react';
+import React from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,13 +13,13 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '../dialog';
-import { Button } from '../button';
-import { Label } from '../label';
-import { Input } from '../input';
-import { Checkbox } from '../checkbox';
-import { ChevronDown } from 'lucide-react';
-import type { ColumnMapping, SavedMapping } from '@raffle-spinner/types';
+} from "../dialog";
+import { Button } from "../button";
+import { Label } from "../label";
+import { Input } from "../input";
+import { Checkbox } from "../checkbox";
+import { ChevronDown } from "lucide-react";
+import type { ColumnMapping, SavedMapping } from "@raffle-spinner/types";
 
 interface ColumnMapperProps {
   open: boolean;
@@ -47,27 +47,29 @@ export function ColumnMapper({
     if (!headers || !Array.isArray(headers)) {
       return [];
     }
-    return headers.filter(h => h && typeof h === 'string' && h.trim());
+    return headers.filter((h) => h && typeof h === "string" && h.trim());
   }, [headers]);
 
   // Initialize state with auto-detection
   const [useFullName, setUseFullName] = React.useState<boolean>(false);
-  const [fullNameColumn, setFullNameColumn] = React.useState<string>('');
-  const [firstNameColumn, setFirstNameColumn] = React.useState<string>('');
-  const [lastNameColumn, setLastNameColumn] = React.useState<string>('');
-  const [ticketNumberColumn, setTicketNumberColumn] = React.useState<string>('');
+  const [fullNameColumn, setFullNameColumn] = React.useState<string>("");
+  const [firstNameColumn, setFirstNameColumn] = React.useState<string>("");
+  const [lastNameColumn, setLastNameColumn] = React.useState<string>("");
+  const [ticketNumberColumn, setTicketNumberColumn] =
+    React.useState<string>("");
   const [shouldSaveMapping, setShouldSaveMapping] = React.useState(false);
-  const [mappingName, setMappingName] = React.useState('');
-  const [selectedSavedMappingId, setSelectedSavedMappingId] = React.useState<string>('');
+  const [mappingName, setMappingName] = React.useState("");
+  const [selectedSavedMappingId, setSelectedSavedMappingId] =
+    React.useState<string>("");
 
   // Inject styles and cleanup body styles
   React.useEffect(() => {
     if (open) {
-      const styleId = 'column-mapper-fix-styles';
+      const styleId = "column-mapper-fix-styles";
       let styleEl = document.getElementById(styleId) as HTMLStyleElement;
-      
+
       if (!styleEl) {
-        styleEl = document.createElement('style');
+        styleEl = document.createElement("style");
         styleEl.id = styleId;
         styleEl.innerHTML = `
           /* Dialog overlay */
@@ -242,22 +244,22 @@ export function ColumnMapper({
         `;
         document.head.appendChild(styleEl);
       }
-      
+
       return () => {
         // Clean up styles
         if (styleEl && styleEl.parentNode) {
           styleEl.parentNode.removeChild(styleEl);
         }
         // Remove any lingering body styles that prevent scrolling
-        document.body.style.pointerEvents = '';
-        document.body.style.overflow = '';
+        document.body.style.pointerEvents = "";
+        document.body.style.overflow = "";
       };
     }
-    
+
     return () => {
       // Remove any lingering body styles that prevent scrolling
-      document.body.style.pointerEvents = '';
-      document.body.style.overflow = '';
+      document.body.style.pointerEvents = "";
+      document.body.style.overflow = "";
     };
   }, [open]);
 
@@ -265,50 +267,60 @@ export function ColumnMapper({
   React.useEffect(() => {
     if (open && safeHeaders.length > 0) {
       // Reset state
-      setFullNameColumn('');
-      setFirstNameColumn('');
-      setLastNameColumn('');
-      setTicketNumberColumn('');
-      
+      setFullNameColumn("");
+      setFirstNameColumn("");
+      setLastNameColumn("");
+      setTicketNumberColumn("");
+
       // Auto-detect from headers
       safeHeaders.forEach((header) => {
         const lower = header.toLowerCase();
-        
+
         // Detect full name
-        if (!fullNameColumn && (
-          lower === 'name' || 
-          lower === 'full name' || 
-          lower === 'fullname' ||
-          lower === 'participant'
-        )) {
+        if (
+          !fullNameColumn &&
+          (lower === "name" ||
+            lower === "full name" ||
+            lower === "fullname" ||
+            lower === "participant")
+        ) {
           setFullNameColumn(header);
           setUseFullName(true);
         }
-        
+
         // Detect first name
-        if (!firstNameColumn && lower.includes('first') && lower.includes('name')) {
+        if (
+          !firstNameColumn &&
+          lower.includes("first") &&
+          lower.includes("name")
+        ) {
           setFirstNameColumn(header);
         }
-        
+
         // Detect last name
-        if (!lastNameColumn && lower.includes('last') && lower.includes('name')) {
+        if (
+          !lastNameColumn &&
+          lower.includes("last") &&
+          lower.includes("name")
+        ) {
           setLastNameColumn(header);
         }
-        
+
         // Detect ticket number
-        if (!ticketNumberColumn && (
-          lower.includes('ticket') || 
-          lower.includes('number') || 
-          lower === 'no' || 
-          lower === '#' ||
-          lower === 'id' ||
-          lower === 'entry' ||
-          lower === 'ticketnumber'
-        )) {
+        if (
+          !ticketNumberColumn &&
+          (lower.includes("ticket") ||
+            lower.includes("number") ||
+            lower === "no" ||
+            lower === "#" ||
+            lower === "id" ||
+            lower === "entry" ||
+            lower === "ticketnumber")
+        ) {
           setTicketNumberColumn(header);
         }
       });
-      
+
       // If we have first/last name but no full name, use separate mode
       if (firstNameColumn && lastNameColumn && !fullNameColumn) {
         setUseFullName(false);
@@ -352,39 +364,41 @@ export function ColumnMapper({
         await onSaveMapping(savedMapping);
       }
 
-      console.log('ColumnMapper - calling onConfirm with mapping:', mapping);
+      console.log("ColumnMapper - calling onConfirm with mapping:", mapping);
       onConfirm(mapping, savedMapping);
       // The parent should close the modal by setting open to false
     }
   };
 
-  const handleSelectSavedMapping = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleSelectSavedMapping = (
+    e: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
     const mappingId = e.target.value;
-    
-    if (mappingId === 'manual') {
-      setSelectedSavedMappingId('');
+
+    if (mappingId === "manual") {
+      setSelectedSavedMappingId("");
       setShouldSaveMapping(false);
       // Reset to auto-detected values
       return;
     }
-    
+
     const saved = savedMappings.find((m) => m.id === mappingId);
     if (saved) {
       setSelectedSavedMappingId(mappingId);
       setShouldSaveMapping(false);
-      
+
       if (saved.mapping.fullName) {
         setUseFullName(true);
         setFullNameColumn(saved.mapping.fullName);
-        setFirstNameColumn('');
-        setLastNameColumn('');
+        setFirstNameColumn("");
+        setLastNameColumn("");
       } else {
         setUseFullName(false);
-        setFullNameColumn('');
-        setFirstNameColumn(saved.mapping.firstName || '');
-        setLastNameColumn(saved.mapping.lastName || '');
+        setFullNameColumn("");
+        setFirstNameColumn(saved.mapping.firstName || "");
+        setLastNameColumn(saved.mapping.lastName || "");
       }
-      setTicketNumberColumn(saved.mapping.ticketNumber || '');
+      setTicketNumberColumn(saved.mapping.ticketNumber || "");
     }
   };
 
@@ -393,16 +407,22 @@ export function ColumnMapper({
     : firstNameColumn && lastNameColumn && ticketNumberColumn;
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => {
-      console.log('Dialog onOpenChange called with:', isOpen);
-      if (!isOpen) {
-        onClose();
-      }
-    }}>
-      <DialogContent className="max-w-lg" onInteractOutside={(e) => {
-        // Prevent closing on outside click to avoid accidental closes
-        e.preventDefault();
-      }}>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        console.log("Dialog onOpenChange called with:", isOpen);
+        if (!isOpen) {
+          onClose();
+        }
+      }}
+    >
+      <DialogContent
+        className="max-w-lg"
+        onInteractOutside={(e) => {
+          // Prevent closing on outside click to avoid accidental closes
+          e.preventDefault();
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Map CSV Columns</DialogTitle>
           <DialogDescription>
@@ -417,20 +437,20 @@ export function ColumnMapper({
               <Label htmlFor="savedMapping">Use Saved Mapping</Label>
               <select
                 id="savedMapping"
-                value={selectedSavedMappingId || 'manual'}
+                value={selectedSavedMappingId || "manual"}
                 onChange={handleSelectSavedMapping}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <option value="manual">Configure manually</option>
                 {savedMappings.map((saved) => (
                   <option key={saved.id} value={saved.id}>
-                    {saved.name} {saved.isDefault && '(Default)'}
+                    {saved.name} {saved.isDefault && "(Default)"}
                   </option>
                 ))}
               </select>
             </div>
           )}
-          
+
           {/* Toggle between full name and separate name columns */}
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
@@ -442,7 +462,10 @@ export function ColumnMapper({
                 onChange={() => setUseFullName(false)}
                 className="h-4 w-4"
               />
-              <Label htmlFor="separateNames" className="font-normal cursor-pointer">
+              <Label
+                htmlFor="separateNames"
+                className="font-normal cursor-pointer"
+              >
                 Separate first and last name columns
               </Label>
             </div>
@@ -483,7 +506,8 @@ export function ColumnMapper({
                 <ChevronDown className="absolute right-3 top-3 h-4 w-4 opacity-50 pointer-events-none" />
               </div>
               <p className="text-xs text-muted-foreground">
-                Names will be automatically split. Supports "First Last", "Last, First", and multi-word names.
+                Names will be automatically split. Supports &quot;First
+                Last&quot;, &quot;Last, First&quot;, and multi-word names.
               </p>
             </div>
           ) : (
@@ -557,10 +581,15 @@ export function ColumnMapper({
                 <Checkbox
                   id="saveMapping"
                   checked={shouldSaveMapping}
-                  onCheckedChange={(checked) => setShouldSaveMapping(checked as boolean)}
+                  onCheckedChange={(checked) =>
+                    setShouldSaveMapping(checked as boolean)
+                  }
                   disabled={!!selectedSavedMappingId}
                 />
-                <Label htmlFor="saveMapping" className="font-normal cursor-pointer">
+                <Label
+                  htmlFor="saveMapping"
+                  className="font-normal cursor-pointer"
+                >
                   Save this mapping for future use
                 </Label>
               </div>
@@ -576,7 +605,11 @@ export function ColumnMapper({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} data-button-variant="outline">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            data-button-variant="outline"
+          >
             Cancel
           </Button>
           <Button

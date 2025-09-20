@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     // Get user details with all fields - first get the user ID from the token
     const meResponse = await fetch(`${DIRECTUS_URL}/users/me`, {
       headers: {
-        'Authorization': `Bearer ${access_token}`,
+        Authorization: `Bearer ${access_token}`,
       },
     });
 
@@ -60,12 +60,12 @@ export async function POST(request: NextRequest) {
     const userId = meData.data.id;
 
     // Use the admin token directly to fetch full user data
-    const adminToken = process.env.DIRECTUS_ADMIN_TOKEN || 'mNjKgq86jnVokcdwBRKkXgrHEoROvR04';
+    const adminToken = process.env.DIRECTUS_ADMIN_TOKEN;
 
     // Fetch full user data with admin token
     const userResponse = await fetch(`${DIRECTUS_URL}/users/${userId}`, {
       headers: {
-        'Authorization': `Bearer ${adminToken}`,
+        Authorization: `Bearer ${adminToken}`,
       },
     });
 

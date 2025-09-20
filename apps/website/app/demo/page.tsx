@@ -8,7 +8,7 @@
 
 import { useState, useEffect } from 'react';
 import { SlotMachineWheel } from '@raffle-spinner/spinners';
-import type { Participant, SpinnerSettings } from '@raffle-spinner/storage';
+import type { Participant, SpinnerSettings } from '@raffle-spinner/types';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@raffle-spinner/ui';
 import { Input, Label } from '@raffle-spinner/ui';
 import confetti from 'canvas-confetti';
@@ -216,6 +216,7 @@ export default function DemoPage() {
                       onKeyDown={(e) => e.key === 'Enter' && !isSpinning && handleSpin()}
                       placeholder="e.g., 001"
                       disabled={isSpinning}
+                      autoComplete="off"
                     />
                     <Button
                       onClick={handleRandomSpin}
@@ -326,10 +327,11 @@ export default function DemoPage() {
                       settings={DEFAULT_SETTINGS}
                       isSpinning={isSpinning}
                       onSpinComplete={handleSpinComplete}
-                      onError={(error) => {
+                      onError={(error: string) => {
                         setError(error);
                         setIsSpinning(false);
                       }}
+                      className="w-full max-w-md"
                       theme={{
                         nameColor: '#fdfeff', // White
                         ticketColor: '#e6b540', // DrawDay Gold

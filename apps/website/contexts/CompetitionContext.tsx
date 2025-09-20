@@ -105,19 +105,21 @@ const updateCompetitionInDirectus = async (
       directusUpdates.participants_data = JSON.stringify(updates.participants);
     if (updates.winners !== undefined)
       directusUpdates.winners_data = JSON.stringify(updates.winners);
-    if (updates.status !== undefined) directusUpdates.status = updates.status;
+    // Status field removed - not part of Competition type
     if (updates.bannerImageId !== undefined)
       directusUpdates.banner_image_id = updates.bannerImageId;
     if (updates.updatedAt !== undefined)
       directusUpdates.updated_at = new Date(updates.updatedAt).toISOString();
 
-    const response = await authenticatedFetch(`/api/competitions/${id}`, {
+    // Use fetch directly to our API endpoint
+    const response = await fetch(`/api/competitions/${id}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('directus_auth_token')}`,
       },
       credentials: 'include', // Include cookies for auth
-      body: JSON.stringify(directusUpdates),
+      body: JSON.stringify(updates), // Send the original updates, API will handle mapping
     });
 
     if (!response.ok) {
@@ -217,18 +219,14 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({ c
       if (comps) {
         setCompetitions(comps);
         hasLoadedInitialRef.current = true;
-        // Also update selected competition if it exists
-        if (selectedCompetition) {
-          const updated = comps.find((c: Competition) => c.id === selectedCompetition.id);
-          if (updated) {
-            setSelectedCompetition(updated);
-          }
-        }
+        // DON'T automatically update selected competition during refresh
+        // This prevents the flipping issue when user manually selects a competition
+        // The selected competition will be updated when user explicitly selects one
       }
     } catch (error) {
       console.error('Failed to refresh competitions:', error);
     }
-  }, [selectedCompetition]);
+  }, []); // Remove selectedCompetition dependency to prevent unnecessary re-renders
 
   const addCompetition = useCallback(async (competition: Competition) => {
     // Save to Directus
@@ -295,12 +293,38 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.log('updateCompetitionBanner called:', { id, hasImage: !!bannerImage });
 
       if (bannerImage) {
-        // Store the image and get its ID
-        const imageId = await imageStore.storeImage(bannerImage);
-        console.log('Stored image with ID:', imageId);
+        try {
+          // Convert base64 to blob
+          const base64Response = await fetch(bannerImage);
+          const blob = await base64Response.blob();
 
-        // Update the competition with the new banner image ID
-        await updateCompetition(id, { bannerImageId: imageId });
+          // Create FormData for upload
+          const formData = new FormData();
+          formData.append('file', blob, `competition-${id}-banner.png`);
+
+          // Upload via our API proxy which handles authentication
+          const uploadResponse = await fetch('/api/upload-file', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!uploadResponse.ok) {
+            const error = await uploadResponse.text();
+            throw new Error(`Failed to upload: ${error}`);
+          }
+
+          const { fileId } = await uploadResponse.json();
+          console.log('Uploaded to Directus with ID:', fileId);
+
+          // Update the competition with the Directus file ID
+          await updateCompetition(id, { bannerImageId: fileId });
+        } catch (error) {
+          console.error('Failed to upload banner to Directus:', error);
+          // Fallback to IndexedDB if Directus upload fails
+          const imageId = await imageStore.storeImage(bannerImage);
+          console.log('Fallback: Stored in IndexedDB with ID:', imageId);
+          await updateCompetition(id, { bannerImageId: imageId });
+        }
       } else {
         // Clear the banner
         await updateCompetition(id, { bannerImageId: undefined });

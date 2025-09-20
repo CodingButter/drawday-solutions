@@ -57,6 +57,7 @@ export interface Competition {
 export interface SpinnerSettings {
   spinDuration: "short" | "medium" | "long"; // Duration presets (2s, 3s, 5s)
   decelerationSpeed: "slow" | "medium" | "fast"; // How quickly wheel slows down
+  spinnerType?: string; // Type of spinner animation (e.g., 'slot_machine', 'wheel', etc.)
 }
 
 /**

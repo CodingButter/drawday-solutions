@@ -132,8 +132,25 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     const body = await request.json();
 
+    // Map frontend field names to Directus field names
+    const updateData: any = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.participants !== undefined) {
+      updateData.participants_data = JSON.stringify(body.participants);
+    }
+    if (body.winners !== undefined) {
+      updateData.winners_data = JSON.stringify(body.winners);
+    }
+    if (body.bannerImageId !== undefined) {
+      updateData.banner_image_id = body.bannerImageId;
+    }
+    if (body.status !== undefined) updateData.status = body.status;
+
     // Log what we're updating
-    console.log('Updating competition:', params.id, 'with:', body);
+    console.log('Updating competition:', params.id, 'with:', updateData);
 
     // Update the competition
     const updateResponse = await fetch(`${DIRECTUS_URL}/items/competitions/${params.id}`, {
@@ -142,10 +159,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         'Content-Type': 'application/json',
         Authorization: `Bearer ${adminToken}`,
       },
-      body: JSON.stringify({
-        ...body,
-        updated_at: new Date().toISOString(),
-      }),
+      body: JSON.stringify(updateData),
     });
 
     if (!updateResponse.ok) {

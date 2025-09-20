@@ -1,6 +1,6 @@
 /**
  * CSV Import Hook for Website
- * 
+ *
  * Adapted version of the extension's CSV import hook for use in the Next.js website.
  * Uses React state and localStorage instead of Chrome storage API.
  */
@@ -11,47 +11,49 @@ import type { ColumnMapping, SavedMapping } from "@raffle-spinner/types";
 
 // Enhanced CSV parsing that detects delimiter
 function parseCSV(text: string): string[][] {
-  const lines = text.split(/\r?\n/).map(line => line.trim()).filter(line => line);
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line);
   if (lines.length === 0) return [];
-  
+
   // Detect delimiter by checking first line
   const firstLine = lines[0];
-  let delimiter = ',';
-  
+  let delimiter = ",";
+
   // Count occurrences of common delimiters (excluding those within quotes)
   let inQuotes = false;
   let commaCount = 0;
   let semicolonCount = 0;
   let tabCount = 0;
-  
+
   for (let i = 0; i < firstLine.length; i++) {
     const char = firstLine[i];
     if (char === '"') {
       inQuotes = !inQuotes;
     } else if (!inQuotes) {
-      if (char === ',') commaCount++;
-      else if (char === ';') semicolonCount++;
-      else if (char === '\t') tabCount++;
+      if (char === ",") commaCount++;
+      else if (char === ";") semicolonCount++;
+      else if (char === "\t") tabCount++;
     }
   }
-  
+
   // Choose the most frequent delimiter
   if (semicolonCount > commaCount && semicolonCount > tabCount) {
-    delimiter = ';';
+    delimiter = ";";
   } else if (tabCount > commaCount && tabCount > semicolonCount) {
-    delimiter = '\t';
+    delimiter = "\t";
   }
-  
-  
-  return lines.map((line, lineIndex) => {
+
+  return lines.map((line) => {
     const result = [];
-    let current = '';
+    let current = "";
     let inQuotes = false;
-    
+
     for (let i = 0; i < line.length; i++) {
       const char = line[i];
       const nextChar = line[i + 1];
-      
+
       if (char === '"') {
         if (inQuotes && nextChar === '"') {
           // Handle escaped quotes
@@ -62,43 +64,52 @@ function parseCSV(text: string): string[][] {
         }
       } else if (char === delimiter && !inQuotes) {
         result.push(current.trim());
-        current = '';
+        current = "";
       } else {
         current += char;
       }
     }
-    
+
     // Add the last field
     result.push(current.trim());
-    
+
     // Debug first line parsing
-    if (lineIndex === 0) {
-    }
-    
+    // if (lineIndex === 0) {
+    //   console.log('First line parsed:', result);
+    // }
+
     return result;
   });
 }
 
 function detectColumnMapping(headers: string[]): Partial<ColumnMapping> {
   const mapping: Partial<ColumnMapping> = {};
-  
+
   headers.forEach((header) => {
     const lower = header.toLowerCase();
-    
-    if (lower.includes('first') && lower.includes('name')) {
+
+    if (lower.includes("first") && lower.includes("name")) {
       mapping.firstName = header;
-    } else if (lower.includes('last') && lower.includes('name')) {
+    } else if (lower.includes("last") && lower.includes("name")) {
       mapping.lastName = header;
-    } else if (lower === 'name' || lower === 'full name' || lower === 'fullname') {
+    } else if (
+      lower === "name" ||
+      lower === "full name" ||
+      lower === "fullname"
+    ) {
       mapping.fullName = header;
-    } else if (lower.includes('ticket') || lower.includes('number') || lower === 'no' || lower === '#') {
+    } else if (
+      lower.includes("ticket") ||
+      lower.includes("number") ||
+      lower === "no" ||
+      lower === "#"
+    ) {
       mapping.ticketNumber = header;
     }
   });
-  
+
   return mapping;
 }
-
 
 interface UseCSVImportProps<T = any> {
   addCompetition: (competition: T) => Promise<void>;
@@ -119,14 +130,15 @@ export function useCSVImport<T = any>({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [showNameModal, setShowNameModal] = useState(false);
   const [showMapperModal, setShowMapperModal] = useState(false);
-  
+
   // Debug modal state changes
-  useEffect(() => {
-  }, [showMapperModal]);
+  useEffect(() => {}, [showMapperModal]);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [showConversionModal, setShowConversionModal] = useState(false);
   const [detectedHeaders, setDetectedHeaders] = useState<string[]>([]);
-  const [detectedMapping, setDetectedMapping] = useState<Partial<ColumnMapping>>({});
+  const [detectedMapping, setDetectedMapping] = useState<
+    Partial<ColumnMapping>
+  >({});
   const [duplicates, setDuplicates] = useState<
     Array<{ ticketNumber: string; names: string[] }>
   >([]);
@@ -145,18 +157,18 @@ export function useCSVImport<T = any>({
   } | null>(null);
 
   // Monitor detected headers changes
-  useEffect(() => {
-  }, [detectedHeaders]);
+  useEffect(() => {}, [detectedHeaders]);
 
   // Load saved mappings from localStorage
   useEffect(() => {
     const loadSavedMappings = () => {
       try {
-        const stored = localStorage.getItem('savedMappings');
+        const stored = localStorage.getItem("savedMappings");
         if (stored) {
           setSavedMappings(JSON.parse(stored));
         }
       } catch (error) {
+        // Ignore parse errors for saved mappings
       }
     };
 
@@ -164,38 +176,38 @@ export function useCSVImport<T = any>({
 
     // Listen for storage changes
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'savedMappings' && e.newValue) {
+      if (e.key === "savedMappings" && e.newValue) {
         try {
           setSavedMappings(JSON.parse(e.newValue));
         } catch (error) {
+          // Ignore parse errors for saved mappings
         }
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
   const detectColumns = async (file: File) => {
     const text = await file.text();
-    
+
     // Parse the entire CSV to get proper headers
     const parsedData = parseCSV(text);
-    
+
     if (parsedData.length === 0) {
-      throw new Error('CSV file is empty');
+      throw new Error("CSV file is empty");
     }
-    
+
     // Get the headers from the first row
     const headers = parsedData[0] || [];
-    
-    
+
     // Filter out empty headers
-    const cleanHeaders = headers.filter(h => h && h.trim());
-    
+    const cleanHeaders = headers.filter((h) => h && h.trim());
+
     // Use the detection function from csv-parser
     const detected = detectColumnMapping(cleanHeaders);
-    
+
     return { headers: cleanHeaders, detected };
   };
 
@@ -212,9 +224,9 @@ export function useCSVImport<T = any>({
       setDetectedMapping(detected);
 
       // Suggest a saved mapping if headers match
-      const matchingMapping = savedMappings.find(m => {
+      const matchingMapping = savedMappings.find((m) => {
         const mappingHeaders = Object.values(m.mapping).filter(Boolean);
-        return mappingHeaders.every(h => headers.includes(h as string));
+        return mappingHeaders.every((h) => headers.includes(h as string));
       });
 
       if (matchingMapping) {
@@ -230,7 +242,7 @@ export function useCSVImport<T = any>({
     } catch (error) {
       setImportSummary({
         success: false,
-        message: 'Failed to read CSV file',
+        message: "Failed to read CSV file",
       });
     }
   };
@@ -244,7 +256,10 @@ export function useCSVImport<T = any>({
     }, 100);
   };
 
-  const handleMappingConfirm = async (mapping: ColumnMapping, _saveMapping?: SavedMapping) => {
+  const handleMappingConfirm = async (
+    mapping: ColumnMapping,
+    _saveMapping?: SavedMapping,
+  ) => {
     if (!selectedFile) return;
 
     try {
@@ -254,54 +269,62 @@ export function useCSVImport<T = any>({
       // Parse the CSV with the confirmed mapping
       const text = await selectedFile.text();
       const rows = parseCSV(text);
-      
+
       if (rows.length < 2) {
-        throw new Error('CSV file has no data rows');
+        throw new Error("CSV file has no data rows");
       }
 
       // Skip header row and process data
       const headerRow = rows[0];
-      
-      const participants = rows.slice(1).map(row => {
-        const firstName = mapping.firstName ? row[headerRow.indexOf(mapping.firstName)] : '';
-        const lastName = mapping.lastName ? row[headerRow.indexOf(mapping.lastName)] : '';
-        const fullName = mapping.fullName ? row[headerRow.indexOf(mapping.fullName)] : '';
-        const ticketNumber = mapping.ticketNumber ? row[headerRow.indexOf(mapping.ticketNumber)] : '';
 
-        // If using fullName, split it
-        let finalFirstName = firstName;
-        let finalLastName = lastName;
-        
-        if (!firstName && !lastName && fullName) {
-          const parts = fullName.trim().split(/\s+/);
-          finalFirstName = parts[0] || '';
-          finalLastName = parts.slice(1).join(' ') || '';
-        }
+      const participants = rows
+        .slice(1)
+        .map((row) => {
+          const firstName = mapping.firstName
+            ? row[headerRow.indexOf(mapping.firstName)]
+            : "";
+          const lastName = mapping.lastName
+            ? row[headerRow.indexOf(mapping.lastName)]
+            : "";
+          const fullName = mapping.fullName
+            ? row[headerRow.indexOf(mapping.fullName)]
+            : "";
+          const ticketNumber = mapping.ticketNumber
+            ? row[headerRow.indexOf(mapping.ticketNumber)]
+            : "";
 
-        return {
-          firstName: finalFirstName,
-          lastName: finalLastName,
-          ticketNumber: ticketNumber
-        };
-      }).filter(p => p.ticketNumber); // Filter out entries without ticket numbers
+          // If using fullName, split it
+          let finalFirstName = firstName;
+          let finalLastName = lastName;
+
+          if (!firstName && !lastName && fullName) {
+            const parts = fullName.trim().split(/\s+/);
+            finalFirstName = parts[0] || "";
+            finalLastName = parts.slice(1).join(" ") || "";
+          }
+
+          return {
+            firstName: finalFirstName,
+            lastName: finalLastName,
+            ticketNumber: ticketNumber,
+          };
+        })
+        .filter((p) => p.ticketNumber); // Filter out entries without ticket numbers
 
       // Check for non-numeric ticket numbers that need conversion
-      const needsConversion = participants.filter(p => {
+      const needsConversion = participants.filter((p) => {
         // Check if ticket number contains non-numeric characters
         const hasNonNumeric = p.ticketNumber && !/^\d+$/.test(p.ticketNumber);
-        if (hasNonNumeric) {
-        }
         return hasNonNumeric;
       });
-      
 
       if (needsConversion.length > 0) {
         // Convert ticket numbers by extracting only digits
-        const conversions = needsConversion.map(p => ({
+        const conversions = needsConversion.map((p) => ({
           original: p.ticketNumber,
-          converted: p.ticketNumber.replace(/\D/g, '') || null,
+          converted: p.ticketNumber.replace(/\D/g, "") || null,
           firstName: p.firstName,
-          lastName: p.lastName
+          lastName: p.lastName,
         }));
 
         // Always show the conversion modal when there are non-numeric tickets
@@ -314,7 +337,7 @@ export function useCSVImport<T = any>({
 
       // Check for duplicates
       const ticketMap = new Map<string, string[]>();
-      participants.forEach(p => {
+      participants.forEach((p) => {
         const key = p.ticketNumber;
         if (!ticketMap.has(key)) {
           ticketMap.set(key, []);
@@ -339,7 +362,7 @@ export function useCSVImport<T = any>({
     } catch (error) {
       setImportSummary({
         success: false,
-        message: 'Failed to process CSV file',
+        message: "Failed to process CSV file",
       });
       setShowMapperModal(false);
     }
@@ -351,37 +374,48 @@ export function useCSVImport<T = any>({
     try {
       const text = await selectedFile.text();
       const rows = parseCSV(text);
-      
+
       // Process with duplicates (keeping first occurrence)
       const seen = new Set<string>();
-      const participants = rows.slice(1).map(row => {
-        const firstName = columnMapping.firstName ? row[detectedHeaders.indexOf(columnMapping.firstName)] : '';
-        const lastName = columnMapping.lastName ? row[detectedHeaders.indexOf(columnMapping.lastName)] : '';
-        const fullName = columnMapping.fullName ? row[detectedHeaders.indexOf(columnMapping.fullName)] : '';
-        const ticketNumber = columnMapping.ticketNumber ? row[detectedHeaders.indexOf(columnMapping.ticketNumber)] : '';
+      const participants = rows
+        .slice(1)
+        .map((row) => {
+          const firstName = columnMapping.firstName
+            ? row[detectedHeaders.indexOf(columnMapping.firstName)]
+            : "";
+          const lastName = columnMapping.lastName
+            ? row[detectedHeaders.indexOf(columnMapping.lastName)]
+            : "";
+          const fullName = columnMapping.fullName
+            ? row[detectedHeaders.indexOf(columnMapping.fullName)]
+            : "";
+          const ticketNumber = columnMapping.ticketNumber
+            ? row[detectedHeaders.indexOf(columnMapping.ticketNumber)]
+            : "";
 
-        // If using fullName, split it
-        let finalFirstName = firstName;
-        let finalLastName = lastName;
-        
-        if (!firstName && !lastName && fullName) {
-          const parts = fullName.trim().split(/\s+/);
-          finalFirstName = parts[0] || '';
-          finalLastName = parts.slice(1).join(' ') || '';
-        }
+          // If using fullName, split it
+          let finalFirstName = firstName;
+          let finalLastName = lastName;
 
-        return {
-          firstName: finalFirstName,
-          lastName: finalLastName,
-          ticketNumber: ticketNumber
-        };
-      }).filter(p => {
-        if (!p.ticketNumber || seen.has(p.ticketNumber)) {
-          return false;
-        }
-        seen.add(p.ticketNumber);
-        return true;
-      });
+          if (!firstName && !lastName && fullName) {
+            const parts = fullName.trim().split(/\s+/);
+            finalFirstName = parts[0] || "";
+            finalLastName = parts.slice(1).join(" ") || "";
+          }
+
+          return {
+            firstName: finalFirstName,
+            lastName: finalLastName,
+            ticketNumber: ticketNumber,
+          };
+        })
+        .filter((p) => {
+          if (!p.ticketNumber || seen.has(p.ticketNumber)) {
+            return false;
+          }
+          seen.add(p.ticketNumber);
+          return true;
+        });
 
       await createAndSaveCompetition(participants);
       setShowDuplicateModal(false);
@@ -389,7 +423,7 @@ export function useCSVImport<T = any>({
     } catch (error) {
       setImportSummary({
         success: false,
-        message: 'Failed to process CSV file',
+        message: "Failed to process CSV file",
       });
       setShowDuplicateModal(false);
     }
@@ -398,17 +432,17 @@ export function useCSVImport<T = any>({
   const handleConversionProceed = async () => {
     // Filter out invalid conversions (those with no numeric characters)
     const validParticipants = ticketConversions
-      .filter(c => c.converted !== null && c.converted !== '')
-      .map(c => ({
+      .filter((c) => c.converted !== null && c.converted !== "")
+      .map((c) => ({
         firstName: c.firstName,
         lastName: c.lastName,
-        ticketNumber: c.converted as string
+        ticketNumber: c.converted as string,
       }));
 
     if (validParticipants.length === 0) {
       setImportSummary({
         success: false,
-        message: 'No valid participants found after conversion',
+        message: "No valid participants found after conversion",
       });
       setShowConversionModal(false);
       return;
@@ -416,7 +450,7 @@ export function useCSVImport<T = any>({
 
     // Check for duplicates after conversion
     const ticketMap = new Map<string, string[]>();
-    validParticipants.forEach(p => {
+    validParticipants.forEach((p) => {
       const key = p.ticketNumber;
       if (!ticketMap.has(key)) {
         ticketMap.set(key, []);
@@ -447,7 +481,7 @@ export function useCSVImport<T = any>({
         name: competitionName,
         participants,
         createdAt: Date.now(),
-        updatedAt: Date.now()
+        updatedAt: Date.now(),
       };
 
       await addCompetition(competition);
@@ -459,14 +493,14 @@ export function useCSVImport<T = any>({
 
       // Reset form
       setSelectedFile(null);
-      setCompetitionName('');
+      setCompetitionName("");
       if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        fileInputRef.current.value = "";
       }
     } catch (error) {
       setImportSummary({
         success: false,
-        message: 'Failed to create competition',
+        message: "Failed to create competition",
       });
     }
   };

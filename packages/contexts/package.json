@@ -30,7 +30,8 @@
     "@types/chrome": "^0.0.280",
     "react": "^18.3.1",
     "tsup": "^8.5.0",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "@raffle-spinner/tsup-config": "workspace:*"
   },
   "peerDependencies": {
     "react": "^18.0.0"

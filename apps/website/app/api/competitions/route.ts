@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const DIRECTUS_URL = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://db.drawday.app';
-const DIRECTUS_ADMIN_TOKEN = process.env.DIRECTUS_ADMIN_TOKEN || 'mNjKgq86jnVokcdwBRKkXgrHEoROvR04';
+const DIRECTUS_ADMIN_TOKEN = process.env.DIRECTUS_ADMIN_TOKEN;
 
 // Helper function to get admin token
 async function getAdminToken(): Promise<string> {
@@ -147,12 +147,21 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // Remove redundant fields and map to frontend format
+      const {
+        banner_image,
+        banner_image_id, // Remove this from spread since we're mapping it
+        created_at,
+        date_created,
+        ...cleanComp
+      } = comp;
+
       return {
-        ...comp,
+        ...cleanComp,
         participants,
         winners,
-        bannerImageId: comp.banner_image_id, // Map Directus field to frontend field
-        createdAt: comp.created_at || comp.date_created, // Map Directus timestamp fields
+        bannerImageId: banner_image_id || null, // Map Directus field to frontend field
+        createdAt: created_at || date_created, // Map Directus timestamp fields
       };
     });
 
@@ -196,7 +205,7 @@ export async function POST(request: NextRequest) {
       name: body.name,
       participants_data: body.participants ? JSON.stringify(body.participants) : null,
       winners_data: body.winners ? JSON.stringify(body.winners) : null,
-      banner_image: body.bannerImageId || null,
+      banner_image_id: body.bannerImageId || null,
       user_id: user.id,
       created_at: new Date().toISOString(),
       status: 'active',

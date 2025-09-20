@@ -6,7 +6,12 @@
  */
 
 import { storage } from '@raffle-spinner/storage';
-import type { SpinnerSettings, ColumnMapping, SavedMapping, ThemeSettings } from '@raffle-spinner/types';
+import type {
+  SpinnerSettings,
+  ColumnMapping,
+  SavedMapping,
+  ThemeSettings,
+} from '@raffle-spinner/types';
 
 interface DirectusSettingsMessage {
   type: 'SETTINGS_UPDATE' | 'SETTINGS_REQUEST' | 'SETTINGS_RESPONSE';
@@ -22,7 +27,7 @@ interface DirectusSettingsMessage {
 class SettingsSyncService {
   private iframe: HTMLIFrameElement | null = null;
   private syncEnabled: boolean = false;
-  private pendingRequests: Map<string, (data: any) => void> = new Map();
+  private pendingRequests: Map<string, (data: unknown) => void> = new Map();
 
   /**
    * Initialize the sync service with the iframe reference
@@ -103,7 +108,9 @@ class SettingsSyncService {
     }
 
     if (payload.theme && 'saveTheme' in storage) {
-      promises.push((storage as any).saveTheme(payload.theme));
+      promises.push(
+        (storage as { saveTheme: (theme: ThemeSettings) => Promise<void> }).saveTheme(payload.theme)
+      );
     }
 
     if (payload.columnMapping !== undefined && payload.columnMapping !== null) {
@@ -111,11 +118,19 @@ class SettingsSyncService {
     }
 
     if (payload.savedMappings !== undefined && 'saveSavedMappings' in storage) {
-      promises.push((storage as any).saveSavedMappings(payload.savedMappings));
+      promises.push(
+        (
+          storage as { saveSavedMappings: (mappings: SavedMapping[]) => Promise<void> }
+        ).saveSavedMappings(payload.savedMappings)
+      );
     }
 
     if (payload.defaultMappingId !== undefined && 'saveDefaultMappingId' in storage) {
-      promises.push((storage as any).saveDefaultMappingId(payload.defaultMappingId));
+      promises.push(
+        (storage as { saveDefaultMappingId: (id: string) => Promise<void> }).saveDefaultMappingId(
+          payload.defaultMappingId
+        )
+      );
     }
 
     await Promise.all(promises);
@@ -142,13 +157,15 @@ class SettingsSyncService {
   /**
    * Send settings update to website
    */
-  async updateSettings(updates: Partial<{
-    spinner: SpinnerSettings;
-    theme: ThemeSettings;
-    columnMapping: ColumnMapping | null;
-    savedMappings: SavedMapping[];
-    defaultMappingId: string;
-  }>) {
+  async updateSettings(
+    updates: Partial<{
+      spinner: SpinnerSettings;
+      theme: ThemeSettings;
+      columnMapping: ColumnMapping | null;
+      savedMappings: SavedMapping[];
+      defaultMappingId: string;
+    }>
+  ) {
     if (!this.iframe || !this.syncEnabled) {
       // If sync is disabled, just save locally
       const promises: Promise<void>[] = [];
@@ -158,7 +175,11 @@ class SettingsSyncService {
       }
 
       if (updates.theme && 'saveTheme' in storage) {
-        promises.push((storage as any).saveTheme(updates.theme));
+        promises.push(
+          (storage as { saveTheme: (theme: ThemeSettings) => Promise<void> }).saveTheme(
+            updates.theme
+          )
+        );
       }
 
       if (updates.columnMapping !== undefined && updates.columnMapping !== null) {
@@ -166,11 +187,19 @@ class SettingsSyncService {
       }
 
       if (updates.savedMappings !== undefined && 'saveSavedMappings' in storage) {
-        promises.push((storage as any).saveSavedMappings(updates.savedMappings));
+        promises.push(
+          (
+            storage as { saveSavedMappings: (mappings: SavedMapping[]) => Promise<void> }
+          ).saveSavedMappings(updates.savedMappings)
+        );
       }
 
       if (updates.defaultMappingId !== undefined && 'saveDefaultMappingId' in storage) {
-        promises.push((storage as any).saveDefaultMappingId(updates.defaultMappingId));
+        promises.push(
+          (storage as { saveDefaultMappingId: (id: string) => Promise<void> }).saveDefaultMappingId(
+            updates.defaultMappingId
+          )
+        );
       }
 
       await Promise.all(promises);
@@ -192,13 +221,15 @@ class SettingsSyncService {
   /**
    * Save settings locally
    */
-  private async saveLocally(updates: Partial<{
-    spinner: SpinnerSettings;
-    theme: ThemeSettings;
-    columnMapping: ColumnMapping | null;
-    savedMappings: SavedMapping[];
-    defaultMappingId: string;
-  }>) {
+  private async saveLocally(
+    updates: Partial<{
+      spinner: SpinnerSettings;
+      theme: ThemeSettings;
+      columnMapping: ColumnMapping | null;
+      savedMappings: SavedMapping[];
+      defaultMappingId: string;
+    }>
+  ) {
     const promises: Promise<void>[] = [];
 
     if (updates.spinner) {
@@ -206,7 +237,9 @@ class SettingsSyncService {
     }
 
     if (updates.theme && 'saveTheme' in storage) {
-      promises.push((storage as any).saveTheme(updates.theme));
+      promises.push(
+        (storage as { saveTheme: (theme: ThemeSettings) => Promise<void> }).saveTheme(updates.theme)
+      );
     }
 
     if (updates.columnMapping !== undefined && updates.columnMapping !== null) {
@@ -214,11 +247,19 @@ class SettingsSyncService {
     }
 
     if (updates.savedMappings !== undefined && 'saveSavedMappings' in storage) {
-      promises.push((storage as any).saveSavedMappings(updates.savedMappings));
+      promises.push(
+        (
+          storage as { saveSavedMappings: (mappings: SavedMapping[]) => Promise<void> }
+        ).saveSavedMappings(updates.savedMappings)
+      );
     }
 
     if (updates.defaultMappingId !== undefined && 'saveDefaultMappingId' in storage) {
-      promises.push((storage as any).saveDefaultMappingId(updates.defaultMappingId));
+      promises.push(
+        (storage as { saveDefaultMappingId: (id: string) => Promise<void> }).saveDefaultMappingId(
+          updates.defaultMappingId
+        )
+      );
     }
 
     await Promise.all(promises);
@@ -232,10 +273,16 @@ class SettingsSyncService {
 
     const [spinner, theme, columnMapping, savedMappings, defaultMappingId] = await Promise.all([
       storage.getSettings(),
-      'getTheme' in storage ? (storage as any).getTheme() : undefined,
+      'getTheme' in storage
+        ? (storage as { getTheme: () => Promise<ThemeSettings | undefined> }).getTheme()
+        : undefined,
       storage.getColumnMapping(),
       storage.getSavedMappings(),
-      'getDefaultMappingId' in storage ? (storage as any).getDefaultMappingId() : undefined,
+      'getDefaultMappingId' in storage
+        ? (
+            storage as { getDefaultMappingId: () => Promise<string | undefined> }
+          ).getDefaultMappingId()
+        : undefined,
     ]);
 
     await this.updateSettings({
@@ -255,7 +302,7 @@ class SettingsSyncService {
 
     return new Promise((resolve) => {
       // Store resolver for when response comes back
-      this.pendingRequests.set('initial-settings', resolve);
+      this.pendingRequests.set('initial-settings', resolve as (data: unknown) => void);
 
       // Request settings
       this.requestSettings();
