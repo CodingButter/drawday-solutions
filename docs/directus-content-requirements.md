@@ -9,7 +9,7 @@ This document outlines the required Directus singleton collections and fields ne
 ### Dummy Data to Remove/Replace
 
 1. **"50+ Raffle Companies Served"** - Currently hardcoded
-2. **"£10M+ Prizes Drawn"** - Currently hardcoded
+2. **"£10M+ Prizes Drawn"** - Currently shows value but should show count of prizes
 3. **"100K+ Live Viewers"** - Should be removed (not trackable)
 4. **Client company names** - Currently placeholder text
 5. **Contact information** - Placeholder phone and address
@@ -163,7 +163,7 @@ This document outlines the required Directus singleton collections and fields ne
 
 - `show_statistics` (Boolean) - Toggle statistics display
 - `companies_served_override` (Integer) - Manual override for company count
-- `total_prizes_value_override` (Decimal) - Manual override for prize value
+- `prizes_drawn_override` (Integer) - Manual override for number of prizes drawn
 - `update_frequency` (String) - How often to update (daily, weekly, monthly)
 - `last_updated` (Timestamp) - Last manual update
 
@@ -236,9 +236,9 @@ _For tracking actual client companies_
 ### Automatic Calculations from Data:
 
 1. **Companies Served**: Count of active companies in `companies` collection
-2. **Total Prize Value**: Sum of `prize_value` from completed competitions
-3. **Total Draws Conducted**: Count of completed competitions
-4. **Average Prize Value**: Calculate from competitions data
+2. **Prizes Drawn**: Total count of all draws/winners from completed competitions (sum of `winner_count` from all competitions)
+3. **Total Prize Value**: Sum of `prize_value` from completed competitions (for internal metrics, not displayed)
+4. **Total Competitions**: Count of completed competitions
 5. **Monthly Active Companies**: Companies with competitions in last 30 days
 
 ### Metrics to Remove:
