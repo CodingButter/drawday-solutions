@@ -39,6 +39,7 @@ export interface UserSettings {
   spinner_settings?: {
     spinDuration?: 'short' | 'medium' | 'long';
     decelerationSpeed?: 'slow' | 'medium' | 'fast';
+    spinnerType?: 'slot_machine' | 'wheel' | 'cards';
   };
   column_mapping?: {
     firstName?: string | null;

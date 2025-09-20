@@ -120,20 +120,33 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
               ...defaultTheme.spinnerStyle,
               ...(settings.theme_settings?.spinnerStyle || {}),
               // Ensure nameSize and ticketSize are valid values
-              nameSize: (settings.theme_settings?.spinnerStyle?.nameSize &&
-                ['small', 'medium', 'large'].includes(settings.theme_settings.spinnerStyle.nameSize as string))
-                ? settings.theme_settings.spinnerStyle.nameSize as 'small' | 'medium' | 'large'
-                : defaultTheme.spinnerStyle.nameSize,
-              ticketSize: (settings.theme_settings?.spinnerStyle?.ticketSize &&
-                ['small', 'medium', 'large'].includes(settings.theme_settings.spinnerStyle.ticketSize as string))
-                ? settings.theme_settings.spinnerStyle.ticketSize as 'small' | 'medium' | 'large'
-                : defaultTheme.spinnerStyle.ticketSize
+              nameSize:
+                settings.theme_settings?.spinnerStyle?.nameSize &&
+                ['small', 'medium', 'large'].includes(
+                  settings.theme_settings.spinnerStyle.nameSize as string
+                )
+                  ? (settings.theme_settings.spinnerStyle.nameSize as 'small' | 'medium' | 'large')
+                  : defaultTheme.spinnerStyle.nameSize,
+              ticketSize:
+                settings.theme_settings?.spinnerStyle?.ticketSize &&
+                ['small', 'medium', 'large'].includes(
+                  settings.theme_settings.spinnerStyle.ticketSize as string
+                )
+                  ? (settings.theme_settings.spinnerStyle.ticketSize as
+                      | 'small'
+                      | 'medium'
+                      | 'large')
+                  : defaultTheme.spinnerStyle.ticketSize,
             },
             branding: {
               logoPosition: settings.theme_settings?.branding?.logoPosition || 'center',
               showCompanyName: settings.theme_settings?.branding?.showCompanyName ?? false,
-              logoImage: settings.logo_image ? directusSettings.getAssetUrl(settings.logo_image) : undefined,
-              bannerImage: settings.banner_image ? directusSettings.getAssetUrl(settings.banner_image) : undefined,
+              logoImage: settings.logo_image
+                ? directusSettings.getAssetUrl(settings.logo_image)
+                : undefined,
+              bannerImage: settings.banner_image
+                ? directusSettings.getAssetUrl(settings.banner_image)
+                : undefined,
               companyName: settings.company_name || undefined,
             },
           };
@@ -162,10 +175,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     };
     await saveTheme(newTheme);
 
-    // Save to Directus - commented out due to permissions
-    // await directusSettings.updateThemeSettings({
-    //   colors: newTheme.colors,
-    // });
+    // Save to Directus
+    await directusSettings.updateThemeSettings({
+      colors: newTheme.colors,
+    });
   };
 
   const updateSpinnerStyle = async (style: Partial<SpinnerStyle>) => {
@@ -175,65 +188,55 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     };
     await saveTheme(newTheme);
 
-    // Save to Directus - commented out due to permissions
-    // await directusSettings.updateThemeSettings({
-    //   spinnerStyle: newTheme.spinnerStyle,
-    // });
+    // Save to Directus
+    await directusSettings.updateSpinnerStyle(style);
   };
 
   const updateBranding = async (branding: Partial<BrandingConfig>) => {
     try {
       setIsLoading(true);
 
-      // Handle image uploads - store locally for now due to Directus permissions
+      // Handle logo upload to Directus
       if (branding.logoImage !== undefined) {
         try {
           if (branding.logoImage) {
-            // For now, just store in localStorage due to Directus permission issues
-            // await directusSettings.updateLogo(branding.logoImage);
-            console.log('Logo stored locally (Directus permissions pending)');
+            await directusSettings.updateLogo(branding.logoImage);
           } else {
-            // await directusSettings.clearLogo();
-            console.log('Logo cleared locally');
+            await directusSettings.clearLogo();
           }
         } catch (error: any) {
           console.error('Logo upload error:', error);
-          // Don't throw error for now, just store locally
+          throw error;
         }
       }
 
+      // Handle banner upload to Directus
       if (branding.bannerImage !== undefined) {
         try {
           if (branding.bannerImage) {
-            // For now, just store in localStorage due to Directus permission issues
-            // await directusSettings.updateBanner(branding.bannerImage);
-            console.log('Banner stored locally (Directus permissions pending)');
+            await directusSettings.updateBanner(branding.bannerImage);
           } else {
-            // await directusSettings.clearBanner();
-            console.log('Banner cleared locally');
+            await directusSettings.clearBanner();
           }
         } catch (error: any) {
           console.error('Banner upload error:', error);
-          // Don't throw error for now, just store locally
+          throw error;
         }
       }
 
-      // Update company name if provided
+      // Update company name in Directus
       if (branding.companyName !== undefined) {
-        // Commented out due to Directus permissions issue
-        // await directusSettings.updateCompanyName(branding.companyName);
-        console.log('Company name stored locally');
+        await directusSettings.updateCompanyName(branding.companyName);
       }
 
       // Update branding settings
       const brandingSettings: any = {};
       if (branding.logoPosition) brandingSettings.logoPosition = branding.logoPosition;
-      if (branding.showCompanyName !== undefined) brandingSettings.showCompanyName = branding.showCompanyName;
+      if (branding.showCompanyName !== undefined)
+        brandingSettings.showCompanyName = branding.showCompanyName;
 
       if (Object.keys(brandingSettings).length > 0) {
-        // Commented out due to Directus permissions issue
-        // await directusSettings.updateBranding(brandingSettings);
-        console.log('Branding settings stored locally');
+        await directusSettings.updateBranding(brandingSettings);
       }
 
       // Update local theme immediately - this prevents page refresh

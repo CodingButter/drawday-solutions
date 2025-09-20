@@ -30,10 +30,7 @@ function SidePanelContent() {
   const { isInIframe, authToken, notifySpinnerComplete } = useExtensionBridge();
   const { competitions, selectedCompetition, selectCompetition, refreshCompetitions } =
     useCompetitions();
-  const [settings, setSettings] = useState<any>({
-    spinDuration: 'medium',
-    decelerationSpeed: 'medium',
-  });
+  const { settings } = useSettings();
   const { theme } = useTheme();
   const [ticketNumber, setTicketNumber] = useState('');
   const [isSpinning, setIsSpinning] = useState(false);
@@ -293,7 +290,10 @@ function SidePanelContent() {
                       targetTicketNumber={ticketNumber}
                       isSpinning={isSpinning}
                       onSpinComplete={handleSpinComplete}
-                      settings={settings}
+                      settings={{
+                        spinDuration: settings?.spinDuration || 'medium',
+                        decelerationSpeed: settings?.decelerationSpeed || 'medium',
+                      }}
                       className="w-full h-full relative z-0"
                       theme={
                         theme?.spinnerStyle
