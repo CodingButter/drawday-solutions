@@ -1,10 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 import './app.css';
-
-// For development, always use localhost
-// Change this to 'https://www.drawday.app' for production builds
-const WEBSITE_URL = 'http://localhost:3000';
+import { WEBSITE_URL } from './config';
 
 console.log('DrawDay Options URL:', WEBSITE_URL);
 

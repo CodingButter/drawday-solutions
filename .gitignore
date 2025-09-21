@@ -59,3 +59,5 @@ apps/extension/RaffleSpinner/
 # Wiki (separate repository)
 wiki/
 .vercel
+apps/extension/DrawDaySpinner/
+apps/extension/drawday-spinner-extension/

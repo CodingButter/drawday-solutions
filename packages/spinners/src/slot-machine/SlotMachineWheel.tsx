@@ -1,6 +1,6 @@
 /**
  * SlotMachineWheel Component
- * 
+ *
  * Slot machine with precise physics and modular structure
  * Displays exactly 100 participants with dual-array management
  */
