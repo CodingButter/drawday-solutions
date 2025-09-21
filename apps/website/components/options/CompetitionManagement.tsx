@@ -16,6 +16,7 @@ import { Upload, Settings, Play } from 'lucide-react';
 import { CompetitionList } from './CompetitionList';
 import { InfoTooltip } from '@raffle-spinner/ui';
 import { helpContent } from '@/lib/help-content';
+import { getExtensionBridge } from '@/lib/extension-bridge';
 
 interface CompetitionManagementProps {
   competitions: Competition[];
@@ -76,7 +77,15 @@ export function CompetitionManagement({
           {competitions.length > 0 && (
             <Button
               variant="default"
-              onClick={() => chrome.runtime.sendMessage({ action: 'openSidePanel' })}
+              onClick={() => {
+                const bridge = getExtensionBridge();
+                if (bridge.openSidePanel) {
+                  bridge.openSidePanel();
+                } else {
+                  // Fallback to postMessage
+                  window.parent.postMessage({ action: 'openSidePanel' }, '*');
+                }
+              }}
               className="gap-2"
             >
               <Play className="h-4 w-4" />
