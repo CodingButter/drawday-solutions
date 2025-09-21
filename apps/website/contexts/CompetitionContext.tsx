@@ -334,8 +334,8 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
 
       // If it's a Directus file ID, use the public Directus assets endpoint
-      const directusUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://db.drawday.app';
-      return `${directusUrl}/assets/${imageId}`;
+      // Always use the hardcoded URL since process.env is not available in browser
+      return `https://db.drawday.app/assets/${imageId}`;
     },
     []
   );

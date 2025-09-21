@@ -3,6 +3,7 @@
   "name": "DrawDay Spinner",
   "version": "1.0.0",
   "description": "Professional live draw spinner for competitions - conduct fair, transparent raffles with style",
+  "update_url": "https://clients2.google.com/service/update2/crx",
   "permissions": ["storage", "sidePanel"],
   "background": {
     "service_worker": "background.js"

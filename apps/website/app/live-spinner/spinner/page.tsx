@@ -192,8 +192,8 @@ function SidePanelContent() {
   useEffect(() => {
     if (selectedCompetition?.bannerImageId) {
       // Competition has its own banner - use direct Directus URL
-      const directusUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://db.drawday.app';
-      const bannerUrl = `${directusUrl}/assets/${selectedCompetition.bannerImageId}`;
+      // Always use the hardcoded URL since process.env is not available in browser
+      const bannerUrl = `https://db.drawday.app/assets/${selectedCompetition.bannerImageId}`;
       setBannerImage(bannerUrl);
     } else if (theme?.branding?.bannerImage) {
       // Use company branding banner (already a data URL)

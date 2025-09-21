@@ -268,10 +268,11 @@ class DirectusSettingsService {
   getAssetUrl(fileId: string): string {
     if (!fileId) return '';
     if (fileId.startsWith('data:')) return fileId; // Return data URL as-is
+    if (fileId.startsWith('http://') || fileId.startsWith('https://')) return fileId; // Already a full URL
 
     // Use Directus public assets endpoint directly
-    const directusUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://db.drawday.app';
-    return `${directusUrl}/assets/${fileId}`;
+    // Always use the hardcoded URL since process.env is not available in browser
+    return `https://db.drawday.app/assets/${fileId}`;
   }
 
   // Clear logo
