@@ -1,8 +1,3 @@
-import { defineConfig } from "tsup";
+import baseConfig from "@raffle-spinner/tsup-config/base";
 
-export default defineConfig({
-  entry: ["src/index.ts"],
-  format: ["cjs", "esm"],
-  dts: false, // Temporarily disabled due to tsup/TypeScript issue
-  clean: false, // Don't clean to preserve manually generated types
-});
+export default baseConfig;

@@ -1,16 +1,17 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import {
-  getUserSettings,
-  updateUserSettings,
-  updateSpinnerSettings as updateSpinnerSettingsInDb,
-  type UserSettings,
-  type SpinnerSettings,
-  defaultSettings
-} from '@/lib/settings-service';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { directusSettings, type UserSettings } from '@/lib/directus-settings';
 import { getStoredUser, isAuthenticated } from '@/lib/directus-auth';
+import { getSettingsSyncService } from '@/lib/settings-sync';
+import { getExtensionBridge } from '@/lib/extension-bridge';
 import type { ColumnMapping, SavedMapping } from '@raffle-spinner/types';
+
+interface SpinnerSettings {
+  spinDuration?: 'short' | 'medium' | 'long';
+  decelerationSpeed?: 'slow' | 'medium' | 'fast';
+  spinnerType?: string;
+}
 
 interface SettingsContextType {
   settings: SpinnerSettings;
@@ -25,11 +26,18 @@ interface SettingsContextType {
 
 const SettingsContext = createContext<SettingsContextType | null>(null);
 
+const defaultSettings: SpinnerSettings = {
+  spinDuration: 'medium',
+  decelerationSpeed: 'medium',
+  spinnerType: 'slot_machine',
+};
+
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
-  const [settings, setSettings] = useState<SpinnerSettings>(defaultSettings.spinner);
+  const [settings, setSettings] = useState<SpinnerSettings>(defaultSettings);
   const [columnMapping, setColumnMapping] = useState<ColumnMapping | null>(null);
   const [savedMappings, setSavedMappings] = useState<SavedMapping[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const syncService = useRef<ReturnType<typeof getSettingsSyncService>>();
 
   // Sync settings to localStorage for polling
   useEffect(() => {
@@ -49,100 +57,180 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       if (user && isAuthenticated()) {
         setUserId(user.id);
         try {
-          const userSettings = await getUserSettings(user.id);
-          setSettings(userSettings.spinner);
+          const userSettings = await directusSettings.getSettings();
+          if (userSettings) {
+            // Load spinner settings
+            if (userSettings.spinner_settings) {
+              setSettings({
+                ...defaultSettings,
+                ...userSettings.spinner_settings,
+              });
+            }
 
-          if (userSettings.columnMapping) {
-            setColumnMapping(userSettings.columnMapping);
-          }
+            // Load column mapping
+            if (userSettings.column_mapping) {
+              setColumnMapping(userSettings.column_mapping as ColumnMapping);
+            }
 
-          if (userSettings.savedMappings) {
-            // Convert legacy saved mappings to new format
-            const mappings = userSettings.savedMappings.map((m: any) => ({
-              id: m.id,
-              name: m.name,
-              mapping: m.mapping,
-              createdAt: m.createdAt || Date.now(),
-              updatedAt: m.updatedAt || Date.now(),
-              usageCount: m.usageCount || 0,
-              isDefault: m.isDefault || false
-            }));
-            setSavedMappings(mappings);
+            // Load saved mappings
+            if (userSettings.saved_mappings) {
+              const mappings = userSettings.saved_mappings.map((m: any) => ({
+                id: m.id,
+                name: m.name,
+                mapping: m.mapping,
+                createdAt: m.createdAt || Date.now(),
+                updatedAt: m.updatedAt || Date.now(),
+                usageCount: m.usageCount || 0,
+                isDefault: m.isDefault || false,
+              }));
+              setSavedMappings(mappings);
+            }
           }
         } catch (error) {
-          console.error('Error loading settings:', error);
+          console.error('Error loading settings from Directus:', error);
         }
       } else {
         setUserId(null);
-        setSettings(defaultSettings.spinner);
+        setSettings(defaultSettings);
         setColumnMapping(null);
         setSavedMappings([]);
       }
     };
 
     checkAuth();
-
-    // Check auth state periodically
-    const interval = setInterval(checkAuth, 5000);
-    return () => clearInterval(interval);
   }, []);
 
   const refreshSettings = useCallback(async () => {
     if (userId) {
       try {
-        const userSettings = await getUserSettings(userId);
-        setSettings(userSettings.spinner);
-        
-        if (userSettings.columnMapping) {
-          setColumnMapping(userSettings.columnMapping);
-        }
-        
-        if (userSettings.savedMappings) {
-          // Convert legacy saved mappings to new format
-          const mappings = userSettings.savedMappings.map((m: any) => ({
-            id: m.id,
-            name: m.name,
-            mapping: m.mapping,
-            createdAt: m.createdAt || Date.now(),
-            updatedAt: m.updatedAt || Date.now(),
-            usageCount: m.usageCount || 0,
-            isDefault: m.isDefault || false
-          }));
-          setSavedMappings(mappings);
-        }
-        
-        // Update localStorage
-        localStorage.setItem('settings', JSON.stringify(userSettings.spinner));
-        if (userSettings.columnMapping) {
-          localStorage.setItem('columnMapping', JSON.stringify(userSettings.columnMapping));
+        const userSettings = await directusSettings.getSettings();
+        if (userSettings) {
+          // Load spinner settings
+          if (userSettings.spinner_settings) {
+            const newSettings = {
+              ...defaultSettings,
+              ...userSettings.spinner_settings,
+            };
+            setSettings(newSettings);
+            localStorage.setItem('settings', JSON.stringify(newSettings));
+          }
+
+          // Load column mapping
+          if (userSettings.column_mapping) {
+            setColumnMapping(userSettings.column_mapping as ColumnMapping);
+            localStorage.setItem('columnMapping', JSON.stringify(userSettings.column_mapping));
+          }
+
+          // Load saved mappings
+          if (userSettings.saved_mappings) {
+            const mappings = userSettings.saved_mappings.map((m: any) => ({
+              id: m.id,
+              name: m.name,
+              mapping: m.mapping,
+              createdAt: m.createdAt || Date.now(),
+              updatedAt: m.updatedAt || Date.now(),
+              usageCount: m.usageCount || 0,
+              isDefault: m.isDefault || false,
+            }));
+            setSavedMappings(mappings);
+          }
         }
       } catch (error) {
-        console.error('Error refreshing settings:', error);
+        console.error('Error refreshing settings from Directus:', error);
       }
     }
   }, [userId]);
 
+  // Subscribe to settings changes for live updates
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    syncService.current = getSettingsSyncService();
+    const bridge = getExtensionBridge();
+
+    // Subscribe to spinner settings changes
+    const unsubscribe = syncService.current.subscribe((event) => {
+      if (event.type === 'spinner') {
+        // Reload settings from localStorage
+        const storedSettings = localStorage.getItem('settings');
+        if (storedSettings) {
+          try {
+            const parsedSettings = JSON.parse(storedSettings);
+            setSettings(parsedSettings);
+          } catch (e) {
+            console.error('Failed to parse updated settings:', e);
+          }
+        }
+
+        // Also reload column mapping if changed
+        const storedMapping = localStorage.getItem('columnMapping');
+        if (storedMapping) {
+          try {
+            const parsedMapping = JSON.parse(storedMapping);
+            setColumnMapping(parsedMapping);
+          } catch (e) {
+            console.error('Failed to parse updated mapping:', e);
+          }
+        }
+      }
+    });
+
+    // Subscribe to extension bridge updates
+    const bridgeUnsubscribe = bridge.onSettingsUpdate(() => {
+      console.log('[SettingsContext] Received update from extension bridge');
+      if (userId) {
+        refreshSettings();
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      bridgeUnsubscribe();
+    };
+  }, [userId, refreshSettings]);
+
   const updateSettings = async (updates: Partial<SpinnerSettings>) => {
     if (!userId) return;
-    
+
     const newSettings = { ...settings, ...updates };
     setSettings(newSettings);
     // Sync to localStorage immediately
     localStorage.setItem('settings', JSON.stringify(newSettings));
-    
+
+    // Broadcast the change to other tabs/windows
+    if (syncService.current) {
+      syncService.current.broadcastChange({
+        type: 'spinner',
+        data: newSettings,
+        timestamp: Date.now(),
+        source: 'settings-context'
+      });
+    }
+
     try {
-      await updateSpinnerSettingsInDb(userId, updates);
+      // Save to Directus
+      await directusSettings.updateSpinnerSettings(updates);
     } catch (error) {
-      console.error('Error updating settings:', error);
+      console.error('Error updating settings in Directus:', error);
     }
   };
 
   const updateColumnMapping = (mapping: ColumnMapping) => {
     setColumnMapping(mapping);
-    
-    // Save to Firestore if user is authenticated
+
+    // Broadcast the change
+    if (syncService.current) {
+      syncService.current.broadcastChange({
+        type: 'column_mapping',
+        data: mapping,
+        timestamp: Date.now(),
+        source: 'settings-context'
+      });
+    }
+
+    // Save to Directus if user is authenticated
     if (userId) {
-      updateUserSettings(userId, { columnMapping: mapping }).catch(console.error);
+      directusSettings.updateColumnMapping(mapping).catch(console.error);
     }
   };
 
@@ -154,39 +242,39 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       mapping,
       createdAt: now,
       updatedAt: now,
-      usageCount: 0
+      usageCount: 0,
     };
-    
+
     const updatedMappings = [...savedMappings, newMapping];
     setSavedMappings(updatedMappings);
-    
-    // Save to Firestore if user is authenticated
+
+    // Save to Directus if user is authenticated
     if (userId) {
-      updateUserSettings(userId, { savedMappings: updatedMappings }).catch(console.error);
+      directusSettings.addSavedMapping(newMapping).catch(console.error);
     }
   };
 
   const deleteMappingTemplate = (id: string) => {
-    const updatedMappings = savedMappings.filter(m => m.id !== id);
+    const updatedMappings = savedMappings.filter((m) => m.id !== id);
     setSavedMappings(updatedMappings);
-    
-    // Save to Firestore if user is authenticated
+
+    // Save to Directus if user is authenticated
     if (userId) {
-      updateUserSettings(userId, { savedMappings: updatedMappings }).catch(console.error);
+      directusSettings.deleteSavedMapping(id).catch(console.error);
     }
   };
 
   return (
-    <SettingsContext.Provider 
-      value={{ 
-        settings, 
+    <SettingsContext.Provider
+      value={{
+        settings,
         columnMapping,
         savedMappings,
         updateSettings,
         updateColumnMapping,
         saveMappingTemplate,
         deleteMappingTemplate,
-        refreshSettings
+        refreshSettings,
       }}
     >
       {children}

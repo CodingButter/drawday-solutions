@@ -1,15 +1,3 @@
-import { defineConfig } from "tsup";
+import baseConfig from "@raffle-spinner/tsup-config/base";
 
-export default defineConfig({
-  entry: ["src/index.ts"],
-  format: ["cjs", "esm"],
-  dts: {
-    resolve: true,
-    compilerOptions: {
-      moduleResolution: "bundler",
-    },
-  },
-  splitting: false,
-  sourcemap: true,
-  clean: true,
-});
+export default baseConfig;

@@ -1,0 +1,14 @@
+{
+  "name": "@raffle-spinner/tsup-config",
+  "version": "1.0.0",
+  "private": true,
+  "main": "base.js",
+  "exports": {
+    ".": "./base.js",
+    "./base": "./base.js",
+    "./react": "./react.js"
+  },
+  "dependencies": {
+    "tsup": "^8.5.0"
+  }
+}

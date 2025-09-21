@@ -60,6 +60,7 @@ export function SlotMachineWheelWrapper({
       onError={onError}
       theme={spinnerTheme}
       showDebug={showDebug}
+      className="w-full h-full"
     />
   );
 }

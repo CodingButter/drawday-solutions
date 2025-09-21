@@ -3,6 +3,8 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { directusSettings, type UserSettings } from '@/lib/directus-settings';
 import { getStoredUser } from '@/lib/directus-auth';
+import { getSettingsSyncService } from '@/lib/settings-sync';
+import { getExtensionBridge } from '@/lib/extension-bridge';
 
 // Define types locally since firebase-service is removed
 export interface ThemeColors {
@@ -86,6 +88,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<ThemeSettings>(defaultTheme);
   const [isLoading, setIsLoading] = useState(true);
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
+  const syncService = useRef<ReturnType<typeof getSettingsSyncService>>();
 
   // Load theme from localStorage first, then try Directus
   useEffect(() => {
@@ -108,32 +111,55 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // Try to load from Directus (but it's commented out for now)
+        // Try to load from Directus
         const settings = await directusSettings.getSettings();
+        console.log('[ThemeContext] Loaded settings from Directus:', settings);
         if (settings) {
           setUserSettings(settings);
 
           // Map Directus settings to theme
+          console.log('[ThemeContext] Logo image ID:', settings.logo_image);
+          console.log('[ThemeContext] Banner image ID:', settings.banner_image);
+          if (settings.logo_image) {
+            console.log('[ThemeContext] Logo URL:', directusSettings.getAssetUrl(settings.logo_image));
+          }
+          if (settings.banner_image) {
+            console.log('[ThemeContext] Banner URL:', directusSettings.getAssetUrl(settings.banner_image));
+          }
+
           const newTheme: ThemeSettings = {
             colors: { ...defaultTheme.colors, ...(settings.theme_settings?.colors || {}) },
             spinnerStyle: {
               ...defaultTheme.spinnerStyle,
               ...(settings.theme_settings?.spinnerStyle || {}),
               // Ensure nameSize and ticketSize are valid values
-              nameSize: (settings.theme_settings?.spinnerStyle?.nameSize &&
-                ['small', 'medium', 'large'].includes(settings.theme_settings.spinnerStyle.nameSize as string))
-                ? settings.theme_settings.spinnerStyle.nameSize as 'small' | 'medium' | 'large'
-                : defaultTheme.spinnerStyle.nameSize,
-              ticketSize: (settings.theme_settings?.spinnerStyle?.ticketSize &&
-                ['small', 'medium', 'large'].includes(settings.theme_settings.spinnerStyle.ticketSize as string))
-                ? settings.theme_settings.spinnerStyle.ticketSize as 'small' | 'medium' | 'large'
-                : defaultTheme.spinnerStyle.ticketSize
+              nameSize:
+                settings.theme_settings?.spinnerStyle?.nameSize &&
+                ['small', 'medium', 'large'].includes(
+                  settings.theme_settings.spinnerStyle.nameSize as string
+                )
+                  ? (settings.theme_settings.spinnerStyle.nameSize as 'small' | 'medium' | 'large')
+                  : defaultTheme.spinnerStyle.nameSize,
+              ticketSize:
+                settings.theme_settings?.spinnerStyle?.ticketSize &&
+                ['small', 'medium', 'large'].includes(
+                  settings.theme_settings.spinnerStyle.ticketSize as string
+                )
+                  ? (settings.theme_settings.spinnerStyle.ticketSize as
+                      | 'small'
+                      | 'medium'
+                      | 'large')
+                  : defaultTheme.spinnerStyle.ticketSize,
             },
             branding: {
               logoPosition: settings.theme_settings?.branding?.logoPosition || 'center',
               showCompanyName: settings.theme_settings?.branding?.showCompanyName ?? false,
-              logoImage: settings.logo_image ? directusSettings.getAssetUrl(settings.logo_image) : undefined,
-              bannerImage: settings.banner_image ? directusSettings.getAssetUrl(settings.banner_image) : undefined,
+              logoImage: settings.logo_image
+                ? directusSettings.getAssetUrl(settings.logo_image)
+                : undefined,
+              bannerImage: settings.banner_image
+                ? directusSettings.getAssetUrl(settings.banner_image)
+                : undefined,
               companyName: settings.company_name || undefined,
             },
           };
@@ -149,10 +175,53 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     loadSettings();
   }, []);
 
+  // Subscribe to settings changes for live updates
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    syncService.current = getSettingsSyncService();
+
+    // Subscribe to theme changes
+    const unsubscribe = syncService.current.subscribe((event) => {
+      if (event.type === 'theme') {
+        // Reload theme from localStorage or server
+        const storedTheme = localStorage.getItem('theme');
+        if (storedTheme) {
+          try {
+            const parsedTheme = JSON.parse(storedTheme);
+            setTheme(parsedTheme);
+          } catch (e) {
+            console.error('Failed to parse updated theme:', e);
+          }
+        }
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   const saveTheme = async (newTheme: ThemeSettings) => {
     setTheme(newTheme);
     // Save to localStorage as backup
     localStorage.setItem('theme', JSON.stringify(newTheme));
+
+    // Broadcast the change to other tabs/windows
+    if (syncService.current) {
+      syncService.current.broadcastChange({
+        type: 'theme',
+        data: newTheme,
+        timestamp: Date.now(),
+        source: 'theme-context'
+      });
+    }
+
+    // Trigger extension update if available
+    const bridge = getExtensionBridge();
+    if (bridge.triggerSettingsUpdate) {
+      bridge.triggerSettingsUpdate({ type: 'theme', data: newTheme });
+    }
   };
 
   const updateColors = async (colors: Partial<ThemeColors>) => {
@@ -162,10 +231,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     };
     await saveTheme(newTheme);
 
-    // Save to Directus - commented out due to permissions
-    // await directusSettings.updateThemeSettings({
-    //   colors: newTheme.colors,
-    // });
+    // Save to Directus
+    await directusSettings.updateThemeSettings({
+      colors: newTheme.colors,
+    });
   };
 
   const updateSpinnerStyle = async (style: Partial<SpinnerStyle>) => {
@@ -175,80 +244,78 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     };
     await saveTheme(newTheme);
 
-    // Save to Directus - commented out due to permissions
-    // await directusSettings.updateThemeSettings({
-    //   spinnerStyle: newTheme.spinnerStyle,
-    // });
+    // Save to Directus
+    await directusSettings.updateSpinnerStyle(style);
   };
 
   const updateBranding = async (branding: Partial<BrandingConfig>) => {
-    try {
-      setIsLoading(true);
+    // Update local theme immediately for instant UI feedback
+    const newTheme = {
+      ...theme,
+      branding: { ...theme.branding, ...branding },
+    };
 
-      // Handle image uploads - store locally for now due to Directus permissions
+    // Update state immediately
+    setTheme(newTheme);
+
+    // Save to localStorage immediately
+    await saveTheme(newTheme);
+
+    // Don't set loading for simple boolean toggles
+    const isSimpleToggle = Object.keys(branding).length === 1 &&
+      (branding.showCompanyName !== undefined || branding.logoPosition !== undefined);
+
+    if (!isSimpleToggle) {
+      setIsLoading(true);
+    }
+
+    try {
+      // Handle logo upload to Directus
       if (branding.logoImage !== undefined) {
         try {
           if (branding.logoImage) {
-            // For now, just store in localStorage due to Directus permission issues
-            // await directusSettings.updateLogo(branding.logoImage);
-            console.log('Logo stored locally (Directus permissions pending)');
+            await directusSettings.updateLogo(branding.logoImage);
           } else {
-            // await directusSettings.clearLogo();
-            console.log('Logo cleared locally');
+            await directusSettings.clearLogo();
           }
         } catch (error: any) {
           console.error('Logo upload error:', error);
-          // Don't throw error for now, just store locally
+          throw error;
         }
       }
 
+      // Handle banner upload to Directus
       if (branding.bannerImage !== undefined) {
         try {
           if (branding.bannerImage) {
-            // For now, just store in localStorage due to Directus permission issues
-            // await directusSettings.updateBanner(branding.bannerImage);
-            console.log('Banner stored locally (Directus permissions pending)');
+            await directusSettings.updateBanner(branding.bannerImage);
           } else {
-            // await directusSettings.clearBanner();
-            console.log('Banner cleared locally');
+            await directusSettings.clearBanner();
           }
         } catch (error: any) {
           console.error('Banner upload error:', error);
-          // Don't throw error for now, just store locally
+          throw error;
         }
       }
 
-      // Update company name if provided
+      // Update company name in Directus
       if (branding.companyName !== undefined) {
-        // Commented out due to Directus permissions issue
-        // await directusSettings.updateCompanyName(branding.companyName);
-        console.log('Company name stored locally');
+        await directusSettings.updateCompanyName(branding.companyName);
       }
 
       // Update branding settings
       const brandingSettings: any = {};
       if (branding.logoPosition) brandingSettings.logoPosition = branding.logoPosition;
-      if (branding.showCompanyName !== undefined) brandingSettings.showCompanyName = branding.showCompanyName;
+      if (branding.showCompanyName !== undefined)
+        brandingSettings.showCompanyName = branding.showCompanyName;
 
       if (Object.keys(brandingSettings).length > 0) {
-        // Commented out due to Directus permissions issue
-        // await directusSettings.updateBranding(brandingSettings);
-        console.log('Branding settings stored locally');
+        await directusSettings.updateBranding(brandingSettings);
       }
 
-      // Update local theme immediately - this prevents page refresh
-      const newTheme = {
-        ...theme,
-        branding: { ...theme.branding, ...branding },
-      };
-
-      // Update state immediately for instant UI feedback
-      setTheme(newTheme);
-
-      // Save to localStorage in background
-      await saveTheme(newTheme);
-
-      setIsLoading(false);
+      if (!isSimpleToggle) {
+        setIsLoading(false);
+      }
     } catch (error: any) {
       setIsLoading(false);
 

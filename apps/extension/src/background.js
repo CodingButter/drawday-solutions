@@ -14,7 +14,7 @@ chrome.action.onClicked.addListener(() => {
   chrome.runtime.openOptionsPage();
 });
 
-// Allow side panel to be opened programmatically
+// Allow side panel to be opened programmatically and handle settings updates
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'openSidePanel') {
     // Get the current window ID - works from both tabs and extension pages
@@ -32,5 +32,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         });
     });
     return true; // Keep message channel open for async response
+  } else if (request.action === 'triggerSettingsUpdate') {
+    // Relay settings update to all extension pages (including side panel)
+    console.log('[Background] Relaying settings update', request.data);
+
+    // Send to all tabs and extension pages
+    chrome.runtime.sendMessage({
+      action: 'triggerSettingsUpdate',
+      data: request.data
+    }).catch(() => {
+      // Ignore errors - side panel might not be open
+    });
+
+    sendResponse({ success: true });
+    return true;
   }
 });

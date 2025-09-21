@@ -21,13 +21,11 @@ export function BrandingSettings() {
   const { theme, updateBranding, isLoading } = useTheme();
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState(theme?.branding?.companyName || '');
-  const [showCompanyName, setShowCompanyName] = useState<boolean>(!!theme?.branding?.showCompanyName);
   const updateTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     setCompanyName(theme?.branding?.companyName || '');
-    setShowCompanyName(!!theme?.branding?.showCompanyName);
-  }, [theme?.branding?.companyName, theme?.branding?.showCompanyName]);
+  }, [theme?.branding?.companyName]);
 
   const handleCompanyNameChange = useCallback((value: string) => {
     setCompanyName(value);
@@ -191,13 +189,14 @@ export function BrandingSettings() {
             <div className="flex items-center space-x-2">
               <Switch
                 id="show-company-name"
-                checked={showCompanyName}
+                checked={!!theme.branding.showCompanyName}
                 onCheckedChange={(checked: boolean) => {
-                  setShowCompanyName(checked);
                   updateBranding({ showCompanyName: checked });
                 }}
               />
-              <Label htmlFor="show-company-name" className="cursor-pointer">Display company name with logo</Label>
+              <Label htmlFor="show-company-name" className="cursor-pointer">
+                Display company name with logo
+              </Label>
             </div>
           </div>
         </div>

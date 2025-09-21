@@ -1,12 +1,3 @@
-import { defineConfig } from "tsup";
+import baseConfig from "@raffle-spinner/tsup-config/base";
 
-export default defineConfig({
-  entry: ["src/index.ts"],
-  format: ["cjs", "esm"],
-  dts: false,
-  clean: false, // Don't clean so we preserve manually generated .d.ts files
-  sourcemap: true,
-  minify: false,
-  splitting: false,
-  external: [],
-});
+export default baseConfig;

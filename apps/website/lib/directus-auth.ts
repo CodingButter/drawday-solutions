@@ -12,7 +12,10 @@ export interface AuthResponse {
   refresh_token: string;
 }
 
-export async function login(email: string, password: string): Promise<{ user: DirectusUser; tokens: AuthResponse }> {
+export async function login(
+  email: string,
+  password: string
+): Promise<{ user: DirectusUser; tokens: AuthResponse }> {
   const response = await fetch('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -28,20 +31,32 @@ export async function login(email: string, password: string): Promise<{ user: Di
 
   console.log('Login response data:', data);
 
-  // Store tokens in localStorage
-  localStorage.setItem('directus_token', data.tokens.access_token);
-  localStorage.setItem('directus_refresh_token', data.tokens.refresh_token);
+  // Store tokens in localStorage - tokens are at root level
+  localStorage.setItem('directus_auth_token', data.access_token);
+  localStorage.setItem('directus_refresh_token', data.refresh_token);
   // Directus returns expires in milliseconds (e.g., 900000 for 15 minutes)
-  const expiresAt = Date.now() + data.tokens.expires;
+  const expiresAt = Date.now() + data.expires;
   localStorage.setItem('directus_expires', expiresAt.toString());
 
   // Store user info
   localStorage.setItem('directus_user', JSON.stringify(data.user));
 
-  return { user: data.user, tokens: data.tokens };
+  return {
+    user: data.user,
+    tokens: {
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      expires: data.expires
+    }
+  };
 }
 
-export async function register(email: string, password: string, firstName?: string, lastName?: string) {
+export async function register(
+  email: string,
+  password: string,
+  firstName?: string,
+  lastName?: string
+) {
   const response = await fetch('/api/auth/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -82,7 +97,7 @@ export async function logout() {
     try {
       await fetch('/api/auth/logout', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
     } catch (error) {
       console.error('Logout error:', error);
@@ -90,7 +105,7 @@ export async function logout() {
   }
 
   // Clear local storage
-  localStorage.removeItem('directus_token');
+  localStorage.removeItem('directus_auth_token');
   localStorage.removeItem('directus_refresh_token');
   localStorage.removeItem('directus_expires');
   localStorage.removeItem('directus_user');
@@ -117,7 +132,7 @@ export function getStoredToken(): string | null {
     return null;
   }
 
-  return localStorage.getItem('directus_token');
+  return localStorage.getItem('directus_auth_token');
 }
 
 export function isAuthenticated(): boolean {
@@ -173,8 +188,14 @@ export async function refreshToken(): Promise<string | null> {
   }
 }
 
+// Import extension bridge for triggering updates
+import { getExtensionBridge } from './extension-bridge';
+
 // Helper function to make authenticated requests with automatic token refresh
-export async function authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+export async function authenticatedFetch(
+  url: string,
+  options: RequestInit = {}
+): Promise<Response> {
   let token = getStoredToken();
 
   // Check if token is expired and try to refresh
@@ -184,7 +205,19 @@ export async function authenticatedFetch(url: string, options: RequestInit = {})
       // Clear auth state and redirect to login
       await logout();
       if (typeof window !== 'undefined') {
-        window.location.href = '/login?returnTo=' + encodeURIComponent(window.location.pathname);
+        // Check if we're in an iframe (extension context)
+        const inIframe = window.self !== window.top;
+        const currentPath = window.location.pathname;
+
+        // Determine the correct login page
+        if (inIframe || currentPath.startsWith('/live-spinner')) {
+          // Extension context or extension pages - use extension login
+          window.location.href =
+            '/live-spinner/auth/login?returnTo=' + encodeURIComponent(currentPath);
+        } else {
+          // Regular website - use main login
+          window.location.href = '/login?returnTo=' + encodeURIComponent(currentPath);
+        }
       }
       throw new Error('Authentication required. Please log in again.');
     }
@@ -195,7 +228,7 @@ export async function authenticatedFetch(url: string, options: RequestInit = {})
     ...options,
     headers: {
       ...options.headers,
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
     },
   };
 
@@ -208,17 +241,50 @@ export async function authenticatedFetch(url: string, options: RequestInit = {})
       // Retry with new token
       requestOptions.headers = {
         ...requestOptions.headers,
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       };
       response = await fetch(url, requestOptions);
     } else {
       // Token refresh failed, logout and redirect
       await logout();
       if (typeof window !== 'undefined') {
-        window.location.href = '/login?returnTo=' + encodeURIComponent(window.location.pathname);
+        // Check if we're in an iframe (extension context)
+        const inIframe = window.self !== window.top;
+        const currentPath = window.location.pathname;
+
+        // Determine the correct login page
+        if (inIframe || currentPath.startsWith('/live-spinner')) {
+          // Extension context or extension pages - use extension login
+          window.location.href =
+            '/live-spinner/auth/login?returnTo=' + encodeURIComponent(currentPath);
+        } else {
+          // Regular website - use main login
+          window.location.href = '/login?returnTo=' + encodeURIComponent(currentPath);
+        }
       }
       throw new Error('Authentication required. Please log in again.');
     }
+  }
+
+  // Trigger extension update on successful mutations (POST, PUT, PATCH, DELETE)
+  const method = (options.method || 'GET').toUpperCase();
+  const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
+
+  if (isMutation && response.ok) {
+    // Delay to ensure backend has processed the change
+    // DELETE operations may take longer to propagate
+    const delay = method === 'DELETE' ? 750 : 200;
+
+    setTimeout(() => {
+      const bridge = getExtensionBridge();
+      console.log(`[authenticatedFetch] Triggering update after ${method} to ${url} with ${delay}ms delay`);
+      bridge.triggerSettingsUpdate({
+        type: 'api-mutation',
+        method,
+        url,
+        timestamp: Date.now()
+      });
+    }, delay);
   }
 
   return response;

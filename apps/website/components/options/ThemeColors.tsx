@@ -90,20 +90,18 @@ export function ThemeColors() {
     },
   };
 
+  const defaultColors = {
+    primary: '#8B5CF6',
+    secondary: '#EC4899',
+    background: '#1a1a1a',
+    text: '#ffffff',
+    accent: '#FFD700',
+  };
+
   const presetThemes = [
     {
       name: 'Default',
-      colors: {
-        primary: '#007BFF',
-        secondary: '#FF1493',
-        accent: '#FFD700',
-        background: '#09090b',
-        foreground: '#fafafa',
-        card: '#09090b',
-        cardForeground: '#fafafa',
-        winner: '#FFD700',
-        winnerGlow: '#FFD700',
-      },
+      colors: defaultColors,
     },
     {
       name: 'Corporate Blue',
@@ -221,7 +219,11 @@ export function ThemeColors() {
 
         {/* Reset Button */}
         <div className="pt-4 border-t">
-          <Button variant="outline" onClick={() => {}} className="w-full" disabled>
+          <Button
+            variant="outline"
+            onClick={() => updateColors(defaultColors)}
+            className="w-full"
+          >
             <RefreshCw className="h-4 w-4 mr-2" />
             Reset All Theme Settings
           </Button>

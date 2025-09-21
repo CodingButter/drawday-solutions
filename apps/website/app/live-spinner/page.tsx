@@ -4,8 +4,13 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getUserSettings, type UserSettings } from '@/lib/settings-service';
 import { getStoredUser, isAuthenticated } from '@/lib/directus-auth';
-import { getUserCompetitions, getCompetition, updateCompetition, type Competition } from '@/lib/directus-competitions';
-import { SlotMachineWheel, type SpinnerTheme } from '@raffle-spinner/spinners';
+import {
+  getUserCompetitions,
+  getCompetition,
+  updateCompetition,
+  type Competition,
+} from '@/lib/directus-competitions';
+import { SlotMachineWheel } from '@raffle-spinner/spinners';
 import { Button } from '@raffle-spinner/ui';
 import { Input } from '@raffle-spinner/ui';
 import { Card, CardContent, CardHeader, CardTitle } from '@raffle-spinner/ui';
@@ -29,8 +34,6 @@ interface Winner {
   competition: string;
   timestamp: number;
 }
-
-
 
 export default function LiveSpinnerPage() {
   const router = useRouter();
@@ -57,17 +60,17 @@ export default function LiveSpinnerPage() {
           email: directusUser.email,
           displayName: directusUser.first_name || directusUser.email,
         });
-        
+
         // Load user's competitions and settings
         try {
           const [userCompetitions, settings] = await Promise.all([
             getUserCompetitions(),
-            getUserSettings(directusUser.id)
+            getUserSettings(directusUser.id),
           ]);
-          
+
           setCompetitions(userCompetitions);
           setUserSettings(settings);
-          
+
           // Auto-select first competition if available
           if (userCompetitions.length > 0) {
             // Load full competition data for the first one
@@ -80,14 +83,14 @@ export default function LiveSpinnerPage() {
           console.error('Error loading data:', err);
           setError('Failed to load data');
         }
-        
+
         setLoading(false);
       } else {
-        // Not authenticated, redirect to login
-        router.push('/login?from=/live-spinner');
+        // Not authenticated, redirect to extension-specific login
+        router.push('/live-spinner/auth/login?returnTo=/live-spinner');
       }
     };
-    
+
     checkAuth();
   }, [router]);
 
@@ -140,7 +143,7 @@ export default function LiveSpinnerPage() {
       competition: selectedCompetition!.name,
       timestamp: Date.now(),
     };
-    
+
     setSessionWinners((prev) => [newWinner, ...prev]);
 
     // Save winner to Directus if it's a saved competition
@@ -154,7 +157,7 @@ export default function LiveSpinnerPage() {
               participant: winner,
               timestamp: Date.now(),
             },
-          ]
+          ],
         });
       } catch (err) {
         console.error('Error saving winner:', err);
@@ -192,24 +195,27 @@ export default function LiveSpinnerPage() {
     try {
       const parser = new CSVParser();
       const detector = new IntelligentColumnMapper();
-      
+
       // Detect columns
       const text = await file.text();
-      const lines = text.split('\n').filter(line => line.trim());
-      const headers = lines[0].split(',').map(h => h.trim());
+      const lines = text.split('\n').filter((line) => line.trim());
+      const headers = lines[0].split(',').map((h) => h.trim());
       const columnMapping = detector.detectHeaders(headers);
-      
-      if (!columnMapping.ticketNumber || (!columnMapping.fullName && (!columnMapping.firstName || !columnMapping.lastName))) {
+
+      if (
+        !columnMapping.ticketNumber ||
+        (!columnMapping.fullName && (!columnMapping.firstName || !columnMapping.lastName))
+      ) {
         throw new Error('Could not detect required columns in CSV');
       }
-      
+
       // Parse CSV
       const parseResult = await parser.parse(file, columnMapping);
-      
+
       if (parseResult.participants.length === 0) {
         throw new Error('No valid participants found in CSV');
       }
-      
+
       // Create a temporary competition (not saved to Firestore)
       const tempCompetition: Competition = {
         id: `temp-${Date.now()}`,
@@ -218,14 +224,16 @@ export default function LiveSpinnerPage() {
         status: 'active',
         userId: user?.uid || '',
       };
-      
-      setCompetitions(prev => [...prev, tempCompetition]);
+
+      setCompetitions((prev) => [...prev, tempCompetition]);
       setSelectedCompetition(tempCompetition);
-      
+
       if (parseResult.duplicates && parseResult.duplicates.length > 0) {
-        setError(`Imported ${parseResult.participants.length} participants. ${parseResult.duplicates.length} duplicates were skipped.`);
+        setError(
+          `Imported ${parseResult.participants.length} participants. ${parseResult.duplicates.length} duplicates were skipped.`
+        );
       }
-      
+
       // Reset file input
       e.target.value = '';
     } catch (err: any) {
@@ -237,7 +245,7 @@ export default function LiveSpinnerPage() {
   };
 
   const handleCompetitionChange = async (competitionId: string) => {
-    const comp = competitions.find(c => c.id === competitionId);
+    const comp = competitions.find((c) => c.id === competitionId);
     if (comp) {
       // If it's a saved competition and we don't have full data, fetch it
       if (!comp.id?.startsWith('temp-') && (!comp.participants || comp.participants.length === 0)) {
@@ -247,7 +255,9 @@ export default function LiveSpinnerPage() {
           if (fullCompetition) {
             setSelectedCompetition(fullCompetition);
             // Update in list too
-            setCompetitions(prev => prev.map(c => c.id === competitionId ? fullCompetition : c));
+            setCompetitions((prev) =>
+              prev.map((c) => (c.id === competitionId ? fullCompetition : c))
+            );
           }
         } catch (err) {
           console.error('Error loading competition details:', err);
@@ -274,8 +284,8 @@ export default function LiveSpinnerPage() {
     spinDuration: 'medium' as const,
     decelerationSpeed: 'medium' as const,
   };
-  
-  const spinnerTheme: SpinnerTheme = userSettings?.theme?.spinnerStyle || {
+
+  const spinnerTheme = userSettings?.theme?.spinnerStyle || {
     nameColor: '#ffffff',
     ticketColor: '#a0a0a0',
     backgroundColor: '#1a1a1a',
@@ -290,9 +300,9 @@ export default function LiveSpinnerPage() {
     shadowSize: 60,
     shadowColor: '#000000',
   };
-  
+
   const branding = userSettings?.theme?.branding;
-  
+
   // Determine which banner to show (competition specific or default)
   const bannerImage = selectedCompetition?.bannerImageId || branding?.bannerImage;
 
@@ -331,7 +341,7 @@ export default function LiveSpinnerPage() {
           )}
         </div>
       )}
-      
+
       <div className="max-w-4xl mx-auto p-6 space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
@@ -368,7 +378,7 @@ export default function LiveSpinnerPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                
+
                 <label className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-neon-purple to-neon-pink text-white rounded-md font-medium hover:from-neon-purple/90 hover:to-neon-pink/90 transition-all cursor-pointer">
                   <Upload className="h-4 w-4" />
                   {uploadingCsv ? 'Uploading...' : 'Upload CSV'}
@@ -381,7 +391,7 @@ export default function LiveSpinnerPage() {
                   />
                 </label>
               </div>
-              
+
               {selectedCompetition && (
                 <div className="flex gap-4 text-sm text-gray-400">
                   <span className="flex items-center gap-1">
@@ -401,85 +411,89 @@ export default function LiveSpinnerPage() {
         </Card>
 
         {/* Main Spinner Area */}
-        {selectedCompetition && selectedCompetition.participants && selectedCompetition.participants.length > 0 && (
-          <>
-            {/* Spinner Container */}
-            <Card className="bg-night-light border-gray-800">
-              <CardContent className="p-6">
-                <div className="relative">
-                  <SlotMachineWheel
-                    participants={selectedCompetition.participants}
-                    targetTicketNumber={ticketNumber}
-                    settings={spinnerSettings}
-                    isSpinning={isSpinning}
-                    onSpinComplete={handleSpinComplete}
-                    onError={(error) => {
-                      setError(error);
-                      setIsSpinning(false);
-                    }}
-                    theme={spinnerTheme}
-                  />
-
-                  {/* Winner Display Overlay */}
-                  {currentWinner && (
-                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 px-4 z-10">
-                      <Card className="bg-gradient-to-r from-yellow-500/95 to-yellow-600/90 border-yellow-400 shadow-2xl">
-                        <CardContent className="p-8">
-                          <div className="flex items-center gap-4">
-                            <Sparkles className="h-12 w-12 text-gray-900 animate-pulse flex-shrink-0" />
-                            <div className="flex-1 text-center">
-                              <p className="text-4xl font-bold text-gray-900 leading-tight">
-                                🎉 {currentWinner.firstName} {currentWinner.lastName}
-                              </p>
-                              <p className="text-2xl font-semibold text-gray-800 mt-2">
-                                Ticket #{currentWinner.ticketNumber}
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Spin Controls */}
-            <Card className="bg-night-light border-gray-800">
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  <Label className="text-sm text-gray-400">Enter Winning Ticket Number</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="text"
-                      placeholder="Enter ticket number"
-                      value={ticketNumber}
-                      onChange={(e) => setTicketNumber(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && !isSpinning && handleSpin()}
-                      disabled={isSpinning}
-                      className="bg-night border-gray-700 text-white placeholder:text-gray-500"
+        {selectedCompetition &&
+          selectedCompetition.participants &&
+          selectedCompetition.participants.length > 0 && (
+            <>
+              {/* Spinner Container */}
+              <Card className="bg-night-light border-gray-800">
+                <CardContent className="p-6">
+                  <div className="relative">
+                    <SlotMachineWheel
+                      participants={selectedCompetition.participants}
+                      targetTicketNumber={ticketNumber}
+                      settings={spinnerSettings}
+                      isSpinning={isSpinning}
+                      onSpinComplete={handleSpinComplete}
+                      onError={(error: string) => {
+                        setError(error);
+                        setIsSpinning(false);
+                      }}
+                      theme={spinnerTheme}
+                      className="w-full h-96"
                     />
-                    <Button
-                      onClick={handleSpin}
-                      disabled={isSpinning || !ticketNumber}
-                      size="lg"
-                      className="min-w-[120px] bg-gradient-to-r from-neon-purple to-neon-pink hover:from-neon-purple/90 hover:to-neon-pink/90"
-                    >
-                      {isSpinning ? 'Spinning...' : 'Spin'}
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
-            {error && (
-              <Alert variant="destructive" className="bg-red-900/20 border-red-900">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-          </>
-        )}
+                    {/* Winner Display Overlay */}
+                    {currentWinner && (
+                      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 px-4 z-10">
+                        <Card className="bg-gradient-to-r from-yellow-500/95 to-yellow-600/90 border-yellow-400 shadow-2xl">
+                          <CardContent className="p-8">
+                            <div className="flex items-center gap-4">
+                              <Sparkles className="h-12 w-12 text-gray-900 animate-pulse flex-shrink-0" />
+                              <div className="flex-1 text-center">
+                                <p className="text-4xl font-bold text-gray-900 leading-tight">
+                                  🎉 {currentWinner.firstName} {currentWinner.lastName}
+                                </p>
+                                <p className="text-2xl font-semibold text-gray-800 mt-2">
+                                  Ticket #{currentWinner.ticketNumber}
+                                </p>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Spin Controls */}
+              <Card className="bg-night-light border-gray-800">
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <Label className="text-sm text-gray-400">Enter Winning Ticket Number</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="text"
+                        placeholder="Enter ticket number"
+                        value={ticketNumber}
+                        onChange={(e) => setTicketNumber(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && !isSpinning && handleSpin()}
+                        disabled={isSpinning}
+                        className="bg-night border-gray-700 text-white placeholder:text-gray-500"
+                        autoComplete="off"
+                      />
+                      <Button
+                        onClick={handleSpin}
+                        disabled={isSpinning || !ticketNumber}
+                        size="lg"
+                        className="min-w-[120px] bg-gradient-to-r from-neon-purple to-neon-pink hover:from-neon-purple/90 hover:to-neon-pink/90"
+                      >
+                        {isSpinning ? 'Spinning...' : 'Spin'}
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {error && (
+                <Alert variant="destructive" className="bg-red-900/20 border-red-900">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+            </>
+          )}
 
         {/* Session Winners */}
         {sessionWinners.length > 0 && (

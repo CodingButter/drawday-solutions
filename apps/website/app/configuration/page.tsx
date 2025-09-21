@@ -3,15 +3,20 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getStoredUser, isAuthenticated } from '@/lib/directus-auth';
-import { 
-  getUserSettings, 
-  updateSpinnerSettings, 
+import {
+  getUserSettings,
+  updateSpinnerSettings,
   updateSpinnerStyle,
   updateBranding,
   type UserSettings,
-  defaultSettings
+  defaultSettings,
 } from '@/lib/settings-service';
-import { getUserCompetitions, updateCompetition, deleteCompetition as deleteCompetitionFromDb, type Competition } from '@/lib/directus-competitions';
+import {
+  getUserCompetitions,
+  updateCompetition,
+  deleteCompetition as deleteCompetitionFromDb,
+  type Competition,
+} from '@/lib/directus-competitions';
 import { CSVParser, IntelligentColumnMapper } from '@raffle-spinner/csv-parser';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@raffle-spinner/ui';
 import { Button } from '@raffle-spinner/ui';
@@ -24,19 +29,19 @@ import { Alert, AlertDescription } from '@raffle-spinner/ui';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@raffle-spinner/ui';
 import { SlotMachineWheel } from '@raffle-spinner/spinners';
 import { BannerImage } from '@/components/BannerImage';
-import { 
-  ChevronDown, 
-  ChevronRight, 
-  Upload, 
-  Trash2, 
-  Settings, 
-  Palette, 
+import {
+  ChevronDown,
+  ChevronRight,
+  Upload,
+  Trash2,
+  Settings,
+  Palette,
   Building2,
   Trophy,
   Save,
   Image,
   X,
-  Eye
+  Eye,
 } from 'lucide-react';
 
 function ConfigurationContent() {
@@ -72,49 +77,49 @@ function ConfigurationContent() {
           email: directusUser.email,
           displayName: directusUser.first_name || directusUser.email,
         });
-        
+
         // Load settings and competitions
         try {
           const [userSettings, userCompetitions] = await Promise.all([
             getUserSettings(directusUser.id),
-            getUserCompetitions()
+            getUserCompetitions(),
           ]);
-          
+
           setSettings(userSettings);
           setCompetitions(userCompetitions);
         } catch (err) {
           console.error('Error loading data:', err);
         }
-        
+
         setLoading(false);
       } else {
         router.push('/login?from=/configuration');
       }
     };
-    
+
     checkAuth();
   }, [router]);
 
   const toggleSection = (section: string) => {
-    setCollapsedSections(prev => ({
+    setCollapsedSections((prev) => ({
       ...prev,
-      [section]: !prev[section]
+      [section]: !prev[section],
     }));
   };
 
   const handleSpinnerSettingChange = async (key: string, value: any) => {
     if (!settings || !user) return;
-    
+
     const newSettings = {
       ...settings,
       spinner: {
         ...settings.spinner,
-        [key]: value
-      }
+        [key]: value,
+      },
     };
-    
+
     setSettings(newSettings);
-    
+
     // Save to Firestore
     setSaving(true);
     try {
@@ -127,20 +132,20 @@ function ConfigurationContent() {
 
   const handleStyleChange = async (key: string, value: any) => {
     if (!settings || !user) return;
-    
+
     const newSettings = {
       ...settings,
       theme: {
         ...settings.theme,
         spinnerStyle: {
           ...settings.theme.spinnerStyle,
-          [key]: value
-        }
-      }
+          [key]: value,
+        },
+      },
     };
-    
+
     setSettings(newSettings);
-    
+
     // Save to Firestore
     setSaving(true);
     try {
@@ -153,20 +158,20 @@ function ConfigurationContent() {
 
   const handleBrandingChange = async (key: string, value: any) => {
     if (!settings || !user) return;
-    
+
     const newSettings = {
       ...settings,
       theme: {
         ...settings.theme,
         branding: {
           ...settings.theme.branding,
-          [key]: value
-        }
-      }
+          [key]: value,
+        },
+      },
     };
-    
+
     setSettings(newSettings);
-    
+
     // Save to Firestore
     setSaving(true);
     try {
@@ -186,7 +191,7 @@ function ConfigurationContent() {
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
-      
+
       // Upload image to Directus
       const { uploadImageToDirectus } = await import('@/lib/image-utils');
       const result = await uploadImageToDirectus(
@@ -209,7 +214,7 @@ function ConfigurationContent() {
   const handleCompetitionBannerUpload = async (competitionId: string, file: File) => {
     console.log('Starting banner upload for competition:', competitionId, 'File:', file);
     setUploadingBanner(competitionId);
-    
+
     try {
       // Convert file to base64
       const reader = new FileReader();
@@ -218,7 +223,7 @@ function ConfigurationContent() {
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
-      
+
       // Upload image to Directus
       const { uploadImageToDirectus } = await import('@/lib/image-utils');
       console.log('Uploading image to Directus...');
@@ -233,11 +238,11 @@ function ConfigurationContent() {
       console.log('Updating competition with banner image...');
       await updateCompetition(competitionId, { bannerImageId: result.id });
       console.log('Competition updated');
-      
+
       // Update local state
-      setCompetitions(prev => prev.map(c =>
-        c.id === competitionId ? { ...c, bannerImageId: result.id } : c
-      ));
+      setCompetitions((prev) =>
+        prev.map((c) => (c.id === competitionId ? { ...c, bannerImageId: result.id } : c))
+      );
       console.log('Local state updated');
     } catch (err) {
       console.error('Error uploading banner - Full error:', err);
@@ -247,7 +252,7 @@ function ConfigurationContent() {
         alert('Failed to upload banner. The image may be too large.');
       }
     }
-    
+
     setUploadingBanner(null);
   };
 
@@ -258,7 +263,7 @@ function ConfigurationContent() {
 
     try {
       await deleteCompetitionFromDb(competitionId);
-      setCompetitions(prev => prev.filter(c => c.id !== competitionId));
+      setCompetitions((prev) => prev.filter((c) => c.id !== competitionId));
     } catch (err) {
       console.error('Error deleting competition:', err);
     }
@@ -279,9 +284,7 @@ function ConfigurationContent() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold">Raffle Spinner Configuration</h1>
-            <p className="text-gray-400 mt-2">
-              Manage competitions and customize spinner settings
-            </p>
+            <p className="text-gray-400 mt-2">Manage competitions and customize spinner settings</p>
           </div>
           <div className="flex gap-2">
             <Button
@@ -332,7 +335,9 @@ function ConfigurationContent() {
             <Card className="bg-night-light border-gray-800">
               <CardHeader>
                 <CardTitle>Competition Management</CardTitle>
-                <CardDescription>Manage your raffle competitions and upload banners</CardDescription>
+                <CardDescription>
+                  Manage your raffle competitions and upload banners
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -350,7 +355,7 @@ function ConfigurationContent() {
                               {competition.participants.length} participants •
                               {competition.winners?.length || 0} winners selected
                             </p>
-                            
+
                             {/* Competition Banner */}
                             <div className="mt-4">
                               <Label className="text-sm text-gray-400">Competition Banner</Label>
@@ -365,10 +370,16 @@ function ConfigurationContent() {
                                         await imageStore.deleteImage(competition.bannerImageId);
                                       }
                                       // Update competition
-                                      await updateCompetition(competition.id!, { bannerImageId: undefined });
-                                      setCompetitions(prev => prev.map(c => 
-                                        c.id === competition.id ? { ...c, bannerImageId: undefined } : c
-                                      ));
+                                      await updateCompetition(competition.id!, {
+                                        bannerImageId: undefined,
+                                      });
+                                      setCompetitions((prev) =>
+                                        prev.map((c) =>
+                                          c.id === competition.id
+                                            ? { ...c, bannerImageId: undefined }
+                                            : c
+                                        )
+                                      );
                                     }}
                                     className="absolute top-2 right-2 p-1 bg-red-600 rounded hover:bg-red-700"
                                   >
@@ -378,7 +389,9 @@ function ConfigurationContent() {
                               ) : (
                                 <label className="mt-2 flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-md hover:bg-gray-700 cursor-pointer inline-flex">
                                   <Image className="h-4 w-4" />
-                                  {uploadingBanner === competition.id ? 'Uploading...' : 'Upload Banner'}
+                                  {uploadingBanner === competition.id
+                                    ? 'Uploading...'
+                                    : 'Upload Banner'}
                                   <input
                                     type="file"
                                     accept="image/*"
@@ -387,10 +400,17 @@ function ConfigurationContent() {
                                       console.log('File input changed:', e.target.files);
                                       const file = e.target.files?.[0];
                                       if (file && competition.id) {
-                                        console.log('Calling handleCompetitionBannerUpload with:', competition.id, file);
+                                        console.log(
+                                          'Calling handleCompetitionBannerUpload with:',
+                                          competition.id,
+                                          file
+                                        );
                                         handleCompetitionBannerUpload(competition.id, file);
                                       } else {
-                                        console.log('No file or competition ID:', { file, competitionId: competition.id });
+                                        console.log('No file or competition ID:', {
+                                          file,
+                                          competitionId: competition.id,
+                                        });
                                       }
                                     }}
                                     disabled={uploadingBanner === competition.id}
@@ -399,9 +419,11 @@ function ConfigurationContent() {
                               )}
                             </div>
                           </div>
-                          
+
                           <button
-                            onClick={() => competition.id && handleDeleteCompetition(competition.id)}
+                            onClick={() =>
+                              competition.id && handleDeleteCompetition(competition.id)
+                            }
                             className="ml-4 p-2 text-red-400 hover:text-red-300"
                           >
                             <Trash2 className="h-5 w-5" />
@@ -427,7 +449,9 @@ function ConfigurationContent() {
                   <Label>Spin Duration: {settings.spinner.spinDuration}s</Label>
                   <Slider
                     value={[Number(settings.spinner.spinDuration) || 3]}
-                    onValueChange={(value) => handleSpinnerSettingChange('spinDuration', value[0])}
+                    onValueChange={(value: number[]) =>
+                      handleSpinnerSettingChange('spinDuration', value[0])
+                    }
                     min={1}
                     max={10}
                     step={0.5}
@@ -439,7 +463,9 @@ function ConfigurationContent() {
                   <Label>Deceleration Speed</Label>
                   <Select
                     value={settings.spinner.decelerationSpeed}
-                    onValueChange={(value) => handleSpinnerSettingChange('decelerationSpeed', value)}
+                    onValueChange={(value: string) =>
+                      handleSpinnerSettingChange('decelerationSpeed', value)
+                    }
                   >
                     <SelectTrigger className="bg-night border-gray-700">
                       <SelectValue />
@@ -481,7 +507,11 @@ function ConfigurationContent() {
                     isSpinning={false}
                     onSpinComplete={() => {}}
                     onError={() => {}}
-                    theme={settings.theme.spinnerStyle}
+                    className="w-full h-64"
+                    theme={{
+                      ...settings.theme.spinnerStyle,
+                      shadowColor: undefined, // Component expects shadowColor to be undefined
+                    }}
                   />
                 </div>
               </CardContent>
@@ -501,13 +531,17 @@ function ConfigurationContent() {
                       <Input
                         type="color"
                         value={settings.theme.spinnerStyle.nameColor}
-                        onChange={(e) => handleStyleChange('nameColor', e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          handleStyleChange('nameColor', e.target.value)
+                        }
                         className="w-16 h-10 p-1 bg-night border-gray-700"
                       />
                       <Input
                         type="text"
                         value={settings.theme.spinnerStyle.nameColor}
-                        onChange={(e) => handleStyleChange('nameColor', e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          handleStyleChange('nameColor', e.target.value)
+                        }
                         className="flex-1 bg-night border-gray-700"
                       />
                     </div>
@@ -519,13 +553,17 @@ function ConfigurationContent() {
                       <Input
                         type="color"
                         value={settings.theme.spinnerStyle.ticketColor}
-                        onChange={(e) => handleStyleChange('ticketColor', e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          handleStyleChange('ticketColor', e.target.value)
+                        }
                         className="w-16 h-10 p-1 bg-night border-gray-700"
                       />
                       <Input
                         type="text"
                         value={settings.theme.spinnerStyle.ticketColor}
-                        onChange={(e) => handleStyleChange('ticketColor', e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          handleStyleChange('ticketColor', e.target.value)
+                        }
                         className="flex-1 bg-night border-gray-700"
                       />
                     </div>
@@ -537,13 +575,17 @@ function ConfigurationContent() {
                       <Input
                         type="color"
                         value={settings.theme.spinnerStyle.backgroundColor}
-                        onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          handleStyleChange('backgroundColor', e.target.value)
+                        }
                         className="w-16 h-10 p-1 bg-night border-gray-700"
                       />
                       <Input
                         type="text"
                         value={settings.theme.spinnerStyle.backgroundColor}
-                        onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          handleStyleChange('backgroundColor', e.target.value)
+                        }
                         className="flex-1 bg-night border-gray-700"
                       />
                     </div>
@@ -555,13 +597,17 @@ function ConfigurationContent() {
                       <Input
                         type="color"
                         value={settings.theme.spinnerStyle.highlightColor}
-                        onChange={(e) => handleStyleChange('highlightColor', e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          handleStyleChange('highlightColor', e.target.value)
+                        }
                         className="w-16 h-10 p-1 bg-night border-gray-700"
                       />
                       <Input
                         type="text"
                         value={settings.theme.spinnerStyle.highlightColor}
-                        onChange={(e) => handleStyleChange('highlightColor', e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          handleStyleChange('highlightColor', e.target.value)
+                        }
                         className="flex-1 bg-night border-gray-700"
                       />
                     </div>
@@ -574,7 +620,7 @@ function ConfigurationContent() {
                     <Label>Name Size</Label>
                     <Select
                       value={settings.theme.spinnerStyle.nameSize}
-                      onValueChange={(value) => handleStyleChange('nameSize', value)}
+                      onValueChange={(value: string) => handleStyleChange('nameSize', value)}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -592,7 +638,7 @@ function ConfigurationContent() {
                     <Label>Ticket Size</Label>
                     <Select
                       value={settings.theme.spinnerStyle.ticketSize}
-                      onValueChange={(value) => handleStyleChange('ticketSize', value)}
+                      onValueChange={(value: string) => handleStyleChange('ticketSize', value)}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -610,13 +656,18 @@ function ConfigurationContent() {
                 {/* Shadow Settings */}
                 <div className="space-y-4">
                   <h3 className="font-semibold">Shadow Effects</h3>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Top Shadow: {Math.round(settings.theme.spinnerStyle.topShadowOpacity * 100)}%</Label>
+                      <Label>
+                        Top Shadow: {Math.round(settings.theme.spinnerStyle.topShadowOpacity * 100)}
+                        %
+                      </Label>
                       <Slider
                         value={[settings.theme.spinnerStyle.topShadowOpacity]}
-                        onValueChange={(value) => handleStyleChange('topShadowOpacity', value[0])}
+                        onValueChange={(value: number[]) =>
+                          handleStyleChange('topShadowOpacity', value[0])
+                        }
                         min={0}
                         max={1}
                         step={0.1}
@@ -625,10 +676,15 @@ function ConfigurationContent() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Bottom Shadow: {Math.round(settings.theme.spinnerStyle.bottomShadowOpacity * 100)}%</Label>
+                      <Label>
+                        Bottom Shadow:{' '}
+                        {Math.round(settings.theme.spinnerStyle.bottomShadowOpacity * 100)}%
+                      </Label>
                       <Slider
                         value={[settings.theme.spinnerStyle.bottomShadowOpacity]}
-                        onValueChange={(value) => handleStyleChange('bottomShadowOpacity', value[0])}
+                        onValueChange={(value: number[]) =>
+                          handleStyleChange('bottomShadowOpacity', value[0])
+                        }
                         min={0}
                         max={1}
                         step={0.1}
@@ -641,7 +697,7 @@ function ConfigurationContent() {
                     <Label>Shadow Size: {settings.theme.spinnerStyle.shadowSize}px</Label>
                     <Slider
                       value={[settings.theme.spinnerStyle.shadowSize]}
-                      onValueChange={(value) => handleStyleChange('shadowSize', value[0])}
+                      onValueChange={(value: number[]) => handleStyleChange('shadowSize', value[0])}
                       min={20}
                       max={100}
                       step={10}
@@ -666,9 +722,9 @@ function ConfigurationContent() {
                   <Label>Company Logo</Label>
                   {settings.theme.branding.logoImage ? (
                     <div className="relative inline-block">
-                      <img 
-                        src={settings.theme.branding.logoImage} 
-                        alt="Company logo" 
+                      <img
+                        src={settings.theme.branding.logoImage}
+                        alt="Company logo"
                         className="h-20 w-auto rounded"
                       />
                       <button
@@ -699,7 +755,7 @@ function ConfigurationContent() {
 
                   <Select
                     value={settings.theme.branding.logoPosition}
-                    onValueChange={(value) => handleBrandingChange('logoPosition', value)}
+                    onValueChange={(value: string) => handleBrandingChange('logoPosition', value)}
                   >
                     <SelectTrigger className="bg-night border-gray-700">
                       <SelectValue />
@@ -717,9 +773,9 @@ function ConfigurationContent() {
                   <Label>Default Banner</Label>
                   {settings.theme.branding.bannerImage ? (
                     <div className="relative">
-                      <img 
-                        src={settings.theme.branding.bannerImage} 
-                        alt="Default banner" 
+                      <img
+                        src={settings.theme.branding.bannerImage}
+                        alt="Default banner"
                         className="w-full h-32 object-cover rounded-lg"
                       />
                       <button
@@ -757,16 +813,20 @@ function ConfigurationContent() {
                   <Label>Company Name</Label>
                   <Input
                     value={settings.theme.branding.companyName || ''}
-                    onChange={(e) => handleBrandingChange('companyName', e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      handleBrandingChange('companyName', e.target.value)
+                    }
                     placeholder="Enter your company name"
                     className="bg-night border-gray-700"
                   />
-                  
+
                   <div className="flex items-center space-x-2">
                     <Switch
                       id="show-company-name"
                       checked={settings.theme.branding.showCompanyName}
-                      onCheckedChange={(checked) => handleBrandingChange('showCompanyName', checked)}
+                      onCheckedChange={(checked: boolean) =>
+                        handleBrandingChange('showCompanyName', checked)
+                      }
                     />
                     <Label htmlFor="show-company-name">Display company name with logo</Label>
                   </div>
@@ -782,7 +842,9 @@ function ConfigurationContent() {
 
 export default function ConfigurationPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+    <Suspense
+      fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}
+    >
       <ConfigurationContent />
     </Suspense>
   );

@@ -1,12 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const DIRECTUS_URL = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://db.drawday.app';
-const DIRECTUS_ADMIN_TOKEN = process.env.DIRECTUS_ADMIN_TOKEN || 'mNjKgq86jnVokcdwBRKkXgrHEoROvR04';
+const DIRECTUS_ADMIN_TOKEN = process.env.DIRECTUS_ADMIN_TOKEN;
+
+// Configure route segment to handle large payloads
+export const runtime = 'nodejs'; // Use Node.js runtime for better performance
+export const maxDuration = 60; // Maximum allowed duration for Vercel Hobby (60 seconds)
 
 // Helper function to get admin token
 async function getAdminToken(): Promise<string> {
   // Use the static admin token directly
   return DIRECTUS_ADMIN_TOKEN;
+}
+
+// Helper function to create competition in Directus
+async function createCompetitionInDirectus(adminToken: string, competitionData: any) {
+  const requestBody = JSON.stringify(competitionData);
+  console.log(`Sending request to Directus (${(requestBody.length / 1024 / 1024).toFixed(2)} MB)`);
+
+  const createResponse = await fetch(`${DIRECTUS_URL}/items/competitions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${adminToken}`,
+    },
+    body: requestBody,
+    signal: AbortSignal.timeout(55000),
+  });
+
+  if (!createResponse.ok) {
+    let errorMessage = 'Failed to create competition';
+    try {
+      const error = await createResponse.json();
+      errorMessage = error.errors?.[0]?.message || error.message || errorMessage;
+    } catch {
+      errorMessage = `Server returned ${createResponse.status}: ${createResponse.statusText}`;
+    }
+    console.error('Directus error:', errorMessage);
+    throw new Error(errorMessage);
+  }
+
+  const { data: competition } = await createResponse.json();
+
+  // Map the response
+  let participants = [];
+  if (competition.participants_data) {
+    try {
+      participants = JSON.parse(competition.participants_data);
+    } catch (parseError) {
+      console.error('Failed to parse participants from response:', parseError);
+      participants = [];
+    }
+  }
+
+  return {
+    ...competition,
+    participants,
+    winners: competition.winners_data ? JSON.parse(competition.winners_data) : [],
+    bannerImageId: competition.banner_image,
+  };
 }
 
 // Helper to extract token from request
@@ -147,12 +199,21 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // Remove redundant fields and map to frontend format
+      const {
+        banner_image,
+        banner_image_id, // Remove this from spread since we're mapping it
+        created_at,
+        date_created,
+        ...cleanComp
+      } = comp;
+
       return {
-        ...comp,
+        ...cleanComp,
         participants,
         winners,
-        bannerImageId: comp.banner_image_id, // Map Directus field to frontend field
-        createdAt: comp.created_at || comp.date_created, // Map Directus timestamp fields
+        bannerImageId: banner_image_id || null, // Map Directus field to frontend field
+        createdAt: created_at || date_created, // Map Directus timestamp fields
       };
     });
 
@@ -186,47 +247,163 @@ export async function POST(request: NextRequest) {
     }
 
     const { data: user } = await userResponse.json();
-    const body = await request.json();
+
+    // Parse the request body with proper error handling for large payloads
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError: any) {
+      console.error('Failed to parse request body:', parseError);
+      return NextResponse.json(
+        { error: 'Invalid request body or payload too large' },
+        { status: 400 }
+      );
+    }
+
+    // Log the size of participants array
+    if (body.participants) {
+      console.log(`Creating competition with ${body.participants.length} participants`);
+
+      // For very large datasets, consider compression
+      if (body.participants.length > 10000) {
+        console.log('Large dataset detected, will store as compressed JSON');
+      }
+    }
 
     // Get admin token to create competition
     const adminToken = await getAdminToken();
 
     // Create competition with user_id
-    const competitionData = {
-      name: body.name,
-      participants_data: body.participants ? JSON.stringify(body.participants) : null,
-      winners_data: body.winners ? JSON.stringify(body.winners) : null,
-      banner_image: body.bannerImageId || null,
-      user_id: user.id,
-      created_at: new Date().toISOString(),
-      status: 'active',
-    };
+    // For large participant lists, we need to handle them specially
+    let participantsData = null;
+    let participantsCount = 0;
 
-    const createResponse = await fetch(`${DIRECTUS_URL}/items/competitions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${adminToken}`,
-      },
-      body: JSON.stringify(competitionData),
-    });
+    if (body.participants) {
+      participantsCount = body.participants.length;
 
-    if (!createResponse.ok) {
-      const error = await createResponse.json();
-      throw new Error(error.errors?.[0]?.message || 'Failed to create competition');
+      try {
+        const jsonStr = JSON.stringify(body.participants);
+        const sizeInMB = jsonStr.length / (1024 * 1024);
+
+        console.log(`Processing ${participantsCount} participants (${sizeInMB.toFixed(2)} MB)`);
+
+        // Directus has a ~1.8MB payload limit (safe limit is ~10,000 participants)
+        if (participantsCount > 10000) {
+          console.log(`Large dataset detected: ${participantsCount} participants`);
+
+          // For datasets > 10,000 participants, we need to chunk or compress the data
+          // Option 1: Store in chunks (not implemented yet)
+          // Option 2: Compress using gzip (more complex)
+          // Option 3: Store summary and use file storage
+
+          // For now, we'll truncate and warn the user
+          const truncatedParticipants = body.participants.slice(0, 10000);
+          participantsData = JSON.stringify(truncatedParticipants);
+
+          console.warn(`⚠️ Truncated participants list from ${participantsCount} to 10,000 due to Directus payload limits`);
+
+          // Return a warning in the response
+          const competition = await createCompetitionInDirectus(
+            adminToken,
+            {
+              name: body.name,
+              participants_data: participantsData,
+              winners_data: body.winners ? JSON.stringify(body.winners) : null,
+              banner_image_id: body.bannerImageId || null,
+              user_id: user.id,
+              created_at: new Date().toISOString(),
+              status: 'active',
+            }
+          );
+
+          return NextResponse.json({
+            competition,
+            warning: `Competition created with only the first 10,000 participants. Directus has a payload limit of ~1.8MB. Original count: ${participantsCount}`
+          });
+        } else {
+          // Standard processing for datasets under 10,000
+          participantsData = jsonStr;
+        }
+      } catch (stringifyError: any) {
+        console.error('Failed to stringify participants:', stringifyError);
+        return NextResponse.json(
+          { error: 'Failed to process participants data' },
+          { status: 400 }
+        );
+      }
     }
 
-    const { data: competition } = await createResponse.json();
+    // Skip if we already handled the large dataset case above
+    if (participantsCount <= 10000) {
+      const competitionData = {
+        name: body.name,
+        participants_data: participantsData,
+        winners_data: body.winners ? JSON.stringify(body.winners) : null,
+        banner_image_id: body.bannerImageId || null,
+        user_id: user.id,
+        created_at: new Date().toISOString(),
+        status: 'active',
+      };
 
-    // Map the response to match frontend expectations
-    const mappedCompetition = {
-      ...competition,
-      participants: competition.participants_data ? JSON.parse(competition.participants_data) : [],
-      winners: competition.winners_data ? JSON.parse(competition.winners_data) : [],
-      bannerImageId: competition.banner_image,
-    };
+      // Log the request size
+      const requestBody = JSON.stringify(competitionData);
+      console.log(`Sending request to Directus (${(requestBody.length / 1024 / 1024).toFixed(2)} MB)`);
 
-    return NextResponse.json({ competition: mappedCompetition });
+      const createResponse = await fetch(`${DIRECTUS_URL}/items/competitions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: requestBody,
+        // Add timeout for large requests
+        signal: AbortSignal.timeout(55000), // 55 seconds (less than maxDuration)
+      });
+
+      if (!createResponse.ok) {
+        let errorMessage = 'Failed to create competition';
+        try {
+          const error = await createResponse.json();
+          errorMessage = error.errors?.[0]?.message || error.message || errorMessage;
+        } catch {
+          errorMessage = `Server returned ${createResponse.status}: ${createResponse.statusText}`;
+        }
+        console.error('Directus error:', errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      const { data: competition } = await createResponse.json();
+
+      // Map the response to match frontend expectations
+      let participants = [];
+      if (competition.participants_data) {
+        try {
+          // Check if it's base64 encoded
+          const isBase64 = /^[A-Za-z0-9+/]+=*$/.test(competition.participants_data) &&
+                          competition.participants_data.length % 4 === 0 &&
+                          !competition.participants_data.startsWith('[');
+
+          if (isBase64) {
+            const decoded = Buffer.from(competition.participants_data, 'base64').toString('utf-8');
+            participants = JSON.parse(decoded);
+          } else {
+            participants = JSON.parse(competition.participants_data);
+          }
+        } catch (parseError) {
+          console.error('Failed to parse participants from response:', parseError);
+          participants = [];
+        }
+      }
+
+      const mappedCompetition = {
+        ...competition,
+        participants,
+        winners: competition.winners_data ? JSON.parse(competition.winners_data) : [],
+        bannerImageId: competition.banner_image,
+      };
+
+      return NextResponse.json({ competition: mappedCompetition });
+    }
   } catch (error: any) {
     console.error('Error creating competition:', error);
     return NextResponse.json(

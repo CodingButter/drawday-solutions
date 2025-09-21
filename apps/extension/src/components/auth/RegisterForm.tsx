@@ -15,17 +15,13 @@ interface RegisterFormProps {
   className?: string;
 }
 
-export function RegisterForm({ 
-  onSuccess, 
-  onLoginClick,
-  className
-}: RegisterFormProps) {
+export function RegisterForm({ onSuccess, onLoginClick, className }: RegisterFormProps) {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -36,7 +32,7 @@ export function RegisterForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
+
     // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
@@ -117,31 +113,37 @@ export function RegisterForm({
 
       // Check if we're in an iframe (extension)
       if (window.parent !== window) {
-        window.parent.postMessage({ 
-          type: 'AUTH_SUCCESS', 
-          user: { 
-            email: formData.email,
-            displayName: `${formData.firstName} ${formData.lastName}`
-          } 
-        }, '*');
+        window.parent.postMessage(
+          {
+            type: 'AUTH_SUCCESS',
+            user: {
+              email: formData.email,
+              displayName: `${formData.firstName} ${formData.lastName}`,
+            },
+          },
+          '*'
+        );
       }
 
       // Call success callback after a short delay
       setTimeout(() => {
         onSuccess?.();
       }, 2000);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Registration error:', error);
-      
+
       // User-friendly error messages
-      if (error.code === 'auth/email-already-in-use') {
+      const errorCode = (error as { code?: string })?.code;
+      if (errorCode === 'auth/email-already-in-use') {
         setError('An account with this email already exists.');
-      } else if (error.code === 'auth/invalid-email') {
+      } else if (errorCode === 'auth/invalid-email') {
         setError('Please enter a valid email address.');
-      } else if (error.code === 'auth/weak-password') {
+      } else if (errorCode === 'auth/weak-password') {
         setError('Password is too weak. Please use at least 6 characters.');
       } else {
-        setError(error.message || 'Failed to create account. Please try again.');
+        setError(
+          (error as { message?: string })?.message || 'Failed to create account. Please try again.'
+        );
       }
     } finally {
       setIsLoading(false);
@@ -151,13 +153,13 @@ export function RegisterForm({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
   if (success) {
     return (
-      <div className={cn("space-y-4", className)}>
+      <div className={cn('space-y-4', className)}>
         <div className="text-center space-y-4">
           <div className="mx-auto w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
             <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
@@ -175,7 +177,7 @@ export function RegisterForm({
   }
 
   return (
-    <div className={cn("space-y-6", className)}>
+    <div className={cn('space-y-6', className)}>
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
@@ -220,7 +222,7 @@ export function RegisterForm({
             />
           </div>
         </div>
-        
+
         <div className="space-y-2">
           <Label htmlFor="email">
             <Mail className="inline h-4 w-4 mr-1" />
@@ -262,11 +264,7 @@ export function RegisterForm({
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               tabIndex={-1}
             >
-              {showPassword ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
         </div>
@@ -294,20 +292,12 @@ export function RegisterForm({
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               tabIndex={-1}
             >
-              {showConfirmPassword ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
+              {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
         </div>
 
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isLoading}
-        >
+        <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

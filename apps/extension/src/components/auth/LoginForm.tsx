@@ -17,11 +17,11 @@ interface LoginFormProps {
   showMagicLink?: boolean;
 }
 
-export function LoginForm({ 
-  onSuccess, 
+export function LoginForm({
+  onSuccess,
   onRegisterClick,
   className,
-  showMagicLink = true
+  showMagicLink = true,
 }: LoginFormProps) {
   const [loginMethod, setLoginMethod] = useState<'email' | 'magic'>('email');
   const [email, setEmail] = useState('');
@@ -46,20 +46,23 @@ export function LoginForm({
       }
 
       onSuccess?.();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Login error:', error);
-      
+
       // User-friendly error messages
-      if (error.code === 'auth/user-not-found') {
+      const errorCode = (error as { code?: string })?.code;
+      if (errorCode === 'auth/user-not-found') {
         setError('No account found with this email address.');
-      } else if (error.code === 'auth/wrong-password') {
+      } else if (errorCode === 'auth/wrong-password') {
         setError('Incorrect password. Please try again.');
-      } else if (error.code === 'auth/invalid-email') {
+      } else if (errorCode === 'auth/invalid-email') {
         setError('Please enter a valid email address.');
-      } else if (error.code === 'auth/too-many-requests') {
+      } else if (errorCode === 'auth/too-many-requests') {
         setError('Too many failed attempts. Please try again later.');
       } else {
-        setError(error.message || 'Failed to sign in. Please try again.');
+        setError(
+          (error as { message?: string })?.message || 'Failed to sign in. Please try again.'
+        );
       }
     } finally {
       setIsLoading(false);
@@ -70,7 +73,7 @@ export function LoginForm({
     e.preventDefault();
     setError(null);
     setIsLoading(true);
-    
+
     try {
       const response = await fetch('/api/auth/magic-link', {
         method: 'POST',
@@ -97,18 +100,15 @@ export function LoginForm({
 
   if (magicLinkSent) {
     return (
-      <div className={cn("space-y-4", className)}>
+      <div className={cn('space-y-4', className)}>
         <Alert className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
           <AlertDescription className="text-green-800 dark:text-green-200">
-            <strong>Check your email!</strong><br />
-            We've sent a magic link to {email}. Click the link in your email to sign in.
+            <strong>Check your email!</strong>
+            <br />
+            We&apos;ve sent a magic link to {email}. Click the link in your email to sign in.
           </AlertDescription>
         </Alert>
-        <Button
-          variant="outline"
-          onClick={() => setMagicLinkSent(false)}
-          className="w-full"
-        >
+        <Button variant="outline" onClick={() => setMagicLinkSent(false)} className="w-full">
           Back to Login
         </Button>
       </div>
@@ -116,17 +116,17 @@ export function LoginForm({
   }
 
   return (
-    <div className={cn("space-y-6", className)}>
+    <div className={cn('space-y-6', className)}>
       {/* Login Method Toggle */}
       {showMagicLink && (
         <div className="flex rounded-lg bg-muted p-1">
           <button
             type="button"
             className={cn(
-              "flex-1 py-2 px-3 rounded-md transition-all duration-200 text-sm font-medium",
-              loginMethod === 'email' 
-                ? "bg-background shadow-sm" 
-                : "text-muted-foreground hover:text-foreground"
+              'flex-1 py-2 px-3 rounded-md transition-all duration-200 text-sm font-medium',
+              loginMethod === 'email'
+                ? 'bg-background shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
             )}
             onClick={() => setLoginMethod('email')}
           >
@@ -135,10 +135,10 @@ export function LoginForm({
           <button
             type="button"
             className={cn(
-              "flex-1 py-2 px-3 rounded-md transition-all duration-200 text-sm font-medium flex items-center justify-center gap-2",
-              loginMethod === 'magic' 
-                ? "bg-background shadow-sm" 
-                : "text-muted-foreground hover:text-foreground"
+              'flex-1 py-2 px-3 rounded-md transition-all duration-200 text-sm font-medium flex items-center justify-center gap-2',
+              loginMethod === 'magic'
+                ? 'bg-background shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
             )}
             onClick={() => setLoginMethod('magic')}
           >
@@ -154,7 +154,10 @@ export function LoginForm({
         </Alert>
       )}
 
-      <form onSubmit={loginMethod === 'email' ? handleEmailLogin : handleMagicLink} className="space-y-4">
+      <form
+        onSubmit={loginMethod === 'email' ? handleEmailLogin : handleMagicLink}
+        className="space-y-4"
+      >
         <div className="space-y-2">
           <Label htmlFor="email">
             <Mail className="inline h-4 w-4 mr-1" />
@@ -195,36 +198,30 @@ export function LoginForm({
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 tabIndex={-1}
               >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
           </div>
         )}
 
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isLoading}
-        >
+        <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               {loginMethod === 'email' ? 'Signing in...' : 'Sending magic link...'}
             </>
+          ) : loginMethod === 'email' ? (
+            'Sign In'
           ) : (
-            loginMethod === 'email' ? 'Sign In' : 'Send Magic Link'
+            'Send Magic Link'
           )}
         </Button>
       </form>
 
       {loginMethod === 'email' && (
         <div className="text-center text-sm">
-          <a 
-            href="/forgot-password" 
+          <a
+            href="/forgot-password"
             className="text-muted-foreground hover:text-primary transition-colors"
           >
             Forgot your password?
@@ -234,7 +231,7 @@ export function LoginForm({
 
       {onRegisterClick && (
         <div className="text-center text-sm">
-          <span className="text-muted-foreground">Don't have an account? </span>
+          <span className="text-muted-foreground">Don&apos;t have an account? </span>
           <button
             type="button"
             onClick={onRegisterClick}
