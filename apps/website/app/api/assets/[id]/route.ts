@@ -4,9 +4,9 @@ const DIRECTUS_URL = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://db.drawday
 const DIRECTUS_ADMIN_TOKEN = process.env.DIRECTUS_ADMIN_TOKEN;
 
 // GET - Proxy Directus assets with authentication
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const assetId = params.id;
+    const { id: assetId } = await params;
 
     if (!assetId) {
       return NextResponse.json({ error: 'Asset ID required' }, { status: 400 });
