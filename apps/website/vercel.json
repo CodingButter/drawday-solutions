@@ -1,5 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "cd ../.. && pnpm install",
-  "buildCommand": "cd ../.. && pnpm --filter @raffle-spinner/website build"
+  "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
+  "buildCommand": "cd ../.. && pnpm build:website",
+  "framework": "nextjs",
+  "env": {
+    "ENABLE_EXPERIMENTAL_COREPACK": "1",
+    "COREPACK_ENABLE_STRICT": "0"
+  }
 }
