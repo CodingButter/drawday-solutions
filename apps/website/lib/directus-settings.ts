@@ -270,9 +270,9 @@ class DirectusSettingsService {
     if (fileId.startsWith('data:')) return fileId; // Return data URL as-is
     if (fileId.startsWith('http://') || fileId.startsWith('https://')) return fileId; // Already a full URL
 
-    // Use Directus public assets endpoint directly
-    // Always use the hardcoded URL since process.env is not available in browser
-    return `https://db.drawday.app/assets/${fileId}`;
+    // Use our proxy endpoint to avoid CORS/permission issues in iframes
+    // This handles authentication and works reliably from extension contexts
+    return `/api/assets/${fileId}`;
   }
 
   // Clear logo

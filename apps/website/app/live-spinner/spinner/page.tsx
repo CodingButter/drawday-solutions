@@ -191,9 +191,9 @@ function SidePanelContent() {
   // Load banner image - show company banner by default, competition banner when selected
   useEffect(() => {
     if (selectedCompetition?.bannerImageId) {
-      // Competition has its own banner - use direct Directus URL
-      // Always use the hardcoded URL since process.env is not available in browser
-      const bannerUrl = `https://db.drawday.app/assets/${selectedCompetition.bannerImageId}`;
+      // Competition has its own banner - use proxy endpoint
+      // This avoids CORS/permission issues when accessed from extension iframes
+      const bannerUrl = `/api/assets/${selectedCompetition.bannerImageId}`;
       setBannerImage(bannerUrl);
     } else if (theme?.branding?.bannerImage) {
       // Use company branding banner (already a data URL)

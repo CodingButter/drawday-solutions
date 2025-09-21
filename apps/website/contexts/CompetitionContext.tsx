@@ -333,9 +333,9 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({ c
         return imageId;
       }
 
-      // If it's a Directus file ID, use the public Directus assets endpoint
-      // Always use the hardcoded URL since process.env is not available in browser
-      return `https://db.drawday.app/assets/${imageId}`;
+      // If it's a Directus file ID, use our proxy endpoint
+      // This avoids CORS/permission issues when accessed from extension iframes
+      return `/api/assets/${imageId}`;
     },
     []
   );
