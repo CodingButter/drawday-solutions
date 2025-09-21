@@ -20,7 +20,7 @@ import {
   Star,
   Timer,
   Palette,
-  BarChart3
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { login } from '@/lib/directus-auth';
@@ -35,7 +35,7 @@ export default function LoginClient() {
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     email: '',
-    password: ''
+    password: '',
   });
 
   const searchParams = useSearchParams();
@@ -46,7 +46,7 @@ export default function LoginClient() {
   }, []);
 
   const router = useRouter();
-  const redirectTo = searchParams?.get('from') || '/dashboard';
+  const redirectTo = searchParams?.get('redirect') || '/dashboard';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,11 +66,10 @@ export default function LoginClient() {
     }
   };
 
-
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     try {
       const response = await fetch('/api/auth/magic-link', {
         method: 'POST',
@@ -104,11 +103,11 @@ export default function LoginClient() {
         <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-night to-blue-900/20">
           <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
         </div>
-        
+
         {/* Floating orbs */}
         <div className="absolute top-20 left-20 w-72 h-72 bg-purple-500 rounded-full blur-[128px] opacity-10 animate-pulse" />
         <div className="absolute bottom-20 right-20 w-96 h-96 bg-blue-500 rounded-full blur-[128px] opacity-10 animate-pulse delay-1000" />
-        
+
         <div className="relative z-10 w-full max-w-md">
           {/* Success message from registration */}
           {fromRegistration && mounted && (
@@ -130,19 +129,17 @@ export default function LoginClient() {
             <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-white via-purple-200 to-blue-200 bg-clip-text text-transparent">
               Welcome Back
             </h1>
-            <p className="text-gray-300 text-lg">
-              Continue your journey with DrawDay Solutions
-            </p>
+            <p className="text-gray-300 text-lg">Continue your journey with DrawDay Solutions</p>
           </div>
 
           {/* Login Method Toggle */}
           <div className="flex rounded-xl bg-gray-800/50 p-1 mb-6 backdrop-blur-sm border border-gray-700/50">
             <button
               className={cn(
-                "flex-1 py-3 px-4 rounded-lg transition-all duration-300 text-sm font-medium",
-                loginMethod === 'email' 
-                  ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg" 
-                  : "text-gray-400 hover:text-white"
+                'flex-1 py-3 px-4 rounded-lg transition-all duration-300 text-sm font-medium',
+                loginMethod === 'email'
+                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg'
+                  : 'text-gray-400 hover:text-white'
               )}
               onClick={() => setLoginMethod('email')}
             >
@@ -150,10 +147,10 @@ export default function LoginClient() {
             </button>
             <button
               className={cn(
-                "flex-1 py-3 px-4 rounded-lg transition-all duration-300 text-sm font-medium",
-                loginMethod === 'magic' 
-                  ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg" 
-                  : "text-gray-400 hover:text-white"
+                'flex-1 py-3 px-4 rounded-lg transition-all duration-300 text-sm font-medium',
+                loginMethod === 'magic'
+                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg'
+                  : 'text-gray-400 hover:text-white'
               )}
               onClick={() => setLoginMethod('magic')}
             >
@@ -185,7 +182,7 @@ export default function LoginClient() {
                       type="email"
                       placeholder="Enter your email"
                       value={formData.email}
-                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
                       className="pl-10 bg-gray-800/50 border-gray-600/50 text-white placeholder:text-gray-400 focus:border-purple-500/50 focus:ring-purple-500/20"
                       required
                       autoComplete="email"
@@ -203,10 +200,12 @@ export default function LoginClient() {
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <Input
                       id="password"
-                      type={showPassword ? "text" : "password"}
+                      type={showPassword ? 'text' : 'password'}
                       placeholder="Enter your password"
                       value={formData.password}
-                      onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, password: e.target.value }))
+                      }
                       className="pl-10 pr-10 bg-gray-800/50 border-gray-600/50 text-white placeholder:text-gray-400 focus:border-purple-500/50 focus:ring-purple-500/20"
                       required
                     />
@@ -231,8 +230,8 @@ export default function LoginClient() {
                     />
                     <span className="text-sm text-gray-300">Remember me</span>
                   </label>
-                  <Link 
-                    href="/forgot-password" 
+                  <Link
+                    href="/forgot-password"
                     className="text-sm text-purple-400 hover:text-purple-300 transition-colors"
                   >
                     Forgot password?
@@ -271,7 +270,7 @@ export default function LoginClient() {
                       type="email"
                       placeholder="Enter your email for magic link"
                       value={formData.email}
-                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
                       className="pl-10 bg-gray-800/50 border-gray-600/50 text-white placeholder:text-gray-400 focus:border-purple-500/50 focus:ring-purple-500/20"
                       required
                     />
@@ -303,15 +302,14 @@ export default function LoginClient() {
                 </div>
               </form>
             )}
-
           </div>
 
           {/* Register Link */}
           <div className="text-center mt-6">
             <p className="text-gray-400">
               Don't have an account?{' '}
-              <Link 
-                href="/register" 
+              <Link
+                href="/register"
                 className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
               >
                 Create one now
@@ -327,7 +325,7 @@ export default function LoginClient() {
         <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 to-blue-600/10" />
         <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500 rounded-full blur-[200px] opacity-20" />
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500 rounded-full blur-[200px] opacity-20" />
-        
+
         <div className="relative z-10 p-12 flex flex-col justify-center">
           {/* Header */}
           <div className="mb-12">
@@ -339,7 +337,8 @@ export default function LoginClient() {
               Power Your Live Draws
             </h2>
             <p className="text-xl text-gray-300 leading-relaxed">
-              Join the UK's leading raffle companies using our professional draw management platform.
+              Join the UK's leading raffle companies using our professional draw management
+              platform.
             </p>
           </div>
 
@@ -410,7 +409,8 @@ export default function LoginClient() {
               ))}
             </div>
             <p className="text-gray-300 italic mb-4">
-              "DrawDay Spinner transformed our live draws. The animations are incredible and our audience engagement has never been higher."
+              "DrawDay Spinner transformed our live draws. The animations are incredible and our
+              audience engagement has never been higher."
             </p>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">

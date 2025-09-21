@@ -1,14 +1,13 @@
 // Extension configuration
-// Determines whether to use local development or production URLs
+// Uses environment variables to determine the correct website URL
 
-// Check if we're in development by looking at the manifest
-// Production extensions have an update_url field
-const manifest = chrome.runtime.getManifest();
-const isDevelopment = !manifest.update_url || import.meta.env?.DEV;
+// Get the website URL from Vite environment variables
+// This will be set during build time based on the environment
+export const WEBSITE_URL = import.meta.env.VITE_WEBSITE_URL || 'http://localhost:3000';
 
-export const WEBSITE_URL = isDevelopment 
-  ? 'http://localhost:3000' 
-  : 'https://drawday.app';
+// For debugging
+console.log('Extension environment:', import.meta.env.VITE_ENV);
+console.log('Extension using website URL:', WEBSITE_URL);
 
 export const IFRAME_URLS = {
   options: `${WEBSITE_URL}/live-spinner/options`,

@@ -29,58 +29,43 @@ function OptionsIframe() {
         // Send message to background script to notify side panel
         await chrome.runtime.sendMessage({
           action: 'triggerSettingsUpdate',
-          data: data
+          data: data,
         });
       } catch (error) {
         console.error('Failed to trigger settings update:', error);
       }
     };
 
-    // Wait for iframe to load and inject the functions
-    const handleIframeLoad = () => {
-      console.log('Iframe loaded, attempting to inject functions');
-      if (iframeRef.current?.contentWindow) {
-        try {
-          // Inject both functions into the iframe's window
-          const iframeWindow = iframeRef.current.contentWindow as Window & {
-            openSidepanel?: typeof openSidePanel;
-            triggerSettingsUpdate?: typeof triggerSettingsUpdate;
-          };
-          iframeWindow.openSidepanel = openSidePanel;
-          iframeWindow.triggerSettingsUpdate = triggerSettingsUpdate;
-          console.log('Successfully injected openSidepanel and triggerSettingsUpdate functions');
-        } catch (error) {
-          console.error('Failed to inject functions, will use postMessage fallback:', error);
-        }
-      }
-    };
-
-    // Add load listener if iframe exists
-    if (iframeRef.current) {
-      iframeRef.current.addEventListener('load', handleIframeLoad);
-      // Try to inject immediately in case iframe is already loaded
-      handleIframeLoad();
-    }
-
-    // Also listen for messages as a fallback
+    // Listen for messages from the iframe (cross-origin communication)
     const handleMessage = async (event: MessageEvent) => {
+      console.log('[Extension] Received message:', event.data, 'from origin:', event.origin);
+
       // Verify origin for security
-      if (event.origin !== WEBSITE_URL) return;
+      if (event.origin !== WEBSITE_URL) {
+        console.log(
+          '[Extension] Ignoring message from unexpected origin:',
+          event.origin,
+          'expected:',
+          WEBSITE_URL
+        );
+        return;
+      }
 
       if (event.data?.action === 'openSidePanel') {
+        console.log('[Extension] Opening side panel...');
         await openSidePanel();
       } else if (event.data?.action === 'triggerSettingsUpdate') {
+        console.log('[Extension] Triggering settings update...');
         await triggerSettingsUpdate(event.data?.data);
+      } else {
+        console.log('[Extension] Unknown action:', event.data?.action);
       }
     };
 
     window.addEventListener('message', handleMessage);
-    
+
     return () => {
       window.removeEventListener('message', handleMessage);
-      if (iframeRef.current) {
-        iframeRef.current.removeEventListener('load', handleIframeLoad);
-      }
     };
   }, []);
 

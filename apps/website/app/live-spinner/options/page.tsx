@@ -221,12 +221,6 @@ function OptionsContent() {
               </p>
             </div>
 
-            {/* Open Spinner Button - shows for extension or standalone */}
-            <Button variant="default" className="mr-4" onClick={openSidePanel}>
-              <Play className="h-4 w-4 mr-2" />
-              Open Spinner
-            </Button>
-
             {/* User Account Info */}
             <Card className="w-80">
               <CardHeader className="pb-3">

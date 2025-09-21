@@ -8,6 +8,8 @@
     "dev:all": "pnpm -r --parallel dev",
     "build": "pnpm -r --filter='!@raffle-spinner/extension' build && pnpm --filter @raffle-spinner/extension build",
     "build:website": "pnpm -r --filter='!@raffle-spinner/extension' build",
+    "dev-build": "./scripts/dev-build.sh",
+    "prod-build": "./scripts/prod-build.sh",
     "clean": "pnpm -r clean",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
     "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
