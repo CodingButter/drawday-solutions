@@ -12,11 +12,15 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'Asset ID required' }, { status: 400 });
     }
 
-    // Fetch the asset from Directus with authentication
+    // Build headers - use admin token if available, otherwise try without auth
+    const headers: HeadersInit = {};
+    if (DIRECTUS_ADMIN_TOKEN) {
+      headers.Authorization = `Bearer ${DIRECTUS_ADMIN_TOKEN}`;
+    }
+
+    // Fetch the asset from Directus
     const response = await fetch(`${DIRECTUS_URL}/assets/${assetId}`, {
-      headers: {
-        Authorization: `Bearer ${DIRECTUS_ADMIN_TOKEN}`,
-      },
+      headers,
     });
 
     if (!response.ok) {

@@ -25,16 +25,35 @@ function OptionsIframe() {
       }
     };
 
-    // Wait for iframe to load and inject the function
+    // Function to trigger settings update in side panel
+    const triggerSettingsUpdate = async (data?: unknown) => {
+      try {
+        console.log('[Extension] Triggering settings update in side panel', data);
+        // Send message to background script to notify side panel
+        await chrome.runtime.sendMessage({
+          action: 'triggerSettingsUpdate',
+          data: data
+        });
+      } catch (error) {
+        console.error('Failed to trigger settings update:', error);
+      }
+    };
+
+    // Wait for iframe to load and inject the functions
     const handleIframeLoad = () => {
-      console.log('Iframe loaded, attempting to inject openSidepanel function');
+      console.log('Iframe loaded, attempting to inject functions');
       if (iframeRef.current?.contentWindow) {
         try {
-          // Inject the openSidepanel function into the iframe's window
-          (iframeRef.current.contentWindow as Window & { openSidepanel?: typeof openSidePanel }).openSidepanel = openSidePanel;
-          console.log('Successfully injected openSidepanel function');
+          // Inject both functions into the iframe's window
+          const iframeWindow = iframeRef.current.contentWindow as Window & {
+            openSidepanel?: typeof openSidePanel;
+            triggerSettingsUpdate?: typeof triggerSettingsUpdate;
+          };
+          iframeWindow.openSidepanel = openSidePanel;
+          iframeWindow.triggerSettingsUpdate = triggerSettingsUpdate;
+          console.log('Successfully injected openSidepanel and triggerSettingsUpdate functions');
         } catch (error) {
-          console.error('Failed to inject function, will use postMessage fallback:', error);
+          console.error('Failed to inject functions, will use postMessage fallback:', error);
         }
       }
     };
@@ -53,6 +72,8 @@ function OptionsIframe() {
 
       if (event.data?.action === 'openSidePanel') {
         await openSidePanel();
+      } else if (event.data?.action === 'triggerSettingsUpdate') {
+        await triggerSettingsUpdate(event.data?.data);
       }
     };
 

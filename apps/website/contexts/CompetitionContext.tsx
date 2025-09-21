@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { imageStore } from '@/lib/image-utils';
-import { authenticatedFetch } from '@/lib/directus-auth';
+import { api } from '@/lib/api-client';
 // Firebase imports removed - using Directus instead
 type Participant = {
   firstName: string;
@@ -46,23 +46,17 @@ const CompetitionContext = createContext<CompetitionContextType | null>(null);
 // Helper functions for Directus operations
 const fetchCompetitionsFromDirectus = async (): Promise<Competition[]> => {
   try {
-    const response = await authenticatedFetch('/api/v1/competitions', {
-      credentials: 'include', // Include cookies for auth
-    });
+    const response = await api.competitions.list();
 
     if (!response.ok) {
-      const errorText = await response.text();
-
       // If unauthorized, just return empty array instead of throwing
       if (response.status === 401) {
         return [];
       }
-
       throw new Error('Failed to fetch competitions');
     }
 
-    const data = await response.json();
-    const competitions = data.competitions || [];
+    const competitions = response.data?.competitions || [];
     return competitions;
   } catch (error) {
     return [];
@@ -71,24 +65,34 @@ const fetchCompetitionsFromDirectus = async (): Promise<Competition[]> => {
 
 const saveCompetitionToDirectus = async (competition: Competition): Promise<Competition | null> => {
   try {
-    const response = await authenticatedFetch('/api/v1/competitions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include', // Include cookies for auth
-      body: JSON.stringify(competition),
-    });
+    const response = await api.competitions.create(competition);
 
     if (!response.ok) {
-      const errorText = await response.text();
       throw new Error('Failed to save competition');
     }
 
-    const data = await response.json();
-    const savedCompetition = data.competition || data;
+    // Check for warning about truncated participants
+    if (response.data?.warning) {
+      console.warn('Competition warning:', response.data.warning);
+      // Show user-friendly alert
+      if (typeof window !== 'undefined') {
+        alert(`⚠️ Competition created with limitations:\n\n${response.data.warning}\n\nNote: Directus has a maximum payload size of ~1.8MB which limits competitions to approximately 10,000 participants.`);
+      }
+    }
+
+    const savedCompetition = response.data?.competition || response.data;
     return savedCompetition;
   } catch (error) {
+    console.error('Error saving competition:', error);
+
+    // Check if it's a payload size error
+    if (error?.message?.includes('request entity too large') ||
+        error?.message?.includes('payload too large')) {
+      if (typeof window !== 'undefined') {
+        alert('❌ Competition is too large to save.\n\nThe maximum supported size is approximately 10,000 participants due to database limitations.\n\nPlease reduce the number of participants and try again.');
+      }
+    }
+
     return null;
   }
 };
@@ -111,19 +115,11 @@ const updateCompetitionInDirectus = async (
     if (updates.updatedAt !== undefined)
       directusUpdates.updated_at = new Date(updates.updatedAt).toISOString();
 
-    // Use fetch directly to our API endpoint
-    const response = await fetch(`/api/competitions/${id}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('directus_auth_token')}`,
-      },
-      credentials: 'include', // Include cookies for auth
-      body: JSON.stringify(updates), // Send the original updates, API will handle mapping
-    });
+    // Use API client for updating
+    const response = await api.competitions.update(id, updates);
 
     if (!response.ok) {
-      console.error('Failed to update competition:', await response.text());
+      console.error('Failed to update competition:', response.error);
       throw new Error('Failed to update competition');
     }
 
@@ -136,10 +132,7 @@ const updateCompetitionInDirectus = async (
 
 const deleteCompetitionFromDirectus = async (id: string): Promise<boolean> => {
   try {
-    const response = await authenticatedFetch(`/api/competitions/${id}`, {
-      method: 'DELETE',
-      credentials: 'include', // Include cookies for auth
-    });
+    const response = await api.competitions.delete(id);
 
     if (!response.ok) {
       throw new Error('Failed to delete competition');
@@ -297,23 +290,16 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({ c
           // Convert base64 to blob
           const base64Response = await fetch(bannerImage);
           const blob = await base64Response.blob();
+          const file = new File([blob], `competition-${id}-banner.png`, { type: blob.type });
 
-          // Create FormData for upload
-          const formData = new FormData();
-          formData.append('file', blob, `competition-${id}-banner.png`);
-
-          // Upload via our API proxy which handles authentication
-          const uploadResponse = await fetch('/api/upload-file', {
-            method: 'POST',
-            body: formData,
-          });
+          // Upload via API client
+          const uploadResponse = await api.files.upload(file);
 
           if (!uploadResponse.ok) {
-            const error = await uploadResponse.text();
-            throw new Error(`Failed to upload: ${error}`);
+            throw new Error(`Failed to upload: ${uploadResponse.error}`);
           }
 
-          const { fileId } = await uploadResponse.json();
+          const { fileId } = uploadResponse.data || {};
           console.log('Uploaded to Directus with ID:', fileId);
 
           // Update the competition with the Directus file ID

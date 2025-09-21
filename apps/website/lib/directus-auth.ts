@@ -31,17 +31,24 @@ export async function login(
 
   console.log('Login response data:', data);
 
-  // Store tokens in localStorage
-  localStorage.setItem('directus_token', data.tokens.access_token);
-  localStorage.setItem('directus_refresh_token', data.tokens.refresh_token);
+  // Store tokens in localStorage - tokens are at root level
+  localStorage.setItem('directus_auth_token', data.access_token);
+  localStorage.setItem('directus_refresh_token', data.refresh_token);
   // Directus returns expires in milliseconds (e.g., 900000 for 15 minutes)
-  const expiresAt = Date.now() + data.tokens.expires;
+  const expiresAt = Date.now() + data.expires;
   localStorage.setItem('directus_expires', expiresAt.toString());
 
   // Store user info
   localStorage.setItem('directus_user', JSON.stringify(data.user));
 
-  return { user: data.user, tokens: data.tokens };
+  return {
+    user: data.user,
+    tokens: {
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      expires: data.expires
+    }
+  };
 }
 
 export async function register(
@@ -98,7 +105,7 @@ export async function logout() {
   }
 
   // Clear local storage
-  localStorage.removeItem('directus_token');
+  localStorage.removeItem('directus_auth_token');
   localStorage.removeItem('directus_refresh_token');
   localStorage.removeItem('directus_expires');
   localStorage.removeItem('directus_user');
@@ -125,7 +132,7 @@ export function getStoredToken(): string | null {
     return null;
   }
 
-  return localStorage.getItem('directus_token');
+  return localStorage.getItem('directus_auth_token');
 }
 
 export function isAuthenticated(): boolean {
@@ -180,6 +187,9 @@ export async function refreshToken(): Promise<string | null> {
     return null;
   }
 }
+
+// Import extension bridge for triggering updates
+import { getExtensionBridge } from './extension-bridge';
 
 // Helper function to make authenticated requests with automatic token refresh
 export async function authenticatedFetch(
@@ -254,6 +264,27 @@ export async function authenticatedFetch(
       }
       throw new Error('Authentication required. Please log in again.');
     }
+  }
+
+  // Trigger extension update on successful mutations (POST, PUT, PATCH, DELETE)
+  const method = (options.method || 'GET').toUpperCase();
+  const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
+
+  if (isMutation && response.ok) {
+    // Delay to ensure backend has processed the change
+    // DELETE operations may take longer to propagate
+    const delay = method === 'DELETE' ? 750 : 200;
+
+    setTimeout(() => {
+      const bridge = getExtensionBridge();
+      console.log(`[authenticatedFetch] Triggering update after ${method} to ${url} with ${delay}ms delay`);
+      bridge.triggerSettingsUpdate({
+        type: 'api-mutation',
+        method,
+        url,
+        timestamp: Date.now()
+      });
+    }, delay);
   }
 
   return response;

@@ -3,6 +3,8 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { directusSettings, type UserSettings } from '@/lib/directus-settings';
 import { getStoredUser } from '@/lib/directus-auth';
+import { getSettingsSyncService } from '@/lib/settings-sync';
+import { getExtensionBridge } from '@/lib/extension-bridge';
 
 // Define types locally since firebase-service is removed
 export interface ThemeColors {
@@ -86,6 +88,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<ThemeSettings>(defaultTheme);
   const [isLoading, setIsLoading] = useState(true);
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
+  const syncService = useRef<ReturnType<typeof getSettingsSyncService>>();
 
   // Load theme from localStorage first, then try Directus
   useEffect(() => {
@@ -108,12 +111,22 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // Try to load from Directus (but it's commented out for now)
+        // Try to load from Directus
         const settings = await directusSettings.getSettings();
+        console.log('[ThemeContext] Loaded settings from Directus:', settings);
         if (settings) {
           setUserSettings(settings);
 
           // Map Directus settings to theme
+          console.log('[ThemeContext] Logo image ID:', settings.logo_image);
+          console.log('[ThemeContext] Banner image ID:', settings.banner_image);
+          if (settings.logo_image) {
+            console.log('[ThemeContext] Logo URL:', directusSettings.getAssetUrl(settings.logo_image));
+          }
+          if (settings.banner_image) {
+            console.log('[ThemeContext] Banner URL:', directusSettings.getAssetUrl(settings.banner_image));
+          }
+
           const newTheme: ThemeSettings = {
             colors: { ...defaultTheme.colors, ...(settings.theme_settings?.colors || {}) },
             spinnerStyle: {
@@ -162,10 +175,53 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     loadSettings();
   }, []);
 
+  // Subscribe to settings changes for live updates
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    syncService.current = getSettingsSyncService();
+
+    // Subscribe to theme changes
+    const unsubscribe = syncService.current.subscribe((event) => {
+      if (event.type === 'theme') {
+        // Reload theme from localStorage or server
+        const storedTheme = localStorage.getItem('theme');
+        if (storedTheme) {
+          try {
+            const parsedTheme = JSON.parse(storedTheme);
+            setTheme(parsedTheme);
+          } catch (e) {
+            console.error('Failed to parse updated theme:', e);
+          }
+        }
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   const saveTheme = async (newTheme: ThemeSettings) => {
     setTheme(newTheme);
     // Save to localStorage as backup
     localStorage.setItem('theme', JSON.stringify(newTheme));
+
+    // Broadcast the change to other tabs/windows
+    if (syncService.current) {
+      syncService.current.broadcastChange({
+        type: 'theme',
+        data: newTheme,
+        timestamp: Date.now(),
+        source: 'theme-context'
+      });
+    }
+
+    // Trigger extension update if available
+    const bridge = getExtensionBridge();
+    if (bridge.triggerSettingsUpdate) {
+      bridge.triggerSettingsUpdate({ type: 'theme', data: newTheme });
+    }
   };
 
   const updateColors = async (colors: Partial<ThemeColors>) => {
@@ -193,9 +249,27 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateBranding = async (branding: Partial<BrandingConfig>) => {
-    try {
-      setIsLoading(true);
+    // Update local theme immediately for instant UI feedback
+    const newTheme = {
+      ...theme,
+      branding: { ...theme.branding, ...branding },
+    };
 
+    // Update state immediately
+    setTheme(newTheme);
+
+    // Save to localStorage immediately
+    await saveTheme(newTheme);
+
+    // Don't set loading for simple boolean toggles
+    const isSimpleToggle = Object.keys(branding).length === 1 &&
+      (branding.showCompanyName !== undefined || branding.logoPosition !== undefined);
+
+    if (!isSimpleToggle) {
+      setIsLoading(true);
+    }
+
+    try {
       // Handle logo upload to Directus
       if (branding.logoImage !== undefined) {
         try {
@@ -239,19 +313,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         await directusSettings.updateBranding(brandingSettings);
       }
 
-      // Update local theme immediately - this prevents page refresh
-      const newTheme = {
-        ...theme,
-        branding: { ...theme.branding, ...branding },
-      };
-
-      // Update state immediately for instant UI feedback
-      setTheme(newTheme);
-
-      // Save to localStorage in background
-      await saveTheme(newTheme);
-
-      setIsLoading(false);
+      if (!isSimpleToggle) {
+        setIsLoading(false);
+      }
     } catch (error: any) {
       setIsLoading(false);
 

@@ -21,24 +21,23 @@ export async function GET(request: NextRequest) {
     const raffleId = searchParams.get('raffleId');
     const limit = searchParams.get('limit') || '50';
 
-    if (!raffleId) {
-      return NextResponse.json({ error: 'Raffle ID required' }, { status: 400 });
-    }
-
     const token = getTokenFromRequest(request);
     if (!token) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    // Fetch draw history for the raffle
-    const historyResponse = await fetch(
-      `${DIRECTUS_URL}/items/draw_history?filter[raffle_id][_eq]=${raffleId}&sort=-drawn_at&limit=${limit}`,
-      {
-        headers: {
-          Authorization: `Bearer ${DIRECTUS_ADMIN_TOKEN}`,
-        },
-      }
-    );
+    // Build the query URL
+    let queryUrl = `${DIRECTUS_URL}/items/draw_history?sort=-drawn_at&limit=${limit}`;
+    if (raffleId) {
+      queryUrl += `&filter[raffle_id][_eq]=${raffleId}`;
+    }
+
+    // Fetch draw history
+    const historyResponse = await fetch(queryUrl, {
+      headers: {
+        Authorization: `Bearer ${DIRECTUS_ADMIN_TOKEN}`,
+      },
+    });
 
     if (!historyResponse.ok) {
       throw new Error('Failed to fetch draw history');

@@ -6,6 +6,7 @@ import { CompetitionProvider, useCompetitions } from '@/contexts';
 import { SettingsProvider, useSettings } from '@/contexts';
 import { ThemeProvider, useTheme } from '@/contexts';
 import { useExtensionBridge } from '@/hooks/useExtensionBridge';
+import { getExtensionBridge } from '@/lib/extension-bridge';
 import { getStoredUser, isAuthenticated } from '@/lib/directus-auth';
 import { SlotMachineWheel } from '@raffle-spinner/spinners';
 import { SessionWinners, Winner } from '@/components/sidepanel/SessionWinners';
@@ -51,17 +52,23 @@ function SidePanelContent() {
     });
   }, [theme?.spinnerStyle]);
 
-  // Poll Directus for live updates when authenticated
+  // Listen for settings updates from extension bridge
   useEffect(() => {
     if (!user) return;
 
-    // Poll competitions every 3 seconds
-    const competitionsInterval = setInterval(() => {
+    const bridge = getExtensionBridge();
+
+    // Subscribe to settings updates
+    const unsubscribe = bridge.onSettingsUpdate(() => {
+      console.log('[Spinner] Received settings update event, refreshing competitions');
       refreshCompetitions();
-    }, 3000);
+    });
+
+    // Initial load
+    refreshCompetitions();
 
     return () => {
-      clearInterval(competitionsInterval);
+      unsubscribe();
     };
   }, [user, refreshCompetitions]);
 

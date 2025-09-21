@@ -1,8 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { directusSettings, type UserSettings } from '@/lib/directus-settings';
 import { getStoredUser, isAuthenticated } from '@/lib/directus-auth';
+import { getSettingsSyncService } from '@/lib/settings-sync';
+import { getExtensionBridge } from '@/lib/extension-bridge';
 import type { ColumnMapping, SavedMapping } from '@raffle-spinner/types';
 
 interface SpinnerSettings {
@@ -35,6 +37,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [columnMapping, setColumnMapping] = useState<ColumnMapping | null>(null);
   const [savedMappings, setSavedMappings] = useState<SavedMapping[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const syncService = useRef<ReturnType<typeof getSettingsSyncService>>();
 
   // Sync settings to localStorage for polling
   useEffect(() => {
@@ -95,10 +98,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     };
 
     checkAuth();
-
-    // Check auth state periodically
-    const interval = setInterval(checkAuth, 5000);
-    return () => clearInterval(interval);
   }, []);
 
   const refreshSettings = useCallback(async () => {
@@ -142,6 +141,54 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }
   }, [userId]);
 
+  // Subscribe to settings changes for live updates
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    syncService.current = getSettingsSyncService();
+    const bridge = getExtensionBridge();
+
+    // Subscribe to spinner settings changes
+    const unsubscribe = syncService.current.subscribe((event) => {
+      if (event.type === 'spinner') {
+        // Reload settings from localStorage
+        const storedSettings = localStorage.getItem('settings');
+        if (storedSettings) {
+          try {
+            const parsedSettings = JSON.parse(storedSettings);
+            setSettings(parsedSettings);
+          } catch (e) {
+            console.error('Failed to parse updated settings:', e);
+          }
+        }
+
+        // Also reload column mapping if changed
+        const storedMapping = localStorage.getItem('columnMapping');
+        if (storedMapping) {
+          try {
+            const parsedMapping = JSON.parse(storedMapping);
+            setColumnMapping(parsedMapping);
+          } catch (e) {
+            console.error('Failed to parse updated mapping:', e);
+          }
+        }
+      }
+    });
+
+    // Subscribe to extension bridge updates
+    const bridgeUnsubscribe = bridge.onSettingsUpdate(() => {
+      console.log('[SettingsContext] Received update from extension bridge');
+      if (userId) {
+        refreshSettings();
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      bridgeUnsubscribe();
+    };
+  }, [userId, refreshSettings]);
+
   const updateSettings = async (updates: Partial<SpinnerSettings>) => {
     if (!userId) return;
 
@@ -149,6 +196,16 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     setSettings(newSettings);
     // Sync to localStorage immediately
     localStorage.setItem('settings', JSON.stringify(newSettings));
+
+    // Broadcast the change to other tabs/windows
+    if (syncService.current) {
+      syncService.current.broadcastChange({
+        type: 'spinner',
+        data: newSettings,
+        timestamp: Date.now(),
+        source: 'settings-context'
+      });
+    }
 
     try {
       // Save to Directus
@@ -160,6 +217,16 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   const updateColumnMapping = (mapping: ColumnMapping) => {
     setColumnMapping(mapping);
+
+    // Broadcast the change
+    if (syncService.current) {
+      syncService.current.broadcastChange({
+        type: 'column_mapping',
+        data: mapping,
+        timestamp: Date.now(),
+        source: 'settings-context'
+      });
+    }
 
     // Save to Directus if user is authenticated
     if (userId) {

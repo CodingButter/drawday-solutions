@@ -73,12 +73,10 @@ export async function POST(request: NextRequest) {
       // Fall back to limited user data
       return NextResponse.json({
         success: true,
+        access_token,
+        expires,
+        refresh_token,
         user: { id: userId, email },
-        tokens: {
-          access_token,
-          expires,
-          refresh_token,
-        },
       });
     }
 
@@ -86,12 +84,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      access_token,
+      expires,
+      refresh_token,
       user: userData.data,
-      tokens: {
-        access_token,
-        expires,
-        refresh_token,
-      },
     });
   } catch (error: any) {
     console.error('Login error:', error);

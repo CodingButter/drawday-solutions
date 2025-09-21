@@ -269,16 +269,9 @@ class DirectusSettingsService {
     if (!fileId) return '';
     if (fileId.startsWith('data:')) return fileId; // Return data URL as-is
 
-    // For Directus assets, we need to include the access token
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('directus_token');
-      if (token) {
-        return `https://db.drawday.app/assets/${fileId}?access_token=${token}`;
-      }
-    }
-
-    // Fallback to public URL (may not work if asset is not public)
-    return `https://db.drawday.app/assets/${fileId}`;
+    // Use the proxy API endpoint for authenticated asset access
+    // This handles authentication on the server side
+    return `/api/assets/${fileId}`;
   }
 
   // Clear logo
