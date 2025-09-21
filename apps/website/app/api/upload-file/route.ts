@@ -28,8 +28,10 @@ export async function POST(request: NextRequest) {
     console.log('File uploaded to Directus:', result.data.id);
 
     return NextResponse.json({
-      fileId: result.data.id,
-      filename: result.data.filename_download,
+      data: {
+        fileId: result.data.id,
+        filename: result.data.filename_download,
+      },
     });
   } catch (error: any) {
     console.error('Error uploading file:', error);

@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@raff
 import { Alert, AlertDescription } from '@raffle-spinner/ui';
 import { ImageUpload } from '@raffle-spinner/ui';
 import { Trash2, Users, AlertCircle } from 'lucide-react';
-import { imageStore } from '@/lib/image-utils';
+import { useCompetitions } from '@/contexts';
 
 interface CompetitionListProps {
   competitions: Competition[];
@@ -22,7 +22,7 @@ interface CompetitionListProps {
   onUpdateBanner?: (id: string, banner: string | undefined) => void;
 }
 
-// Component to handle loading banner from IndexedDB
+// Component to handle banner display and updates with local storage
 function CompetitionBanner({
   competition,
   onUpdateBanner,
@@ -30,6 +30,7 @@ function CompetitionBanner({
   competition: Competition;
   onUpdateBanner?: (id: string, banner: string | undefined) => void;
 }) {
+  const { getBannerImage } = useCompetitions();
   const [bannerUrl, setBannerUrl] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(false);
 
@@ -38,20 +39,8 @@ function CompetitionBanner({
       if (competition.bannerImageId) {
         setLoading(true);
         try {
-          // Check if it's a Directus UUID (standard UUID format)
-          const isDirectusUUID =
-            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-              competition.bannerImageId
-            );
-
-          if (isDirectusUUID) {
-            // Use our proxy API to fetch Directus assets with authentication
-            setBannerUrl(`/api/assets/${competition.bannerImageId}`);
-          } else {
-            // Fallback to IndexedDB for legacy data
-            const image = await imageStore.getImage(competition.bannerImageId);
-            setBannerUrl(image || undefined);
-          }
+          const imageUrl = await getBannerImage(competition.bannerImageId);
+          setBannerUrl(imageUrl || undefined);
         } catch (error) {
           console.error('Error loading banner:', error);
           setBannerUrl(undefined);
@@ -59,28 +48,25 @@ function CompetitionBanner({
           setLoading(false);
         }
       } else {
-        // Clear banner if no bannerImageId
         setBannerUrl(undefined);
       }
     };
     loadBanner();
-  }, [competition.bannerImageId, competition.id]); // Add competition.id to dependencies to force refresh
+  }, [competition.bannerImageId, competition.id, getBannerImage]);
 
   const handleBannerChange = async (value: string | undefined) => {
-    // Set loading state while updating
     setLoading(true);
-
-    // Update the banner
-    await onUpdateBanner?.(competition.id, value);
-
-    // The parent component will update the competition state,
-    // which will trigger the useEffect to reload the banner
+    try {
+      await onUpdateBanner?.(competition.id, value);
+    } catch (error) {
+      console.error('Error updating banner:', error);
+    }
     setLoading(false);
   };
 
   return (
     <ImageUpload
-      key={`${competition.id}-${competition.bannerImageId || 'no-banner'}`} // Add key to force re-render
+      key={`${competition.id}-${competition.bannerImageId || 'no-banner'}`}
       value={bannerUrl}
       onChange={handleBannerChange}
       onError={(error) => console.error('Upload error:', error)}

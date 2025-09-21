@@ -5,13 +5,8 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Increase body size limit to handle large competitions (50MB)
-  api: {
-    bodyParser: {
-      sizeLimit: '50mb',
-    },
-    responseLimit: '50mb',
-  },
+  // Note: Body size limit is now handled in individual API routes with Next.js App Router
+  // Each API route can specify its own size limits in the route.ts files
 
   // Disable ESLint and TypeScript checking during builds for Vercel deployment
   eslint: {

@@ -40,38 +40,6 @@ function SidePanelContent() {
   const [error, setError] = useState<string | null>(null);
   const [bannerImage, setBannerImage] = useState<string | null>(null);
 
-  // Debug logging for theme changes
-  useEffect(() => {
-    console.log('Theme updated in spinner panel:', {
-      timestamp: Date.now(),
-      nameColor: theme?.spinnerStyle?.nameColor,
-      ticketColor: theme?.spinnerStyle?.ticketColor,
-      backgroundColor: theme?.spinnerStyle?.backgroundColor,
-      canvasBackground: theme?.spinnerStyle?.canvasBackground,
-      highlightColor: theme?.spinnerStyle?.highlightColor,
-    });
-  }, [theme?.spinnerStyle]);
-
-  // Listen for settings updates from extension bridge
-  useEffect(() => {
-    if (!user) return;
-
-    const bridge = getExtensionBridge();
-
-    // Subscribe to settings updates
-    const unsubscribe = bridge.onSettingsUpdate(() => {
-      console.log('[Spinner] Received settings update event, refreshing competitions');
-      refreshCompetitions();
-    });
-
-    // Initial load
-    refreshCompetitions();
-
-    return () => {
-      unsubscribe();
-    };
-  }, [user, refreshCompetitions]);
-
   // Auth check - require proper Directus authentication
   useEffect(() => {
     const checkAuth = async () => {
@@ -95,6 +63,23 @@ function SidePanelContent() {
 
     checkAuth();
   }, [router, refreshCompetitions]);
+
+  // Listen for competition updates from extension bridge (only when user is authenticated)
+  useEffect(() => {
+    if (!user) return;
+
+    const bridge = getExtensionBridge();
+
+    // Use the correct onSettingsUpdate method which returns an unsubscribe function
+    const unsubscribe = bridge.onSettingsUpdate(() => {
+      refreshCompetitions();
+    });
+
+    // Cleanup
+    return () => {
+      unsubscribe();
+    };
+  }, [user, refreshCompetitions]);
 
   const handleSpin = () => {
     setError(null);
@@ -207,7 +192,8 @@ function SidePanelContent() {
   useEffect(() => {
     if (selectedCompetition?.bannerImageId) {
       // Competition has its own banner - use proxy API for authenticated access
-      setBannerImage(`/api/assets/${selectedCompetition.bannerImageId}`);
+      const bannerUrl = `/api/assets/${selectedCompetition.bannerImageId}`;
+      setBannerImage(bannerUrl);
     } else if (theme?.branding?.bannerImage) {
       // Use company branding banner (already a data URL)
       setBannerImage(theme.branding.bannerImage);

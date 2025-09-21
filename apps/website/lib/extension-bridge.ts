@@ -29,8 +29,7 @@ class ExtensionBridgeImpl implements ExtensionBridge {
   constructor() {
     // Detect environment
     this.isInIframe = window !== window.parent;
-    this.isExtension = typeof window !== 'undefined' &&
-                       !!(window as any).chrome?.runtime?.id;
+    this.isExtension = typeof window !== 'undefined' && !!(window as any).chrome?.runtime?.id;
 
     // Initialize based on environment
     this.initialize();
@@ -87,7 +86,7 @@ class ExtensionBridgeImpl implements ExtensionBridge {
   };
 
   private notifyListeners() {
-    this.updateListeners.forEach(listener => {
+    this.updateListeners.forEach((listener) => {
       try {
         listener();
       } catch (error) {
@@ -107,7 +106,7 @@ class ExtensionBridgeImpl implements ExtensionBridge {
     const message = {
       type: 'settings-update',
       timestamp: Date.now(),
-      ...data
+      payload: data,
     };
 
     // Broadcast to all channels
@@ -127,7 +126,7 @@ class ExtensionBridgeImpl implements ExtensionBridge {
 
     // Send to any child iframes
     const iframes = document.querySelectorAll('iframe');
-    iframes.forEach(iframe => {
+    iframes.forEach((iframe) => {
       if (iframe.contentWindow) {
         iframe.contentWindow.postMessage(message, '*');
       }
@@ -135,8 +134,6 @@ class ExtensionBridgeImpl implements ExtensionBridge {
   }
 
   public triggerSettingsUpdate = (data?: any) => {
-    console.log('[ExtensionBridge] Triggering settings update', data);
-
     if (!this.isReady) {
       this.messageQueue.push(data);
       return;

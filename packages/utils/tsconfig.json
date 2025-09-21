@@ -6,7 +6,7 @@
     "declaration": true,
     "lib": ["ES2015", "DOM"],
     "target": "ES2015",
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "allowImportingTsExtensions": false,
     "resolveJsonModule": true
   },

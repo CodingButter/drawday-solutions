@@ -2,8 +2,8 @@
 
 echo "🔍 Ensuring port 3000 is free..."
 
-# Use npx kill-port which is more reliable
-npx kill-port 3000 2>/dev/null || true
+# Kill any process using port 3000 using system tools
+lsof -ti:3000 | xargs kill -9 2>/dev/null || true
 
 # Small delay to ensure port is released
 sleep 0.5
