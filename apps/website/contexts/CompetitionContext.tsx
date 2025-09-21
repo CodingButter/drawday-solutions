@@ -333,8 +333,9 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({ c
         return imageId;
       }
 
-      // If it's a Directus file ID, fetch through the API proxy
-      return `/api/assets/${imageId}`;
+      // If it's a Directus file ID, use the public Directus assets endpoint
+      const directusUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://db.drawday.app';
+      return `${directusUrl}/assets/${imageId}`;
     },
     []
   );

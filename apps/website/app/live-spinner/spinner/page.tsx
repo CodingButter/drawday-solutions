@@ -191,8 +191,9 @@ function SidePanelContent() {
   // Load banner image - show company banner by default, competition banner when selected
   useEffect(() => {
     if (selectedCompetition?.bannerImageId) {
-      // Competition has its own banner - use proxy API for authenticated access
-      const bannerUrl = `/api/assets/${selectedCompetition.bannerImageId}`;
+      // Competition has its own banner - use direct Directus URL
+      const directusUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://db.drawday.app';
+      const bannerUrl = `${directusUrl}/assets/${selectedCompetition.bannerImageId}`;
       setBannerImage(bannerUrl);
     } else if (theme?.branding?.bannerImage) {
       // Use company branding banner (already a data URL)

@@ -269,9 +269,9 @@ class DirectusSettingsService {
     if (!fileId) return '';
     if (fileId.startsWith('data:')) return fileId; // Return data URL as-is
 
-    // Use the proxy API endpoint for authenticated asset access
-    // This handles authentication on the server side
-    return `/api/assets/${fileId}`;
+    // Use Directus public assets endpoint directly
+    const directusUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://db.drawday.app';
+    return `${directusUrl}/assets/${fileId}`;
   }
 
   // Clear logo
