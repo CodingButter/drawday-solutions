@@ -3,11 +3,5 @@ import { defineConfig } from "tsup";
 
 export default defineConfig({
   ...baseConfig,
-  external: [
-    ...(baseConfig.external || []),
-    "@raffle-spinner/storage",
-    "@raffle-spinner/spinner-physics",
-    "@raffle-spinner/utils",
-    "@raffle-spinner/hooks",
-  ],
+  dts: process.env.VERCEL ? false : baseConfig.dts, // Disable DTS on Vercel
 });
