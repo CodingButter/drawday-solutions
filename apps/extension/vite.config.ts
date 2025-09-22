@@ -30,6 +30,16 @@ export default defineConfig({
           resolve(__dirname, 'DrawDaySpinner/background.js')
         );
 
+        // Copy toggle_side_panel.js (will be compiled from TypeScript)
+        if (existsSync(resolve(__dirname, 'DrawDaySpinner/toggle_side_panel.js'))) {
+          // Already compiled by rollup
+        } else if (existsSync(resolve(__dirname, 'src/toggle_side_panel.js'))) {
+          copyFileSync(
+            resolve(__dirname, 'src/toggle_side_panel.js'),
+            resolve(__dirname, 'DrawDaySpinner/toggle_side_panel.js')
+          );
+        }
+
         // Rename HTML files to match manifest.json expectations
         if (existsSync(resolve(outputPath, 'sidepanel.html'))) {
           // Already named correctly
@@ -79,12 +89,14 @@ export default defineConfig({
       input: {
         sidepanel: resolve(__dirname, 'sidepanel-iframe.html'),
         options: resolve(__dirname, 'options-iframe.html'),
+        toggle_side_panel: resolve(__dirname, 'src/toggle_side_panel.ts'),
       },
       output: {
         entryFileNames: (chunkInfo) => {
           // Rename the output files to match what manifest.json expects
           if (chunkInfo.name === 'sidepanel') return 'sidepanel.js';
           if (chunkInfo.name === 'options') return 'options.js';
+          if (chunkInfo.name === 'toggle_side_panel') return 'toggle_side_panel.js';
           return '[name].js';
         },
         chunkFileNames: 'assets/[name]-[hash].js',

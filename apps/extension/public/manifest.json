@@ -4,21 +4,36 @@
   "version": "1.0.0",
   "description": "Professional live draw spinner for competitions - conduct fair, transparent raffles with style",
   "update_url": "https://clients2.google.com/service/update2/crx",
+
   "permissions": ["storage", "sidePanel"],
-  "background": {
-    "service_worker": "background.js"
-  },
+
+  "web_accessible_resources": [
+    {
+      "resources": ["icon-32.png"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+
+  "background": { "service_worker": "background.js" },
+
   "options_page": "options.html",
-  "side_panel": {
-    "default_path": "sidepanel.html"
-  },
+
+  "side_panel": { "default_path": "sidepanel.html" },
+
   "icons": {
     "16": "icon-16.png",
     "32": "icon-32.png",
     "48": "icon-48.png",
     "128": "icon-128.png"
   },
-  "action": {
-    "default_title": "Open DrawDay Spinner"
-  }
+
+  "action": { "default_title": "Open DrawDay Spinner" },
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["toggle_side_panel.js"],
+      "run_at": "document_idle"
+    }
+  ]
 }
