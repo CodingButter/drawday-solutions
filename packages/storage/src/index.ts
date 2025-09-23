@@ -13,6 +13,7 @@ export * from "./types";
 export * from "./storage-adapter";
 export * from "./chrome-storage-adapter";
 export * from "./local-storage-adapter";
+export * from "./api-storage-adapter";
 export {
   createStorageAdapter,
   getStorageEnvironment,
@@ -23,4 +24,18 @@ import { createStorageAdapter } from "./storage-factory";
 
 // Create storage adapter based on environment
 // Will auto-detect Chrome extension vs web environment
-export const storage = createStorageAdapter("auto");
+// In web environment with auth, will use API storage
+const createDefaultStorage = () => {
+  // Check if we're in web environment with potential auth
+  if (
+    typeof window !== "undefined" &&
+    !chrome?.storage?.local &&
+    (localStorage.getItem("directus_auth_token") ||
+      localStorage.getItem("userId"))
+  ) {
+    return createStorageAdapter("api");
+  }
+  return createStorageAdapter("auto");
+};
+
+export const storage = createDefaultStorage();

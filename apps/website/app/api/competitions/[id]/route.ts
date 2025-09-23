@@ -133,20 +133,15 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const body = await request.json();
 
     // Map frontend field names to Directus field names
+    // ONLY update metadata, NOT participant data
     const updateData: any = {
-      updated_at: new Date().toISOString(),
+      date_updated: new Date().toISOString(),
     };
 
     if (body.name !== undefined) updateData.name = body.name;
-    if (body.participants !== undefined) {
-      updateData.participants_data = JSON.stringify(body.participants);
-    }
-    if (body.winners !== undefined) {
-      updateData.winners_data = JSON.stringify(body.winners);
-    }
-    if (body.bannerImageId !== undefined) {
-      updateData.banner_image_id = body.bannerImageId;
-    }
+    // Store only counts, not actual participant data
+    if (body.participantCount !== undefined) updateData.participant_count = body.participantCount;
+    if (body.winnersCount !== undefined) updateData.winners_count = body.winnersCount;
     if (body.status !== undefined) updateData.status = body.status;
 
     // Log what we're updating

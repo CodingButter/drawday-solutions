@@ -12,8 +12,9 @@
 import { StorageAdapter } from "./storage-adapter";
 import { ChromeStorageAdapter } from "./chrome-storage-adapter";
 import { LocalStorageAdapter } from "./local-storage-adapter";
+import { ApiStorageAdapter } from "./api-storage-adapter";
 
-export type StorageEnvironment = "chrome-extension" | "web" | "auto";
+export type StorageEnvironment = "chrome-extension" | "web" | "api" | "auto";
 
 /**
  * Detects if running in a Chrome extension context
@@ -50,6 +51,10 @@ export function createStorageAdapter(
 
   if (environment === "web") {
     return new LocalStorageAdapter();
+  }
+
+  if (environment === "api") {
+    return new ApiStorageAdapter();
   }
 
   // Auto-detect environment

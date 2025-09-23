@@ -3,11 +3,11 @@
 
 // Get the website URL from Vite environment variables
 // This will be set during build time based on the environment
-export const WEBSITE_URL = import.meta.env.VITE_WEBSITE_URL || 'http://localhost:3000';
+export const WEBSITE_URL = import.meta.env.VITE_WEBSITE_URL || 'http://localhost:3004';
 
-// For debugging
-console.log('Extension environment:', import.meta.env.VITE_ENV);
-console.log('Extension using website URL:', WEBSITE_URL);
+// For debugging (disabled for production)
+// console.log('Extension environment:', import.meta.env.VITE_ENV);
+// console.log('Extension using website URL:', WEBSITE_URL);
 
 export const IFRAME_URLS = {
   options: `${WEBSITE_URL}/live-spinner/options`,
