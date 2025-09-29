@@ -27,7 +27,7 @@
   "devDependencies": {
     "@raffle-spinner/eslint-config": "workspace:*",
     "@raffle-spinner/typescript-config": "workspace:*",
-    "@types/chrome": "^0.0.270",
+    "@types/chrome": "^0.1.12",
     "tsup": "^8.2.4",
     "typescript": "^5.5.4",
     "@raffle-spinner/tsup-config": "workspace:*"
