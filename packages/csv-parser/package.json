@@ -30,7 +30,7 @@
     "@raffle-spinner/typescript-config": "workspace:*",
     "@types/papaparse": "^5.3.14",
     "tsup": "^8.2.4",
-    "typescript": "^5.5.4",
+    "typescript": "^5.9.3",
     "@raffle-spinner/tsup-config": "workspace:*"
   }
 }
