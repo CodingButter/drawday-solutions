@@ -1,0 +1,36 @@
+{
+  "name": "@raffle-spinner/template-luxury",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.tsx --format cjs,esm --dts --external react --external react-dom",
+    "dev": "tsup src/index.tsx --format cjs,esm --dts --external react --external react-dom --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "lucide-react": "^0.539.0",
+    "clsx": "^2.1.1"
+  },
+  "peerDependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@raffle-spinner/typescript-config": "workspace:*",
+    "@raffle-spinner/tsup-config": "workspace:*",
+    "@types/react": "^18.3.16",
+    "@types/react-dom": "^18.3.5",
+    "tsup": "^8.0.1",
+    "typescript": "^5.5.4"
+  }
+}

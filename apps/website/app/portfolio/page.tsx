@@ -141,6 +141,33 @@ export default async function PortfolioPage() {
         </div>
       </section>
 
+      {/* Templates CTA Banner */}
+      <section className="px-4 pb-20">
+        <div className="max-w-5xl mx-auto">
+          <Card className="bg-gradient-to-r from-purple-900/20 to-blue-900/20 border-purple-500/20">
+            <CardContent className="p-8">
+              <div className="flex items-center justify-between gap-8">
+                <div className="flex-1">
+                  <h3 className="text-2xl font-bold mb-2">Browse Our Website Templates</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Preview professional raffle website templates ready to customize for your brand.
+                    See them in action with our interactive preview feature.
+                  </p>
+                </div>
+                <div className="flex-shrink-0">
+                  <Button size="lg" className="gap-2" asChild>
+                    <Link href="/templates">
+                      <Globe className="w-5 h-5" />
+                      View Templates
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
       {/* Featured Projects */}
       {featuredProjects.length > 0 && (
         <section className="px-4 py-20">
