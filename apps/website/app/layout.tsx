@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import { LayoutContent } from '@/components/layout-content';
 
 const inter = Inter({
   variable: '--font-inter',
@@ -10,12 +9,12 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://drawday.app'),
-  title: 'DrawDay Spinner - Professional Live Draw Management',
+  title: 'DrawDay Spinner - Professional Live Draw Chrome Extension',
   description:
-    'Turn your live draws into unforgettable experiences with DrawDay Spinner. The professional Chrome extension for fair, transparent, and exciting competition draws.',
+    'The free Chrome extension for professional, fair, and exciting live draws. Perfect for UK raffle companies, competitions, and giveaways. No account needed.',
   keywords:
-    'drawday, raffle, lottery, spinner, chrome extension, live draw, competition, giveaway, UK competitions',
-  authors: [{ name: 'DrawDay Team' }],
+    'drawday, spinner, chrome extension, live draw, raffle, competition, giveaway, winner selection, UK competitions, free',
+  authors: [{ name: 'DrawDay' }],
   icons: {
     icon: [
       { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
@@ -25,17 +24,23 @@ export const metadata: Metadata = {
     apple: '/favicon.png',
   },
   openGraph: {
-    title: 'DrawDay Spinner',
-    description: 'Professional live draw Chrome extension for UK competitions',
+    title: 'DrawDay Spinner - Professional Live Draw Chrome Extension',
+    description:
+      'Free Chrome extension for professional, fair, and exciting live draws. No account needed.',
     type: 'website',
     images: [
       {
         url: '/logo.svg',
         width: 512,
         height: 512,
-        alt: 'DrawDay Logo',
+        alt: 'DrawDay Spinner Logo',
       },
     ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'DrawDay Spinner',
+    description: 'Free Chrome extension for professional live draws',
   },
 };
 
@@ -45,10 +50,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark scroll-smooth">
       <body className={`${inter.variable} font-sans antialiased bg-night text-white`}>
-        <LayoutContent>{children}</LayoutContent>
-        <div id="portal-root" />
+        {children}
       </body>
     </html>
   );
