@@ -61,18 +61,28 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Contact */}
+          {/* Contact & Legal */}
           <div>
-            <h4 className="font-semibold text-white text-sm mb-4">Contact</h4>
+            <h4 className="font-semibold text-white text-sm mb-4">Contact & Legal</h4>
             <ul className="space-y-2 text-sm">
               <li>
                 <a
-                  href="mailto:hello@drawday.app"
+                  href="mailto:admin@drawday.app"
                   className="text-gray-500 hover:text-white transition-colors inline-flex items-center gap-2"
                 >
                   <Mail className="w-4 h-4" />
-                  hello@drawday.app
+                  admin@drawday.app
                 </a>
+              </li>
+              <li>
+                <Link href="/contact" className="text-gray-500 hover:text-white transition-colors">
+                  Contact Us
+                </Link>
+              </li>
+              <li>
+                <Link href="/privacy" className="text-gray-500 hover:text-white transition-colors">
+                  Privacy Policy
+                </Link>
               </li>
             </ul>
           </div>
