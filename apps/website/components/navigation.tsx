@@ -26,21 +26,24 @@ export function Navigation() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
-            <a
-              href="#features"
+            <Link
+              href="/#features"
               className="text-gray-400 hover:text-white transition-colors text-sm"
             >
               Features
-            </a>
-            <a
-              href="#how-it-works"
+            </Link>
+            <Link
+              href="/#how-it-works"
               className="text-gray-400 hover:text-white transition-colors text-sm"
             >
               How It Works
-            </a>
-            <a href="#demo" className="text-gray-400 hover:text-white transition-colors text-sm">
+            </Link>
+            <Link
+              href="/#demo"
+              className="text-gray-400 hover:text-white transition-colors text-sm"
+            >
               Demo
-            </a>
+            </Link>
             <a
               href={CHROME_STORE_URL}
               target="_blank"
@@ -66,27 +69,27 @@ export function Navigation() {
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-800/50">
             <div className="flex flex-col gap-3">
-              <a
-                href="#features"
+              <Link
+                href="/#features"
                 className="text-gray-400 hover:text-white transition-colors px-2 py-2"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Features
-              </a>
-              <a
-                href="#how-it-works"
+              </Link>
+              <Link
+                href="/#how-it-works"
                 className="text-gray-400 hover:text-white transition-colors px-2 py-2"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 How It Works
-              </a>
-              <a
-                href="#demo"
+              </Link>
+              <Link
+                href="/#demo"
                 className="text-gray-400 hover:text-white transition-colors px-2 py-2"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Demo
-              </a>
+              </Link>
               <a
                 href={CHROME_STORE_URL}
                 target="_blank"
