@@ -61,3 +61,4 @@ wiki/
 .vercel
 apps/extension/DrawDaySpinner/
 apps/extension/drawday-spinner-extension/
+.env*.local

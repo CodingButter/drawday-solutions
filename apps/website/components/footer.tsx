@@ -20,8 +20,9 @@ export function Footer() {
               </div>
             </Link>
             <p className="text-gray-500 text-sm max-w-xs">
-              The free Chrome extension for professional, fair, and exciting live draws. Built for
-              UK raffle companies and competition operators.
+              The free Chrome extension that transforms your competition draws from spreadsheet
+              scrolling into thrilling, TV-worthy winner reveals. Built for UK raffle companies,
+              live streamers, and competition operators.
             </p>
           </div>
 
@@ -29,6 +30,14 @@ export function Footer() {
           <div>
             <h4 className="font-semibold text-white text-sm mb-4">Quick Links</h4>
             <ul className="space-y-2 text-sm">
+              <li>
+                <Link
+                  href="/#why-drawday"
+                  className="text-gray-500 hover:text-white transition-colors"
+                >
+                  Why DrawDay
+                </Link>
+              </li>
               <li>
                 <Link
                   href="/#features"

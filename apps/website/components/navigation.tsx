@@ -27,6 +27,12 @@ export function Navigation() {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
             <Link
+              href="/#why-drawday"
+              className="text-gray-400 hover:text-white transition-colors text-sm"
+            >
+              Why DrawDay
+            </Link>
+            <Link
               href="/#features"
               className="text-gray-400 hover:text-white transition-colors text-sm"
             >
@@ -69,6 +75,13 @@ export function Navigation() {
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-800/50">
             <div className="flex flex-col gap-3">
+              <Link
+                href="/#why-drawday"
+                className="text-gray-400 hover:text-white transition-colors px-2 py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Why DrawDay
+              </Link>
               <Link
                 href="/#features"
                 className="text-gray-400 hover:text-white transition-colors px-2 py-2"

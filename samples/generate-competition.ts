@@ -13,7 +13,9 @@
 import { writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { logger } from "@raffle-spinner/utils";
+const logger = {
+  info: (msg: string, _ctx?: unknown) => console.log(msg),
+};
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

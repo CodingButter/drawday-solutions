@@ -1,76 +1,100 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Authentication Flow', () => {
-  test('should show registration page', async ({ page }) => {
-    await page.goto('http://localhost:3000/register');
+test.describe('Authentication Pages', () => {
+  test('should show registration page with all form fields', async ({ page }) => {
+    await page.goto('/register');
 
-    // Check for registration form elements
-    await expect(page.locator('h2')).toContainText('Create your account');
-    await expect(page.locator('input[name="firstName"]')).toBeVisible();
-    await expect(page.locator('input[name="lastName"]')).toBeVisible();
+    // Check heading
+    await expect(page.locator('h1')).toContainText('Create Account');
+
+    // Check for all registration form fields
+    await expect(page.locator('input[name="fullName"]')).toBeVisible();
+    await expect(page.locator('input[name="companyName"]')).toBeVisible();
+    await expect(page.locator('input[name="phone"]')).toBeVisible();
     await expect(page.locator('input[name="email"]')).toBeVisible();
     await expect(page.locator('input[name="password"]')).toBeVisible();
     await expect(page.locator('input[name="confirmPassword"]')).toBeVisible();
-    await expect(page.locator('button[type="submit"]')).toContainText('Sign up');
+    await expect(page.locator('button[type="submit"]')).toContainText('Create Account');
   });
 
-  test('should show login page', async ({ page }) => {
-    await page.goto('http://localhost:3000/login');
+  test('should show login page with email and password fields', async ({ page }) => {
+    await page.goto('/login');
 
-    // Check for login form elements
-    await expect(page.locator('h2')).toContainText('Sign in to your account');
-    await expect(page.locator('input[name="email"]')).toBeVisible();
-    await expect(page.locator('input[name="password"]')).toBeVisible();
-    await expect(page.locator('button[type="submit"]')).toContainText('Sign in');
+    // Check heading
+    await expect(page.locator('h1')).toContainText('Sign In');
+
+    // Check for login form fields
+    await expect(page.locator('input#email')).toBeVisible();
+    await expect(page.locator('input#password')).toBeVisible();
+    await expect(page.locator('button[type="submit"]')).toContainText('Sign In');
   });
 
-  test('should redirect to login when accessing protected pages', async ({ page }) => {
-    // Try to access dashboard without authentication
-    await page.goto('http://localhost:3000/dashboard');
-    await page.waitForLoadState('networkidle');
+  test('login page has link to register', async ({ page }) => {
+    await page.goto('/login');
 
-    // Should be redirected to login
-    await expect(page).toHaveURL(/\/login/);
+    const registerLink = page.locator('a[href="/register"]');
+    await expect(registerLink).toBeVisible();
+    await expect(registerLink).toContainText('Sign up');
   });
 
-  test('should navigate to configuration page from dashboard', async ({ page }) => {
-    await page.goto('http://localhost:3000/dashboard');
+  test('register page has link to login', async ({ page }) => {
+    await page.goto('/register');
 
-    // This will redirect to login since we're not authenticated
-    // But we can check if the configuration route exists
-    const response = await page.goto('http://localhost:3000/configuration');
-    expect(response?.status()).toBeLessThan(400); // Should not be 404
+    const loginLink = page.locator('a[href="/login"]');
+    await expect(loginLink).toBeVisible();
+    await expect(loginLink).toContainText('Sign in');
   });
 
-  test('should navigate to live-spinner page from dashboard', async ({ page }) => {
-    await page.goto('http://localhost:3000/dashboard');
+  test('register page shows password mismatch error', async ({ page }) => {
+    await page.goto('/register');
 
-    // This will redirect to login since we're not authenticated
-    // But we can check if the spinner route exists
-    const response = await page.goto('http://localhost:3000/live-spinner');
-    expect(response?.status()).toBeLessThan(400); // Should not be 404
+    // Fill form with mismatched passwords
+    await page.locator('input[name="fullName"]').fill('Test User');
+    await page.locator('input[name="companyName"]').fill('Test Company');
+    await page.locator('input[name="email"]').fill('test@example.com');
+    await page.locator('input[name="password"]').fill('password123');
+    await page.locator('input[name="confirmPassword"]').fill('different123');
+    await page.locator('button[type="submit"]').click();
+
+    // Should show password mismatch error
+    await expect(page.locator('text=Passwords do not match')).toBeVisible();
+  });
+
+  test('register page shows short password error', async ({ page }) => {
+    await page.goto('/register');
+
+    // Fill form with short password
+    await page.locator('input[name="fullName"]').fill('Test User');
+    await page.locator('input[name="companyName"]').fill('Test Company');
+    await page.locator('input[name="email"]').fill('test@example.com');
+    await page.locator('input[name="password"]').fill('12345');
+    await page.locator('input[name="confirmPassword"]').fill('12345');
+    await page.locator('button[type="submit"]').click();
+
+    // Should show min length error
+    await expect(page.locator('text=Password must be at least 6 characters')).toBeVisible();
   });
 });
 
 test.describe('Page Content', () => {
-  test('homepage should load', async ({ page }) => {
-    await page.goto('http://localhost:3000/');
-    await expect(page.locator('h1')).toContainText('DrawDay Spinner');
+  test('homepage should load with correct heading', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('h1')).toContainText('Professional Live Draws');
   });
 
-  test('configuration page shows loading when not authenticated', async ({ page }) => {
-    await page.goto('http://localhost:3000/configuration');
-
-    // Should show loading initially
-    const loadingText = page.locator('text=Loading');
-    await expect(loadingText).toBeVisible();
+  test('homepage has navigation', async ({ page }) => {
+    await page.goto('/');
+    // Navigation should be present
+    await expect(page.locator('nav')).toBeVisible();
   });
 
-  test('live-spinner page shows loading when not authenticated', async ({ page }) => {
-    await page.goto('http://localhost:3000/live-spinner');
+  test('contact page should load', async ({ page }) => {
+    const response = await page.goto('/contact');
+    expect(response?.status()).toBeLessThan(400);
+  });
 
-    // Should show loading initially
-    const loadingText = page.locator('text=Loading');
-    await expect(loadingText).toBeVisible();
+  test('privacy page should load', async ({ page }) => {
+    const response = await page.goto('/privacy');
+    expect(response?.status()).toBeLessThan(400);
   });
 });

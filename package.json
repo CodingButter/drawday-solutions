@@ -4,12 +4,9 @@
   "private": true,
   "description": "DrawDay Spinner - Professional Live Draw Chrome Extension",
   "scripts": {
-    "dev": "pnpm --filter @raffle-spinner/extension build && pnpm --filter @raffle-spinner/website dev",
-    "dev:all": "pnpm -r --parallel dev",
-    "build": "pnpm -r --filter='!@raffle-spinner/extension' build && pnpm --filter @raffle-spinner/extension build",
-    "build:website": "pnpm -r --filter='!@raffle-spinner/extension' build",
-    "dev-build": "./scripts/dev-build.sh",
-    "prod-build": "./scripts/prod-build.sh",
+    "dev": "pnpm --filter @raffle-spinner/website dev",
+    "build": "pnpm --filter @raffle-spinner/website build",
+    "build:website": "pnpm --filter @raffle-spinner/website build",
     "clean": "pnpm -r clean",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
     "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
@@ -20,14 +17,11 @@
     "prepare": "husky"
   },
   "devDependencies": {
-    "@playwright/test": "^1.55.0",
     "@raffle-spinner/eslint-config": "workspace:*",
     "@raffle-spinner/prettier-config": "workspace:*",
-    "@types/lz-string": "^1.5.0",
     "eslint": "^8.57.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.5",
-    "playwright": "^1.55.0",
     "prettier": "^3.3.3",
     "typescript": "^5.5.4"
   },
@@ -36,6 +30,6 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
-    "lz-string": "^1.5.0"
+    "@directus/sdk": "^19.1.0"
   }
 }
