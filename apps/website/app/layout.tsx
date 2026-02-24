@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://drawday.app'),
   title: 'DrawDay Spinner - Professional Live Draw Chrome Extension',
   description:
-    'The free Chrome extension for professional, fair, and exciting live draws. Perfect for UK raffle companies, competitions, and giveaways. No account needed.',
+    'The free Chrome extension for professional, fair, and exciting live draws. Perfect for UK raffle companies, competitions, and giveaways.',
   keywords:
     'drawday, spinner, chrome extension, live draw, raffle, competition, giveaway, winner selection, UK competitions, free',
   authors: [{ name: 'DrawDay' }],
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'DrawDay Spinner - Professional Live Draw Chrome Extension',
     description:
-      'Free Chrome extension for professional, fair, and exciting live draws. No account needed.',
+      'Free Chrome extension for professional, fair, and exciting live draws. Perfect for UK raffle companies and competition operators.',
     type: 'website',
     images: [
       {

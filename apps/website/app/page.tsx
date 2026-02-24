@@ -73,8 +73,7 @@ export default function Home() {
               <p className="text-base md:text-lg text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
                 Manage multiple competitions, import thousands of entries in seconds, and reveal
                 winners with a dramatic slot-machine animation — all from your browser sidebar.
-                Install it once, and you&apos;re ready to go. No accounts. No subscriptions. No
-                setup fees. Ever.
+                Install it once, and you&apos;re ready to go. No subscriptions. No setup fees. Ever.
               </p>
 
               {/* CTA Buttons */}
@@ -106,7 +105,7 @@ export default function Home() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Shield className="w-4 h-4" />
-                  No account or registration required
+                  Works right out of the box
                 </div>
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4" />
@@ -166,7 +165,7 @@ export default function Home() {
                   <GainPoint text="Dramatic, configurable animations that make every reveal a moment your audience remembers" />
                   <GainPoint text="Every draw is automatically timestamped and logged for full audit trail compliance" />
                   <GainPoint text="Manage all your competitions in one place with dedicated entries, winners, and settings per draw" />
-                  <GainPoint text="Completely free Chrome extension that installs in seconds — no accounts, no subscriptions, no hidden costs" />
+                  <GainPoint text="Completely free Chrome extension that installs in seconds — no subscriptions, no hidden costs" />
                 </ul>
               </div>
             </div>
@@ -398,7 +397,7 @@ export default function Home() {
               <FeatureCard
                 icon={<Zap className="w-6 h-6" />}
                 title="Zero Setup, Instant Start"
-                description="Install from the Chrome Web Store and you're ready to draw. No accounts to create, no configuration wizards, no subscription plans. Click install, import your entries, and start spinning. It's that simple."
+                description="Install from the Chrome Web Store and you're ready to draw in minutes. No configuration wizards, no subscription plans. Click install, import your entries, and start spinning. It's that simple."
                 color="amber"
               />
             </div>
@@ -417,9 +416,9 @@ export default function Home() {
                 Up and running in <span className="text-drawday-gold">under a minute</span>
               </h2>
               <p className="text-gray-400 text-lg max-w-3xl mx-auto leading-relaxed">
-                We&apos;ve stripped away everything that slows you down. No sign-ups, no
-                configuration wizards, no onboarding tutorials. DrawDay is designed to get out of
-                your way and let you do what you do best — run brilliant draws.
+                We&apos;ve stripped away everything that slows you down. No configuration wizards,
+                no onboarding tutorials. DrawDay is designed to get out of your way and let you do
+                what you do best — run brilliant draws.
               </p>
             </div>
 
@@ -637,8 +636,8 @@ export default function Home() {
                 answer="Yes, completely. DrawDay Spinner is a free Chrome extension with no premium tiers, no trial periods, no feature gates, and no hidden costs. Every feature is available to everyone, forever. We built this tool because we needed it ourselves and wanted to share it with the community."
               />
               <FAQItem
-                question="Do I need to create an account?"
-                answer="No. DrawDay requires zero registration. Install it from the Chrome Web Store and you're ready to go immediately. There are no logins, no email verification, no passwords to remember. Just install and start drawing."
+                question="How do I get started?"
+                answer="It's quick and easy. Install DrawDay from the Chrome Web Store, create your account, and you're ready to go. Import your first CSV, and you can run your first draw within minutes of installing."
               />
               <FAQItem
                 question="Is my data safe?"
@@ -683,7 +682,7 @@ export default function Home() {
               spin.
             </p>
             <p className="text-gray-400 text-base max-w-xl mx-auto mb-10">
-              Install in seconds. No account needed. No credit card. No catch.
+              Install in seconds. No credit card. No catch.
             </p>
             <a
               href={CHROME_STORE_URL}
