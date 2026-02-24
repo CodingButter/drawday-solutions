@@ -53,7 +53,7 @@ export default function Home() {
               {/* Badge */}
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-drawday-gold/10 border border-drawday-gold/20 text-drawday-gold text-sm font-medium mb-8">
                 <Chrome className="w-4 h-4" />
-                Free Chrome Extension — No Account Required
+                Free Chrome Extension
               </div>
 
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
