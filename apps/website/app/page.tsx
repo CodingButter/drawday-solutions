@@ -34,7 +34,7 @@ import { Footer } from '@/components/footer';
 
 const CHROME_STORE_URL =
   'https://chromewebstore.google.com/detail/olijkjickkfgmmpckjddgndoembhehgi';
-const YOUTUBE_URL = 'https://www.youtube.com/embed/Z91-bg1dbz0';
+const YOUTUBE_URL = 'https://www.youtube.com/embed/u2MnOzKQf6k';
 
 export default function Home() {
   return (
@@ -72,8 +72,9 @@ export default function Home() {
 
               <p className="text-base md:text-lg text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
                 Manage multiple competitions, import thousands of entries in seconds, and reveal
-                winners with a dramatic slot-machine animation — all from your browser sidebar.
-                Install it once, and you&apos;re ready to go. No subscriptions. No setup fees. Ever.
+                winners with dramatic animations. Choose the Name Flipper or the Table Scroll, all
+                from your browser sidebar. Enable auto-fill and drawn numbers transfer from
+                Google&apos;s RNG automatically. No subscriptions. No setup fees. Ever.
               </p>
 
               {/* CTA Buttons */}
@@ -85,7 +86,7 @@ export default function Home() {
                   className="inline-flex items-center gap-3 px-8 py-4 bg-drawday-gold text-rich-black font-semibold rounded-xl hover:bg-drawday-gold/90 transition-all hover:scale-105 shadow-lg shadow-drawday-gold/20"
                 >
                   <Chrome className="w-5 h-5" />
-                  Add to Chrome — It&apos;s Free
+                  Add to Chrome -It&apos;s Free
                   <ArrowRight className="w-5 h-5" />
                 </a>
                 <a
@@ -101,7 +102,7 @@ export default function Home() {
               <div className="flex flex-wrap items-center justify-center gap-6 mt-12 text-sm text-gray-500">
                 <div className="flex items-center gap-2">
                   <Lock className="w-4 h-4" />
-                  100% Private — All data stays on your device
+                  100% Private -All data stays on your device
                 </div>
                 <div className="flex items-center gap-2">
                   <Shield className="w-4 h-4" />
@@ -128,7 +129,7 @@ export default function Home() {
                 If you&apos;re running competitions or raffles, you know the drill. You&apos;ve got
                 a CSV full of entries, a winning ticket number, and your audience watching live. So
                 how do you reveal the winner? By scrolling through a spreadsheet? By reading a name
-                off a screen? That&apos;s not a moment — that&apos;s a letdown.
+                off a screen? That&apos;s not a moment -that&apos;s a letdown.
               </p>
             </div>
 
@@ -160,12 +161,12 @@ export default function Home() {
                   <h3 className="text-xl font-bold text-emerald">The DrawDay Way</h3>
                 </div>
                 <ul className="space-y-4">
-                  <GainPoint text="Type the winning ticket number and watch a thrilling slot-machine animation build the suspense" />
-                  <GainPoint text="Stream-safe winner cards show only the winner's name and ticket — personal details stay hidden" />
+                  <GainPoint text="Type the winning ticket number -or let auto-fill grab it from Google's RNG -and watch a thrilling animation build the suspense" />
+                  <GainPoint text="Stream-safe winner cards show only the winner's name and ticket -personal details stay hidden" />
                   <GainPoint text="Dramatic, configurable animations that make every reveal a moment your audience remembers" />
                   <GainPoint text="Every draw is automatically timestamped and logged for full audit trail compliance" />
                   <GainPoint text="Manage all your competitions in one place with dedicated entries, winners, and settings per draw" />
-                  <GainPoint text="Completely free Chrome extension that installs in seconds — no subscriptions, no hidden costs" />
+                  <GainPoint text="Completely free Chrome extension that installs in seconds -no subscriptions, no hidden costs" />
                 </ul>
               </div>
             </div>
@@ -175,7 +176,7 @@ export default function Home() {
                 DrawDay Spinner was built by competition operators, for competition operators. We
                 know what it&apos;s like to run live draws week after week, and we built the tool we
                 wished we&apos;d had from day one. It sits right in your browser sidebar, ready
-                whenever you are — no extra windows, no complicated setup, no learning curve.
+                whenever you are -no extra windows, no complicated setup, no learning curve.
               </p>
             </div>
           </div>
@@ -195,23 +196,24 @@ export default function Home() {
                   <span className="text-drawday-gold">goosebumps</span>
                 </h2>
                 <p className="text-gray-300 text-lg mb-6 leading-relaxed">
-                  The heart of DrawDay is the spinner — a smooth, 60fps slot-machine animation that
-                  cycles through names before dramatically slowing down and landing on your winner.
-                  It&apos;s the same kind of suspense you see on TV game shows, and it turns every
-                  draw into a genuine event.
+                  DrawDay offers two reveal styles to match your draw. The{' '}
+                  <strong>Name Flipper</strong> cycles through participant name cards with a smooth
+                  60fps animation that decelerates dramatically before landing on your winner. The{' '}
+                  <strong>Table Scroll</strong> displays your full sorted entry list and animates
+                  through it to the winning ticket -perfect for audiences who want to see every
+                  entry fly past.
                 </p>
                 <p className="text-gray-400 text-base mb-6 leading-relaxed">
-                  Your audience leans in as the names fly past. The spinner decelerates. The
-                  anticipation builds. And then — the winner is revealed with a beautiful
-                  celebration card, complete with confetti-worthy presentation. It&apos;s the
-                  difference between &quot;and the winner is...&quot; read off a list, and a reveal
-                  that has your chat exploding.
+                  Your audience leans in as the names fly past. The animation decelerates. The
+                  anticipation builds. And then -the winner is revealed with a beautiful celebration
+                  card. It&apos;s the difference between &quot;and the winner is...&quot; read off a
+                  list, and a reveal that has your chat exploding.
                 </p>
                 <div className="space-y-3">
-                  <CheckItem text="Configurable spin duration — from quick 1-second spins to dramatic 10-second builds" />
-                  <CheckItem text="Adjustable deceleration curve — choose from subtle to dramatic slow-downs" />
-                  <CheckItem text="Customisable flip count — control how many names flash before the winner lands" />
-                  <CheckItem text="GPU-accelerated animations — buttery smooth 60fps even with thousands of entries" />
+                  <CheckItem text="Two reveal styles -Name Flipper (card cycling) or Table Scroll (full entry list)" />
+                  <CheckItem text="Configurable spin duration -from quick 1-second spins to dramatic 10-second builds" />
+                  <CheckItem text="Adjustable deceleration curve -choose from subtle to dramatic slow-downs" />
+                  <CheckItem text="GPU-accelerated animations -buttery smooth 60fps even with thousands of entries" />
                 </div>
               </div>
 
@@ -225,24 +227,23 @@ export default function Home() {
                   {/* Simulated spinner slots */}
                   <div className="space-y-1 mb-6">
                     <div className="px-4 py-2.5 rounded-lg bg-rich-black/70 border border-gray-800 text-gray-600 text-sm text-center">
-                      Mike Thompson — #02841
+                      Mike Thompson -#02841
                     </div>
                     <div className="px-4 py-2.5 rounded-lg bg-rich-black/70 border border-gray-800 text-gray-600 text-sm text-center">
-                      Rachel Green — #01567
+                      Rachel Green -#01567
                     </div>
                     <div className="px-4 py-3 rounded-lg bg-drawday-gold/10 border-2 border-drawday-gold/40 text-white font-semibold text-center">
-                      Sarah Johnson — #04521
+                      Sarah Johnson -#04521
                     </div>
                     <div className="px-4 py-2.5 rounded-lg bg-rich-black/70 border border-gray-800 text-gray-600 text-sm text-center">
-                      James Wilson — #03290
+                      James Wilson -#03290
                     </div>
                     <div className="px-4 py-2.5 rounded-lg bg-rich-black/70 border border-gray-800 text-gray-600 text-sm text-center">
-                      Emma Davis — #00834
+                      Emma Davis -#00834
                     </div>
                   </div>
                   <div className="p-4 rounded-xl bg-emerald/10 border border-emerald/20 text-center">
                     <Trophy className="w-8 h-8 text-emerald mx-auto mb-2" />
-                    <div className="text-emerald font-semibold text-lg">1st Prize Winner!</div>
                     <div className="text-white font-bold text-2xl mt-1">Sarah Johnson</div>
                     <div className="text-gray-400 text-sm mt-1">Ticket #04521</div>
                   </div>
@@ -273,7 +274,7 @@ export default function Home() {
                       status="active"
                     />
                     <CompetitionMock
-                      name="Monthly Prize Draw — June"
+                      name="Monthly Prize Draw -June"
                       entries={1203}
                       winners={3}
                       status="active"
@@ -306,7 +307,7 @@ export default function Home() {
                 <p className="text-gray-300 text-lg mb-6 leading-relaxed">
                   Whether you run one raffle a month or five draws a week, DrawDay keeps everything
                   organised. Each competition has its own set of entries, its own winner history,
-                  and its own settings — all managed from a single, clean interface.
+                  and its own settings -all managed from a single, clean interface.
                 </p>
                 <p className="text-gray-400 text-base mb-6 leading-relaxed">
                   No more juggling spreadsheets across different folders. No more wondering which
@@ -348,20 +349,20 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto mt-12">
               <FeatureCard
                 icon={<Trophy className="w-6 h-6" />}
-                title="Slot-Machine Animation"
-                description="Names fly past in a dramatic slot-machine reel before decelerating to land on your winner. Smooth 60fps animation with configurable speed, duration, and deceleration curve. It's the suspense your audience craves."
+                title="Two Reveal Styles"
+                description="Choose the Name Flipper, which cycles through participant cards before landing on the winner, or the Table Scroll, which animates through your full sorted entry list. Both run at smooth 60fps with configurable speed and deceleration."
                 color="gold"
               />
               <FeatureCard
                 icon={<Upload className="w-6 h-6" />}
                 title="One-Click CSV Import"
-                description="Drag and drop your CSV file and DrawDay does the rest. It auto-detects your columns — ticket number, name, email, phone — no manual mapping needed. Handles 100,000+ entries without breaking a sweat."
+                description="Drag and drop your CSV file and DrawDay does the rest. It auto-detects your columns -ticket number, name, email, phone -no manual mapping needed. Handles 100,000+ entries without breaking a sweat."
                 color="azure"
               />
               <FeatureCard
                 icon={<Eye className="w-6 h-6" />}
                 title="Stream-Safe Display"
-                description="Winner reveal cards show only the winner's name and ticket number. Email addresses, phone numbers, and other personal details are kept completely hidden — protecting your participants' privacy on stream."
+                description="Winner reveal cards show only the winner's name and ticket number. Email addresses, phone numbers, and other personal details are kept completely hidden -protecting your participants' privacy on stream."
                 color="emerald"
               />
               <FeatureCard
@@ -373,13 +374,13 @@ export default function Home() {
               <FeatureCard
                 icon={<Palette className="w-6 h-6" />}
                 title="Your Branding, Front & Centre"
-                description="Upload your company logo and set your company name so every draw carries your brand. The spinner panel proudly displays your identity — making your draws look professional and on-brand for your audience."
+                description="Upload your company logo and set your company name so every draw carries your brand. The spinner panel proudly displays your identity -making your draws look professional and on-brand for your audience."
                 color="vermilion"
               />
               <FeatureCard
                 icon={<Lock className="w-6 h-6" />}
                 title="100% Private & Local"
-                description="Every piece of data — entries, winners, settings — stays in your browser's local storage. DrawDay makes zero network requests. There are no analytics, no tracking pixels, no data sharing. Your data is yours alone."
+                description="Every piece of data -entries, winners, settings -stays in your browser's local storage. DrawDay makes zero network requests. There are no analytics, no tracking pixels, no data sharing. Your data is yours alone."
                 color="emerald"
               />
               <FeatureCard
@@ -391,13 +392,13 @@ export default function Home() {
               <FeatureCard
                 icon={<Monitor className="w-6 h-6" />}
                 title="Browser Sidebar Integration"
-                description="DrawDay lives in Chrome's side panel — right alongside whatever tab you're on. No extra windows cluttering your screen. Perfect for live streams where you need the spinner visible while sharing your screen."
+                description="DrawDay lives in Chrome's side panel -right alongside whatever tab you're on. No extra windows cluttering your screen. Perfect for live streams where you need the spinner visible while sharing your screen."
                 color="gold"
               />
               <FeatureCard
                 icon={<Zap className="w-6 h-6" />}
-                title="Zero Setup, Instant Start"
-                description="Install from the Chrome Web Store and you're ready to draw in minutes. No configuration wizards, no subscription plans. Click install, import your entries, and start spinning. It's that simple."
+                title="Auto-Fill from Google RNG"
+                description="Enable auto-fill and drawn numbers transfer straight from Google's random number generator into the spinner -no manual typing needed. Just generate a number and the spinner is ready to reveal the winner instantly."
                 color="amber"
               />
             </div>
@@ -418,7 +419,7 @@ export default function Home() {
               <p className="text-gray-400 text-lg max-w-3xl mx-auto leading-relaxed">
                 We&apos;ve stripped away everything that slows you down. No configuration wizards,
                 no onboarding tutorials. DrawDay is designed to get out of your way and let you do
-                what you do best — run brilliant draws.
+                what you do best -run brilliant draws.
               </p>
             </div>
 
@@ -427,19 +428,19 @@ export default function Home() {
                 number={1}
                 icon={<FileSpreadsheet className="w-8 h-8" />}
                 title="Import your entries"
-                description="Create a new competition and drag-and-drop your CSV file. DrawDay automatically detects your columns — ticket numbers, names, contact details — and imports everything in seconds, even files with 100,000+ rows."
+                description="Create a new competition and drag-and-drop your CSV file. DrawDay automatically detects your columns -ticket numbers, names, contact details -and imports everything in seconds, even files with 100,000+ rows."
               />
               <StepCard
                 number={2}
                 icon={<MousePointerClick className="w-8 h-8" />}
                 title="Enter the winning ticket"
-                description="When it's time to draw, open the DrawDay side panel right alongside your browser tab. Type in the winning ticket number, hit enter, and the magic begins. Your audience sees the spinner start to whirl."
+                description="When it's time to draw, open the DrawDay side panel right alongside your browser tab. Type in the winning ticket number -or enable auto-fill to have it pulled directly from Google's random number generator -and the magic begins."
               />
               <StepCard
                 number={3}
                 icon={<PartyPopper className="w-8 h-8" />}
                 title="Reveal the winner"
-                description="The slot-machine animation builds suspense as names fly past and gradually slow down. The winner is revealed with a beautiful celebration card showing their name and ticket number — stream-safe and audience-ready."
+                description="The animation builds suspense -names fly past on the Name Flipper, or your full entry list scrolls to the winner on Table Scroll. The winner is revealed with a beautiful celebration card showing their name and ticket number -stream-safe and audience-ready."
               />
             </div>
 
@@ -464,9 +465,9 @@ export default function Home() {
                 Don&apos;t just take our word for it
               </h2>
               <p className="text-gray-400 text-lg max-w-3xl mx-auto leading-relaxed">
-                Watch a full walkthrough of DrawDay Spinner — from importing your CSV to revealing
-                the winner with our signature slot-machine animation. See exactly how it works and
-                how it&apos;ll look to your audience during a live draw.
+                Watch a full walkthrough of DrawDay Spinner -from importing your CSV to revealing
+                the winner with our Name Flipper and Table Scroll animations. See exactly how it
+                works and how it&apos;ll look to your audience during a live draw.
               </p>
             </div>
 
@@ -497,7 +498,7 @@ export default function Home() {
                   Lives right in your <span className="text-drawday-gold">browser sidebar</span>
                 </h2>
                 <p className="text-gray-300 text-lg mb-4 leading-relaxed">
-                  DrawDay Spinner opens as a Chrome side panel — docked right alongside whatever tab
+                  DrawDay Spinner opens as a Chrome side panel -docked right alongside whatever tab
                   you&apos;re on. This is a game-changer for live streamers: you can share your
                   screen showing your stream, and the DrawDay spinner panel is right there beside
                   it, ready to go.
@@ -505,15 +506,15 @@ export default function Home() {
                 <p className="text-gray-400 text-base mb-8 leading-relaxed">
                   No need to switch windows. No need to alt-tab to a different application. No need
                   to resize your browser to fit multiple windows. DrawDay is built into Chrome
-                  itself, so it&apos;s always exactly where you need it — immediately accessible
-                  from the toolbar, and tucked away when you don&apos;t.
+                  itself, so it&apos;s always exactly where you need it -immediately accessible from
+                  the toolbar, and tucked away when you don&apos;t.
                 </p>
                 <ul className="space-y-4">
-                  <CheckItem text="Opens alongside any tab — no window switching or resizing needed" />
+                  <CheckItem text="Opens alongside any tab -no window switching or resizing needed" />
                   <CheckItem text="Manage competitions in a dedicated options page with full-screen room" />
                   <CheckItem text="Settings and data sync instantly between the side panel and options page" />
                   <CheckItem text="Lightweight popup launcher in your toolbar to open the panel with one click" />
-                  <CheckItem text="Stays out of the way when you don't need it — no floating windows or overlays" />
+                  <CheckItem text="Stays out of the way when you don't need it -no floating windows or overlays" />
                 </ul>
               </div>
               <div className="relative">
@@ -545,7 +546,6 @@ export default function Home() {
                     </div>
                     <div className="mt-4 p-4 rounded-xl bg-emerald/10 border border-emerald/20 text-center">
                       <Trophy className="w-8 h-8 text-emerald mx-auto mb-2" />
-                      <div className="text-emerald font-semibold text-lg">1st Prize Winner!</div>
                       <div className="text-white font-bold text-xl mt-1">Sarah Johnson</div>
                       <div className="text-gray-400 text-sm mt-1">Ticket #04521</div>
                     </div>
@@ -588,7 +588,7 @@ export default function Home() {
               <AudienceCard
                 icon={<Tv className="w-7 h-7" />}
                 title="Live Streamers & Content Creators"
-                description="You run giveaways and competitions for your community on Facebook, YouTube, or TikTok. You need a winner reveal that looks incredible on camera and keeps your viewers engaged. DrawDay's slot-machine animation is made for live content."
+                description="You run giveaways and competitions for your community on Facebook, YouTube, or TikTok. You need a winner reveal that looks incredible on camera and keeps your viewers engaged. DrawDay's animations are made for live content."
                 color="azure"
               />
               <AudienceCard
@@ -612,7 +612,7 @@ export default function Home() {
               <AudienceCard
                 icon={<Shield className="w-7 h-7" />}
                 title="Anyone Who Values Privacy"
-                description="You handle participant data and take privacy seriously. DrawDay stores everything locally in your browser — no cloud uploads, no third-party access, no data sharing. Your participants' information never leaves your machine."
+                description="You handle participant data and take privacy seriously. DrawDay stores everything locally in your browser -no cloud uploads, no third-party access, no data sharing. Your participants' information never leaves your machine."
                 color="emerald"
               />
             </div>
@@ -637,11 +637,11 @@ export default function Home() {
               />
               <FAQItem
                 question="How do I get started?"
-                answer="It's quick and easy. Install DrawDay from the Chrome Web Store, create your account, and you're ready to go. Import your first CSV, and you can run your first draw within minutes of installing."
+                answer="It's quick and easy. Install DrawDay from the Chrome Web Store and you're ready to go -no account needed. Import your first CSV, and you can run your first draw within minutes of installing."
               />
               <FAQItem
                 question="Is my data safe?"
-                answer="Absolutely. DrawDay stores all data locally in your browser's storage. It makes zero network requests — your competition entries, winner history, and settings never leave your computer. There are no analytics, no tracking, and no data sharing of any kind."
+                answer="Absolutely. DrawDay stores all data locally in your browser's storage. It makes zero network requests -your competition entries, winner history, and settings never leave your computer. There are no analytics, no tracking, and no data sharing of any kind."
               />
               <FAQItem
                 question="How many entries can it handle?"
@@ -649,15 +649,15 @@ export default function Home() {
               />
               <FAQItem
                 question="Can I use it for live streams?"
-                answer="DrawDay was designed with live streaming in mind. It opens in Chrome's side panel alongside your stream tab, the winner cards are stream-safe (no personal details shown), and the slot-machine animation creates genuine suspense and entertainment for your viewers."
+                answer="DrawDay was designed with live streaming in mind. It opens in Chrome's side panel alongside your stream tab, the winner cards are stream-safe (no personal details shown), and both the Name Flipper and Table Scroll animations create genuine suspense and entertainment for your viewers."
               />
               <FAQItem
                 question="Does it work for compliance?"
-                answer="Yes. Every draw is automatically timestamped and recorded with full details — winner name, ticket number, draw position, and exact time. This audit trail is designed to meet the record-keeping requirements that UK raffle and competition operators need for Gambling Commission compliance."
+                answer="Yes. Every draw is automatically timestamped and recorded with full details -winner name, ticket number, draw position, and exact time. This audit trail is designed to meet the record-keeping requirements that UK raffle and competition operators need for Gambling Commission compliance."
               />
               <FAQItem
                 question="What file format do I need for entries?"
-                answer="DrawDay accepts standard CSV files — the kind you can export from Excel, Google Sheets, or any spreadsheet application. It auto-detects your column headers (ticket number, name, email, phone) so you don't need to format your file in any special way."
+                answer="DrawDay accepts standard CSV files -the kind you can export from Excel, Google Sheets, or any spreadsheet application. It auto-detects your column headers (ticket number, name, email, phone) so you don't need to format your file in any special way."
               />
               <FAQItem
                 question="Can I run multiple competitions at once?"
